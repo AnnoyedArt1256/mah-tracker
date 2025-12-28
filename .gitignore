@@ -1,0 +1,14 @@
+.vscode/
+build/
+tests/
+*.o
+*.obj
+*.elf
+*.a
+*.lib
+*.map
+*.exe
+*.out
+*.app
+Makefile
+.DS_Store
