@@ -29,9 +29,11 @@ void load_settings();
 struct window_bool {
     bool settings;
     bool imgui_debugger;
+    bool pattern;
+    float audio_volume;
 };
 
-struct window_bool visible_windows; // misc.h
+struct window_bool visible_windows;
 
 static bool opt_padding = false; // Is there padding (a blank space) between the window edge and the Dockspace?
 
@@ -137,6 +139,7 @@ void ShowExampleAppDockSpace(bool* p_open) {
 
         if (ImGui::BeginMenu("windows")) {
             ImGui::MenuItem("ImGui Debugger", NULL, (bool *)&visible_windows.imgui_debugger);
+            ImGui::MenuItem("Pattern", NULL, (bool *)&visible_windows.pattern);
             ImGui::EndMenu();
         }
 
@@ -173,6 +176,10 @@ void load_settings() {
         getline(f,value); if (!value.empty()) ((uint8_t*)&visible_windows)[i] = std::stoi(value);
     }
 }
+
+const char* notes[12] = {
+    "C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"
+};
 
 // Main code
 int main(int argc, char *argv[]) {
@@ -256,8 +263,8 @@ int main(int argc, char *argv[]) {
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
 
     // Setup Dear ImGui style
-    //ImGui::StyleColorsDark();
-    ImGui::StyleColorsLight();
+    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsLight();
 
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
@@ -279,8 +286,17 @@ int main(int argc, char *argv[]) {
     EMSCRIPTEN_MAINLOOP_BEGIN
 #else
     // Main loop
-    while (!has_quit()) {
+    while (!done) {
 #endif
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            ImGui_ImplSDL2_ProcessEvent(&event);
+            switch (event.type) {
+                case SDL_QUIT:
+                    done = true;
+                    break;
+            }
+        }
 
         cur_frame++;
         if (cur_frame == (50*60)) {
@@ -295,6 +311,61 @@ int main(int argc, char *argv[]) {
 
         ShowExampleAppDockSpace((bool*)false);
 
+        if (visible_windows.settings) {
+            // Settings
+            ImGui::Begin("Settings",(bool *)&visible_windows.settings);
+            ImGui::SliderFloat("UI Scaling Factor", &io.FontGlobalScale, 0.5f, 3.0f); rightClickable
+            ImGui::SliderFloat("Master Audio Volume", &visible_windows.audio_volume, 0.0f, 3.0f); rightClickable
+            ImGui::Separator();
+            ImGui::MenuItem("Padding", NULL, &opt_padding);
+            ImGui::Separator();
+            if (ImGui::MenuItem("Save Settings")) save_settings();
+            if (ImGui::MenuItem("Load Settings")) load_settings();
+            ImGui::Separator();
+            ImGui::End();
+        }
+
+        if (visible_windows.pattern) {
+            ImGui::Begin("Pattern", (bool *)&visible_windows.pattern);
+            ImGui::PushStyleVar(ImGuiStyleVar_CellPadding,ImVec2(0.0f,0.0f));
+            ImGui::BeginTable("patview",3+2,ImGuiTableFlags_BordersInnerV|ImGuiTableFlags_ScrollX|ImGuiTableFlags_ScrollY|ImGuiTableFlags_NoPadInnerX);
+            ImVec2 char_size_xy = ImGui::CalcTextSize("A");
+            float char_size = char_size_xy.x; // from foiniss
+            char_size_xy.y += io.FontGlobalScale+2;
+            const float ch_row_len = 12.0; // C-4 69 420
+            ImDrawList* draw_list = ImGui::GetWindowDrawList();
+            ImGui::TableSetupColumn("row_pos",ImGuiTableColumnFlags_WidthFixed,4.0*char_size);
+            for (int ch = 0; ch < 3; ch++) {
+                char ch_id[16];
+                snprintf(ch_id,16,"ch%d",ch);
+                ImGui::TableSetupColumn(ch_id,ImGuiTableColumnFlags_WidthFixed,ch_row_len*char_size);
+            }
+            ImGui::TableSetupColumn("row_end",ImGuiTableColumnFlags_WidthFixed,char_size);
+            ImVec2 c = ImGui::GetCursorScreenPos();
+            c.x += char_size_xy.x*4.0;
+            ImGui::TableNextRow(0,char_size_xy.y);
+            for (int row = 0; row < 32; row += 4) {
+                draw_list->AddRectFilled(ImVec2(c.x, c.y), 
+                                         ImVec2(c.x+char_size_xy.x*(ch_row_len*3.0)+4,c.y+char_size_xy.y),
+                                         IM_COL32(0x20,0x2c,0x35,0xff));
+                c.y += char_size_xy.y*4.0;
+            }
+            for (int row = 0; row < 32; row++) {
+                ImGui::TableNextColumn();
+                ImGui::Text(" %02x ",row);
+                ImGui::TableNextColumn();
+                for (int ch = 0; ch < 3; ch++) {
+                    // C-4 01 4xx
+                    char cur_note[11] = "C-4 .. ...";
+                    ImGui::Text(" %s ",cur_note);
+                    ImGui::TableNextColumn();
+                }
+                ImGui::TableNextRow(0,char_size_xy.y);
+            }
+            ImGui::EndTable();
+            ImGui::PopStyleVar();
+            ImGui::End();
+        }
         if (visible_windows.imgui_debugger) {
             ImGui::ShowMetricsWindow((bool *)&visible_windows.imgui_debugger);
         }

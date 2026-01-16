@@ -56,5 +56,5 @@ add_executable(
 )
 
 target_link_libraries(mah_tracker
-	PRIVATE ymfm imgui imgui_impl_sdl2 imgui_impl_opengl3 SDL2::SDL2-static SDL2::SDL2main
+	PRIVATE imgui imgui_impl_sdl2 imgui_impl_opengl3 SDL2::SDL2-static SDL2::SDL2main
 )
