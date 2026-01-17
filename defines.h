@@ -12,6 +12,7 @@ typedef struct {
     enum channel_mode selection;
     int octave;
     int latch;
+    int order;
 } cursor;
 
 #define NOTE_OFF 0xfe
@@ -24,10 +25,21 @@ typedef struct {
     pat_row rows[32];
 } pattern;
 
+#define INS_NO_LOOP 0xff
+typedef struct {
+    uint8_t a, d, s, r;
+    uint8_t wav_len;
+    uint8_t wav_loop;
+    uint8_t wav[128];
+} instrument;
+
 #define ORDER_END 0xff
 typedef struct {
     pattern pattern[256];
     uint16_t order_table[3][256];
+    uint8_t order_len;
+    instrument instr[128];
 } song;
 
 extern void render_pat(song *song, cursor *cur_cursor, bool *enable);
+extern void render_orders(song *song, cursor *cur_cursor, bool *enable);

@@ -54,6 +54,7 @@ add_executable(
     mah_tracker 
     main.cpp
 	pattern.cpp
+	orders.cpp
 )
 
 target_link_libraries(mah_tracker

@@ -32,6 +32,8 @@ struct window_bool {
     bool imgui_debugger;
     bool pattern;
     bool controls;
+    bool orders;
+    bool instr;
 };
 
 struct window_bool visible_windows;
@@ -142,6 +144,7 @@ void ShowExampleAppDockSpace(bool* p_open) {
             ImGui::MenuItem("ImGui Debugger", NULL, (bool *)&visible_windows.imgui_debugger);
             ImGui::MenuItem("Pattern", NULL, (bool *)&visible_windows.pattern);
             ImGui::MenuItem("Controls", NULL, (bool *)&visible_windows.controls);
+            ImGui::MenuItem("Orders", NULL, (bool *)&visible_windows.orders);
             ImGui::EndMenu();
         }
 
@@ -284,6 +287,7 @@ int main(int argc, char *argv[]) {
     cur_cursor.selection = note;
     cur_cursor.octave = 3;
     cur_cursor.latch = 0;
+    cur_cursor.order = 0;
 
     // Main loop
     bool done = false;
@@ -299,15 +303,24 @@ int main(int argc, char *argv[]) {
         c_song.order_table[1][pat] = 0;
         c_song.order_table[2][pat] = 0;
     }
+
+    for (int ins = 0; ins < 128; ins++) {
+        c_song.instr[ins].a = 0x0;
+        c_song.instr[ins].d = 0x8;
+        c_song.instr[ins].s = 0x0;
+        c_song.instr[ins].r = 0x0;
+        c_song.instr[ins].wav_len = 0x1;
+        c_song.instr[ins].wav_loop = INS_NO_LOOP;
+        memset(c_song.instr[ins].wav,0,128);
+        c_song.instr[ins].wav[0] = 0x21;
+    }
+
     //                      00 01
     // initial order table: 00 END
     c_song.order_table[0][0] = 0x00;
-    c_song.order_table[0][1] = ORDER_END;
     c_song.order_table[1][0] = 0x01;
-    c_song.order_table[1][1] = ORDER_END;
     c_song.order_table[2][0] = 0x02;
-    c_song.order_table[2][1] = ORDER_END;
-
+    c_song.order_len = 1;
 #ifdef __EMSCRIPTEN__
     // For an Emscripten build we are disabling file-system access, so let's not attempt to do a fopen() of the imgui.ini file.
     // You may manually call LoadIniSettingsFromMemory() to load settings from your own storage.
@@ -365,8 +378,11 @@ int main(int argc, char *argv[]) {
                 if (cur_cursor.octave < 0) cur_cursor.octave = 0;
                 else if (cur_cursor.octave > 7) cur_cursor.octave = 7;
             }
-
             ImGui::End();
+        }
+
+        if (visible_windows.orders) {
+            render_orders(&c_song,&cur_cursor,(bool *)&visible_windows.pattern);
         }
 
         if (visible_windows.imgui_debugger) {
