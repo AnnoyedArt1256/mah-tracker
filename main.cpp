@@ -181,6 +181,238 @@ const char* notes[12] = {
     "C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"
 };
 
+enum channel_mode {
+    nothing = -1,
+    note = 0,
+    instr = 1, 
+    eff_type = 2,
+    eff_arg = 3,
+    end = 4
+};
+
+// get render offset for channel select mode
+int get_select_offset(enum channel_mode ch_select) {
+    switch (ch_select) {
+        case note: { return 0; }
+        case instr: { return 4; }
+        case eff_type: { return 7; }
+        case eff_arg: { return 8; }
+        default: return 0;
+    }
+    return 0;
+}
+
+int get_select_width(enum channel_mode ch_select) {
+    switch (ch_select) {
+        case note: { return 3; }
+        case instr: { return 2; }
+        case eff_type: { return 1; }
+        case eff_arg: { return 2; }
+        default: return 0;
+    }
+    return 0;
+}
+
+typedef struct {
+    int ch, row;
+    enum channel_mode selection;
+} cursor;
+
+cursor cur_cursor;
+
+void do_pat_keyboard() {
+    ImGuiIO& io = ImGui::GetIO();
+    ImVec2 char_size_xy = ImGui::CalcTextSize("A");
+    char_size_xy.y += io.FontGlobalScale+2;
+    if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
+        cur_cursor.row = (cur_cursor.row+1)%32;
+        ImGui::SetScrollY(cur_cursor.row*char_size_xy.y);
+    }
+    if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
+        cur_cursor.row--;
+        if (cur_cursor.row < 0) cur_cursor.row = 32-1;
+        ImGui::SetScrollY(cur_cursor.row*char_size_xy.y);
+    }
+    if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)) {
+        switch (cur_cursor.selection) {
+            case note: {
+                cur_cursor.selection = instr;
+                break;
+            }
+            case instr: {
+                cur_cursor.selection = eff_type;
+                break;
+            }
+            case eff_type: {
+                cur_cursor.selection = eff_arg;
+                break;
+            }
+            case eff_arg: {
+                cur_cursor.selection = note;
+                cur_cursor.ch = (cur_cursor.ch+1)%3;
+                break;
+            }
+            default: break;
+        }
+    }
+    if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) {
+        switch (cur_cursor.selection) {
+            case note: {
+                cur_cursor.selection = eff_arg;
+                if (--cur_cursor.ch < 0) {
+                    cur_cursor.ch = 3-1;
+                }
+                break;
+            }
+            case instr: {
+                cur_cursor.selection = note;
+                break;
+            }
+            case eff_type: {
+                cur_cursor.selection = instr;
+                break;
+            }
+            case eff_arg: {
+                cur_cursor.selection = eff_type;
+                break;
+            }
+            default: break;
+        }
+    }
+}
+
+void render_pat() {
+    // init window and table
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::Begin("Pattern", (bool *)&visible_windows.pattern);
+    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding,ImVec2(0.0f,0.0f));
+    ImGui::BeginTable("patview",3+2,ImGuiTableFlags_BordersInnerV|ImGuiTableFlags_ScrollX|ImGuiTableFlags_ScrollY|ImGuiTableFlags_NoPadInnerX);
+    ImVec2 char_size_xy = ImGui::CalcTextSize("A");
+    float char_size = char_size_xy.x; // from foiniss
+    char_size_xy.y += io.FontGlobalScale+2;
+    const float ch_row_len = 12.0; // C-4 69 420
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    ImGui::TableSetupColumn("row_pos",ImGuiTableColumnFlags_WidthFixed,4.0*char_size);
+    for (int ch = 0; ch < 3; ch++) {
+        char ch_id[16];
+        snprintf(ch_id,16,"ch%d",ch);
+        ImGui::TableSetupColumn(ch_id,ImGuiTableColumnFlags_WidthFixed,ch_row_len*char_size-1);
+    }
+    ImGui::TableSetupColumn("row_end",ImGuiTableColumnFlags_WidthFixed,char_size);
+
+    // get the amount of dummy rows
+    int dummy_row_cnt = (int)(ImGui::GetWindowSize().y/(2.0*char_size_xy.y));
+
+    // draw row highlights
+    ImVec2 c = ImGui::GetCursorScreenPos();
+    c.x += char_size_xy.x*4.0;
+    c.y += char_size_xy.y*dummy_row_cnt;
+    ImGui::TableNextRow(0,char_size_xy.y);
+    for (int row = 0; row < 32; row += 4) {
+        draw_list->AddRectFilled(ImVec2(c.x, c.y), 
+                                 ImVec2(c.x+char_size_xy.x*(ch_row_len*3.0),c.y+char_size_xy.y),
+                                 IM_COL32(0x20,0x2c,0x35,0xff));
+        c.y += char_size_xy.y*4.0;
+    }
+    // get mouse
+    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows) && ImGui::IsWindowFocused()) {
+        // get the absolute coords OF THE WINDOW
+        float x = ImGui::GetMousePos().x+ImGui::GetScrollX()+1.0;
+        float y = ImGui::GetMousePos().y+ImGui::GetScrollY();
+        x -= ImGui::GetWindowPos().x;
+        y -= ImGui::GetWindowPos().y;
+        x -= char_size_xy.x*5.0;
+        int char_x = (int)floorf(x/char_size_xy.x);
+        int char_y = (int)floorf(y/char_size_xy.y);
+        char_y -= dummy_row_cnt;
+
+        // get channel selection type
+        int ch = char_x/12;
+        enum channel_mode ch_select = nothing;
+        switch (char_x%12) {
+            case 0:
+            case 1:
+            case 2:
+            case 3: {
+                ch_select = note;
+                break;
+            }
+            case 4:
+            case 5: 
+            case 6: {
+                ch_select = instr;
+                break;
+            }
+            case 7: {
+                ch_select = eff_type;
+                break;
+            }
+            case 8:
+            case 9: 
+            case 10: {
+                ch_select = eff_arg;
+            }
+            default: break; // wtf
+        }
+
+        printf("%02d %02d %d\n",ch,char_y,ch_select);
+        if (ch >= 0 && ch < 3 && char_y >= 0 && char_y < 32) {
+            if (ImGui::IsMouseClicked(0)) {
+                cur_cursor.ch = ch;
+                cur_cursor.row = char_y;
+                cur_cursor.selection = ch_select;
+                ImGui::SetScrollY(char_y*char_size_xy.y);
+            }
+        }
+    }
+    do_pat_keyboard();
+    if (cur_cursor.ch >= 0 && cur_cursor.ch < 3) {
+        // render SELECTED cursor
+        ImVec2 c = ImGui::GetCursorScreenPos();
+        c.x += char_size_xy.x*5.0; // offset it correctly
+        c.x += get_select_offset(cur_cursor.selection)*char_size_xy.x+1.0;
+        c.x += (cur_cursor.ch*12)*char_size_xy.x;
+        c.y += cur_cursor.row*char_size_xy.y;
+        c.y += dummy_row_cnt*char_size_xy.y;
+        draw_list->AddRectFilled(ImVec2(c.x, c.y), 
+                                 ImVec2(c.x+get_select_width(cur_cursor.selection)*char_size_xy.x,
+                                        c.y+char_size_xy.y),
+                                 IM_COL32(0x28,0x4c,0x7c,0xff));
+    }
+
+    for (int dummy_row = 0; dummy_row < dummy_row_cnt; dummy_row++) {
+        ImGui::TableNextColumn();
+        ImGui::TableNextColumn();
+        for (int ch = 0; ch < 3; ch++) {
+            ImGui::TableNextColumn();
+        }
+        ImGui::TableNextRow(0,char_size_xy.y);
+    }
+    for (int row = 0; row < 32; row++) {
+        ImGui::TableNextColumn();
+        ImGui::Text(" %02x ",row);
+        ImGui::TableNextColumn();
+        for (int ch = 0; ch < 3; ch++) {
+            // C-4 01 4xx
+            char cur_note[11] = "C-4 04 ...";
+            ImGui::Text(" %s ",cur_note);
+            ImGui::TableNextColumn();
+        }
+        ImGui::TableNextRow(0,char_size_xy.y);
+    }
+    for (int dummy_row = 0; dummy_row < dummy_row_cnt; dummy_row++) {
+        ImGui::TableNextColumn();
+        ImGui::TableNextColumn();
+        for (int ch = 0; ch < 3; ch++) {
+            ImGui::TableNextColumn();
+        }
+        ImGui::TableNextRow(0,char_size_xy.y);
+    }
+    ImGui::EndTable();
+    ImGui::PopStyleVar();
+    ImGui::End();
+}
+
 // Main code
 int main(int argc, char *argv[]) {
     visible_windows.imgui_debugger = false;
@@ -233,7 +465,7 @@ int main(int argc, char *argv[]) {
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI| SDL_WINDOW_MAXIMIZED);
-    SDL_Window* window = SDL_CreateWindow("myp6502", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
+    SDL_Window* window = SDL_CreateWindow("mah tracker baybeee!!11", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
     if (window == nullptr)
     {
         printf("Error: SDL_CreateWindow(): %s\n", SDL_GetError());
@@ -258,8 +490,8 @@ int main(int argc, char *argv[]) {
     //io.Fonts->AddFontFromFileTTF("IBMPlexSans.ttf", 25.0f); // FOINISS FONT OH MAI GAHHHH
 
     io.FontGlobalScale = 1.0f;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
 
     // Setup Dear ImGui style
@@ -275,6 +507,10 @@ int main(int argc, char *argv[]) {
 
     load_settings();
     save_settings(); // for updating config files from older versions
+
+    cur_cursor.ch = 0;
+    cur_cursor.row = 0;
+    cur_cursor.selection = note;
 
     // Main loop
     bool done = false;
@@ -326,45 +562,7 @@ int main(int argc, char *argv[]) {
         }
 
         if (visible_windows.pattern) {
-            ImGui::Begin("Pattern", (bool *)&visible_windows.pattern);
-            ImGui::PushStyleVar(ImGuiStyleVar_CellPadding,ImVec2(0.0f,0.0f));
-            ImGui::BeginTable("patview",3+2,ImGuiTableFlags_BordersInnerV|ImGuiTableFlags_ScrollX|ImGuiTableFlags_ScrollY|ImGuiTableFlags_NoPadInnerX);
-            ImVec2 char_size_xy = ImGui::CalcTextSize("A");
-            float char_size = char_size_xy.x; // from foiniss
-            char_size_xy.y += io.FontGlobalScale+2;
-            const float ch_row_len = 12.0; // C-4 69 420
-            ImDrawList* draw_list = ImGui::GetWindowDrawList();
-            ImGui::TableSetupColumn("row_pos",ImGuiTableColumnFlags_WidthFixed,4.0*char_size);
-            for (int ch = 0; ch < 3; ch++) {
-                char ch_id[16];
-                snprintf(ch_id,16,"ch%d",ch);
-                ImGui::TableSetupColumn(ch_id,ImGuiTableColumnFlags_WidthFixed,ch_row_len*char_size);
-            }
-            ImGui::TableSetupColumn("row_end",ImGuiTableColumnFlags_WidthFixed,char_size);
-            ImVec2 c = ImGui::GetCursorScreenPos();
-            c.x += char_size_xy.x*4.0;
-            ImGui::TableNextRow(0,char_size_xy.y);
-            for (int row = 0; row < 32; row += 4) {
-                draw_list->AddRectFilled(ImVec2(c.x, c.y), 
-                                         ImVec2(c.x+char_size_xy.x*(ch_row_len*3.0)+4,c.y+char_size_xy.y),
-                                         IM_COL32(0x20,0x2c,0x35,0xff));
-                c.y += char_size_xy.y*4.0;
-            }
-            for (int row = 0; row < 32; row++) {
-                ImGui::TableNextColumn();
-                ImGui::Text(" %02x ",row);
-                ImGui::TableNextColumn();
-                for (int ch = 0; ch < 3; ch++) {
-                    // C-4 01 4xx
-                    char cur_note[11] = "C-4 .. ...";
-                    ImGui::Text(" %s ",cur_note);
-                    ImGui::TableNextColumn();
-                }
-                ImGui::TableNextRow(0,char_size_xy.y);
-            }
-            ImGui::EndTable();
-            ImGui::PopStyleVar();
-            ImGui::End();
+            render_pat();
         }
         if (visible_windows.imgui_debugger) {
             ImGui::ShowMetricsWindow((bool *)&visible_windows.imgui_debugger);
