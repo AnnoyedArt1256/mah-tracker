@@ -53,6 +53,7 @@ add_compile_options(-O2)
 add_executable(
     mah_tracker 
     main.cpp
+	pattern.cpp
 )
 
 target_link_libraries(mah_tracker
