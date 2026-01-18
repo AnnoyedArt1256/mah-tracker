@@ -162,7 +162,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
         }
     }
     if (cur_cursor->selection == eff_arg) {
-        for (int key = 0; key < 16; key++) {
+        for (int key = 1; key < 16; key++) {
             if (ImGui::IsKeyPressed(hex_keys[key])) {
                 if (cur_cursor->latch) {
                     song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].eff_arg <<= 4;

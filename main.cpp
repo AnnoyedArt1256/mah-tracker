@@ -145,6 +145,7 @@ void ShowExampleAppDockSpace(bool* p_open) {
             ImGui::MenuItem("Pattern", NULL, (bool *)&visible_windows.pattern);
             ImGui::MenuItem("Controls", NULL, (bool *)&visible_windows.controls);
             ImGui::MenuItem("Orders", NULL, (bool *)&visible_windows.orders);
+            ImGui::MenuItem("Instrument Editor", NULL, (bool *)&visible_windows.instr);
             ImGui::EndMenu();
         }
 
@@ -312,6 +313,7 @@ int main(int argc, char *argv[]) {
         c_song.instr[ins].wav_len = 0x1;
         c_song.instr[ins].wav_loop = INS_NO_LOOP;
         memset(c_song.instr[ins].wav,0,128);
+        memset(c_song.instr[ins].arp,48,128);
         c_song.instr[ins].wav[0] = 0x21;
     }
 
@@ -383,6 +385,10 @@ int main(int argc, char *argv[]) {
 
         if (visible_windows.orders) {
             render_orders(&c_song,&cur_cursor,(bool *)&visible_windows.pattern);
+        }
+
+        if (visible_windows.instr) {
+            render_instr(&c_song,&cur_cursor,(bool *)&visible_windows.instr);
         }
 
         if (visible_windows.imgui_debugger) {

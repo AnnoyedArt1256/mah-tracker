@@ -31,6 +31,7 @@ typedef struct {
     uint8_t wav_len;
     uint8_t wav_loop;
     uint8_t wav[128];
+    uint8_t arp[128];
 } instrument;
 
 #define ORDER_END 0xff
@@ -43,3 +44,4 @@ typedef struct {
 
 extern void render_pat(song *song, cursor *cur_cursor, bool *enable);
 extern void render_orders(song *song, cursor *cur_cursor, bool *enable);
+extern void render_instr(song *song, cursor *cur_cursor, bool *enable);
