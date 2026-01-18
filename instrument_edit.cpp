@@ -7,9 +7,21 @@
 
 extern const char* note_str[12];
 
+const char* wave_names[8] = {
+    "Noise", "Pulse", "Saw", "Triangle",
+    "Test-bit", "Ring-mod", "Hard-sync", "Gate-bit"
+};
+
 void render_instr(song *song, cursor *cur_cursor, bool *enable) {
     static bool was_hovering = false;
+    static bool was_dragging_wave[128][8];
+    static bool click_wav_val = false;
     ImGuiIO& io = ImGui::GetIO();
+    ImVec2 mouse_pos = io.MousePos;
+    ImVec2 mouse_pos_prev = io.MousePosPrev;
+    bool lmb_down = ImGui::IsMouseDown(0);
+    bool lmb_clicked = ImGui::IsMouseClicked(0);
+
     ImGui::Begin("Instrument Editor", enable);
 
     ImGui::Text("Arp/Wave Macro");
@@ -76,10 +88,10 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
             ImVec2 slider_b = ImGui::GetCursorScreenPos()+arp_off+slider_drag_res+ImVec2((slider_res.x-slider_drag_res.x)/2,padding);
             ImRect slider_rect = ImRect(ImVec4(slider_a.x,slider_a.y,slider_b.x,slider_b.y));
 
-            int x_rel = io.MousePos.x-slider_bb_a.x;
+            int x_rel = mouse_pos.x-slider_bb_a.x;
             bool is_in_x_boundary = x_rel >= 0 && x_rel < slider_res.x;
-            if (slider_bb.Contains(io.MousePos) || (was_hovering && is_in_x_boundary)) {
-                float rel_pos = ((io.MousePos - ImGui::GetCursorScreenPos()).y)/slider_res.y;
+            if (slider_bb.Contains(mouse_pos) || (was_hovering && is_in_x_boundary)) {
+                float rel_pos = ((mouse_pos - ImGui::GetCursorScreenPos()).y)/slider_res.y;
                 int final_pos = (int)((rel_pos*(v_max-v_min))+v_min);
                 if (v_min > v_max) {
                     int temp = v_min;
@@ -87,7 +99,7 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
                     v_max = temp;
                 }
                 final_pos = CLAMP(final_pos,v_min,v_max);
-                if (ImGui::IsMouseDown(0)) {
+                if (lmb_down) {
                     was_hovering = true;
                     arp_val = final_pos;
                 } else {
@@ -108,11 +120,33 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
             if (is_abs) song->instr[0].arp[col] = CLAMP(arp_val,0,95)|0x80;
             else song->instr[0].arp[col] = CLAMP(arp_val,-48,47)+48;
 
-            ImGui::SetCursorPosY(slider_res.y+io.FontGlobalScale*32.0);
+            ImGui::SetCursorPosY(slider_res.y+io.FontGlobalScale*64.0);
 
-            // TODO: add the waveform part of this macro
-            //int wav_val = song->instr[0].arp[col];
-            //for (int b = 7; b >= 4; b--)
+            int wav_val = song->instr[0].wav[col];
+            int row = 0;
+            for (int b = 7; b >= 0; b--) {
+                ImRect boundary = ImRect(ImVec4(ImGui::GetCursorScreenPos().x,ImGui::GetCursorScreenPos().y,
+                                                ImGui::GetCursorScreenPos().x+slider_res.x,
+                                                ImGui::GetCursorScreenPos().y+slider_res.x));
+                draw_list->AddRectFilled(boundary.Min, boundary.Max,
+                                         IM_COL32(0x28,0x4c,0x7c,0xff));
+                if ((wav_val>>b)&1) {
+                    draw_list->AddRectFilled(boundary.Min+ImVec2(io.FontGlobalScale*4.0,io.FontGlobalScale*4.0),
+                                             boundary.Max-ImVec2(io.FontGlobalScale*4.0,io.FontGlobalScale*4.0),
+                                             IM_COL32(0x78,0xac,0xcc,0xff));
+                }
+                ImGui::Dummy(ImVec2(0.0f,slider_res.x+2+io.FontGlobalScale));
+                if (b == 4) ImGui::Dummy(ImVec2(0.0f,2+io.FontGlobalScale));
+                if (boundary.Contains(mouse_pos)) {
+                    ImGui::SetTooltip("%s", wave_names[row]);
+                    if ((lmb_down && !boundary.Contains(mouse_pos_prev) && (((wav_val>>b)&1) == click_wav_val)) || lmb_clicked) { 
+                        if (lmb_clicked) click_wav_val = (wav_val>>b)&1;
+                        wav_val ^= (1<<b);
+                    }
+                }
+                row++;
+            }
+            song->instr[0].wav[col] = wav_val;
 
             ImGui::PopID();
             ImGui::TableNextColumn();
