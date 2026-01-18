@@ -41,16 +41,14 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
 
     if (ImGui::Button("Add")) {
         if (song->order_len < 255) {
-            int pats[3];
-            for (int ch = 0; ch < 3; ch++) pats[ch] = get_unused_pattern(song);
+            song->order_len++;
             int pat_ind = cur_cursor->order+1;
             for (int ch = 0; ch < 3; ch++) {
-                for (int pat = song->order_len; pat > pat_ind; pat--) {
+                for (int pat = song->order_len-1; pat > pat_ind; pat--) {
                     song->order_table[ch][pat] = song->order_table[ch][pat-1];
                 }
-                song->order_table[ch][pat_ind] = pats[ch];
+                song->order_table[ch][pat_ind] = get_unused_pattern(song);
             }
-            song->order_len++;
         }
     }
     ImGui::SameLine();
