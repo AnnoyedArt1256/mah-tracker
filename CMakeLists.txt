@@ -9,6 +9,7 @@ find_package(SDL2 REQUIRED)
 
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/imgui)
 set(ROOT ${IMGUI_DIR})
+set(RESIDFP_DIR ${CMAKE_SOURCE_DIR}/residfp)
 
 add_library(imgui STATIC
 	${ROOT}/imgui.cpp
@@ -23,13 +24,39 @@ add_library(imgui STATIC
     ${ROOT}/imgui_widgets.cpp
 )
 
+add_library(residfp STATIC
+    ${RESIDFP_DIR}/array.cpp
+    ${RESIDFP_DIR}/Dac.cpp
+    ${RESIDFP_DIR}/EnvelopeGenerator.cpp
+    ${RESIDFP_DIR}/ExternalFilter.cpp
+    ${RESIDFP_DIR}/Filter6581.cpp
+    ${RESIDFP_DIR}/Filter8580.cpp
+    ${RESIDFP_DIR}/Filter.cpp
+    ${RESIDFP_DIR}/FilterModelConfig6581.cpp
+    ${RESIDFP_DIR}/FilterModelConfig8580.cpp
+    ${RESIDFP_DIR}/FilterModelConfig.cpp
+    ${RESIDFP_DIR}/Integrator6581.cpp
+    ${RESIDFP_DIR}/Integrator8580.cpp
+    ${RESIDFP_DIR}/OpAmp.cpp
+    ${RESIDFP_DIR}/SID.cpp
+    ${RESIDFP_DIR}/Spline.cpp
+    ${RESIDFP_DIR}/WaveformCalculator.cpp
+    ${RESIDFP_DIR}/WaveformGenerator.cpp
+    ${RESIDFP_DIR}/resample/SincResampler.cpp
+)
+
+
 target_include_directories(imgui PUBLIC
     $<BUILD_INTERFACE:${ROOT}>
     $<INSTALL_INTERFACE:include>
 )
+target_include_directories(residfp PUBLIC
+    $<BUILD_INTERFACE:${RESIDFP_DIR}>
+)
+
 
 set(INSTALL_TARGETS imgui)
-set(INSTALL_HEADERS ${ROOT}/imgui.h ${ROOT}/imconfig.h ${YMFM_DIR}/ymfm.h ${YMFM_DIR}/ymfm_opn.h)
+set(INSTALL_HEADERS ${ROOT}/imgui.h ${ROOT}/imconfig.h ${RESIDFP_DIR}/siddefs-fp.h)
 
 foreach(BACKEND opengl3 sdl2)
 	set(NAME imgui_impl_${BACKEND})
@@ -49,6 +76,8 @@ target_link_libraries(imgui_impl_sdl2 PRIVATE SDL2::SDL2-static)
 
 add_compile_definitions(ImTextureID=void*)
 add_compile_options(-O2)
+#add_compile_options(-fsanitize=address)
+#add_link_options(-fsanitize=address)
 
 add_executable(
     mah_tracker 
@@ -56,8 +85,9 @@ add_executable(
 	pattern.cpp
 	orders.cpp
 	instrument_edit.cpp
+	player.cpp
 )
 
 target_link_libraries(mah_tracker
-	PRIVATE imgui imgui_impl_sdl2 imgui_impl_opengl3 SDL2::SDL2-static SDL2::SDL2main
+	PRIVATE residfp imgui imgui_impl_sdl2 imgui_impl_opengl3 SDL2::SDL2-static SDL2::SDL2main
 )

@@ -1,3 +1,22 @@
+/*
+mah_tracker: AArt1256's custom SID chiptune tracker
+Copyright (C) 2026 AArt1256
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, see
+<https://www.gnu.org/licenses/>.
+*/
+
 #define GL_GLEXT_PROTOTYPES
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
@@ -34,6 +53,7 @@ struct window_bool {
     bool controls;
     bool orders;
     bool instr;
+    bool reg_view;
 };
 
 struct window_bool visible_windows;
@@ -146,6 +166,7 @@ void ShowExampleAppDockSpace(bool* p_open) {
             ImGui::MenuItem("Controls", NULL, (bool *)&visible_windows.controls);
             ImGui::MenuItem("Orders", NULL, (bool *)&visible_windows.orders);
             ImGui::MenuItem("Instrument Editor", NULL, (bool *)&visible_windows.instr);
+            ImGui::MenuItem("Register View", NULL, (bool *)&visible_windows.reg_view);
             ImGui::EndMenu();
         }
 
@@ -185,8 +206,16 @@ void load_settings() {
 
 #include "defines.h"
 
+extern void init_sid(); // player.cpp
+extern void advance_audio(song *song, cursor *cur_cursor); // player.cpp
+extern void init_routine(song *song); // player.cpp
+extern void register_view(bool *open);
 cursor cur_cursor;
 song c_song; // current song
+
+float get_volume() { // for player.cpp
+    return visible_windows.audio_volume;
+}
 
 // Main code
 int main(int argc, char *argv[]) {
@@ -289,6 +318,9 @@ int main(int argc, char *argv[]) {
     cur_cursor.octave = 3;
     cur_cursor.latch = 0;
     cur_cursor.order = 0;
+    cur_cursor.instr = 1;
+    cur_cursor.playing = 0;
+    cur_cursor.play_row = 0;
 
     // Main loop
     bool done = false;
@@ -315,6 +347,11 @@ int main(int argc, char *argv[]) {
         memset(c_song.instr[ins].wav,0,128);
         memset(c_song.instr[ins].arp,48,128);
         c_song.instr[ins].wav[0] = 0x21;
+
+        c_song.instr[ins].filter_len = 0;
+        c_song.instr[ins].filter_loop = INS_NO_LOOP;
+        memset(c_song.instr[ins].filter,0,128);
+        memset(c_song.instr[ins].filter_mode,0,128);
     }
 
     //                      00 01
@@ -323,6 +360,11 @@ int main(int argc, char *argv[]) {
     c_song.order_table[1][0] = 0x01;
     c_song.order_table[2][0] = 0x02;
     c_song.order_len = 1;
+
+    c_song.init_speed = 6;
+
+    init_sid();
+    init_routine(&c_song);
 #ifdef __EMSCRIPTEN__
     // For an Emscripten build we are disabling file-system access, so let's not attempt to do a fopen() of the imgui.ini file.
     // You may manually call LoadIniSettingsFromMemory() to load settings from your own storage.
@@ -341,6 +383,7 @@ int main(int argc, char *argv[]) {
                     break;
             }
         }
+        advance_audio(&c_song,&cur_cursor);
 
         cur_frame++;
         if (cur_frame == (50*60)) {
@@ -376,10 +419,16 @@ int main(int argc, char *argv[]) {
         if (visible_windows.controls) {
             ImGui::Begin("Controls", (bool *)&visible_windows.controls);
             //ImGui::SetNextItemWidth(ImGui::GetWindowSize().x * 0.2f);
+            uint8_t one = 1;
             if (ImGui::InputInt("Octave",&cur_cursor.octave)) {
                 if (cur_cursor.octave < 0) cur_cursor.octave = 0;
                 else if (cur_cursor.octave > 7) cur_cursor.octave = 7;
             }
+            if (ImGui::InputScalar("Speed",ImGuiDataType_U8,&c_song.init_speed,&one)) {
+                if (c_song.init_speed < 1) c_song.init_speed = 1;
+                else if (c_song.init_speed > 127) c_song.init_speed = 1277;
+            }
+            
             ImGui::End();
         }
 
@@ -389,6 +438,10 @@ int main(int argc, char *argv[]) {
 
         if (visible_windows.instr) {
             render_instr(&c_song,&cur_cursor,(bool *)&visible_windows.instr);
+        }
+
+        if (visible_windows.reg_view) {
+            register_view(&visible_windows.reg_view);
         }
 
         if (visible_windows.imgui_debugger) {

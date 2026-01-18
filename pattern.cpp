@@ -1,3 +1,22 @@
+/*
+mah_tracker: AArt1256's custom SID chiptune tracker
+Copyright (C) 2026 AArt1256
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, see
+<https://www.gnu.org/licenses/>.
+*/
+
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -22,6 +41,7 @@ const ImGuiKey hex_keys[16] = {
     ImGuiKey_C, ImGuiKey_D, ImGuiKey_E, ImGuiKey_F, 
 };
 
+extern void init_routine(song *song); // player.cpp
 
 // get render offset for channel select mode
 int get_select_offset(enum channel_mode ch_select) {
@@ -181,6 +201,12 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
             cur_cursor->latch = 0;
         }
     }
+    if (ImGui::IsKeyPressed(ImGuiKey_Enter)) {
+        cur_cursor->playing ^= 1;
+        cur_cursor->play_row = 0;
+        cur_cursor->latch = 0;
+        init_routine(song);
+    }
 }
 
 void render_pat(song *song, cursor *cur_cursor, bool *enable) {
@@ -218,6 +244,17 @@ void render_pat(song *song, cursor *cur_cursor, bool *enable) {
                                  ImVec2(c.x+char_size_xy.x*(ch_row_len*3.0),c.y+char_size_xy.y),
                                  IM_COL32(0x20,0x2c,0x35,0xff));
         c.y += char_size_xy.y*4.0;
+    }
+
+    if (cur_cursor->playing) {
+        c = ImGui::GetCursorScreenPos();
+        c.x += char_size_xy.x*4.0;
+        c.y += char_size_xy.y*dummy_row_cnt;
+        c.y += char_size_xy.y*cur_cursor->play_row;
+
+        draw_list->AddRectFilled(ImVec2(c.x, c.y), 
+                                 ImVec2(c.x+char_size_xy.x*(ch_row_len*3.0),c.y+char_size_xy.y),
+                                 IM_COL32(0x40,0x4c,0x55,0xff));
     }
 
     // get mouse
@@ -261,7 +298,7 @@ void render_pat(song *song, cursor *cur_cursor, bool *enable) {
             default: break; // wtf
         }
 
-        printf("%02d %02d %d\n",ch,char_y,ch_select);
+        //printf("%02d %02d %d\n",ch,char_y,ch_select);
         if (ch >= 0 && ch < 3 && char_y >= 0 && char_y < 32) {
             if (ImGui::IsMouseClicked(0)) {
                 cur_cursor->ch = ch;
