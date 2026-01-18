@@ -352,6 +352,10 @@ int main(int argc, char *argv[]) {
         c_song.instr[ins].filter_loop = INS_NO_LOOP;
         memset(c_song.instr[ins].filter,0,128);
         memset(c_song.instr[ins].filter_mode,0,128);
+
+        c_song.instr[ins].duty_start = 0x800;
+        c_song.instr[ins].duty_end   = 0x800;
+        c_song.instr[ins].duty_speed = 0;
     }
 
     //                      00 01

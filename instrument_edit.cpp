@@ -199,6 +199,13 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
             //ImGui::Separator();
             ImGui::EndTabItem();
         }
+        if (ImGui::BeginTabItem("Duty Macro")) {
+            ImGui::SliderInt("Duty Start",&song->instr[cur_cursor->instr].duty_start,0,4095);
+            ImGui::SliderInt("Duty End",&song->instr[cur_cursor->instr].duty_end,0,4095);
+            ImGui::Separator();
+            ImGui::SliderInt("Duty Speed",&song->instr[cur_cursor->instr].duty_speed,-2048,2047);
+            ImGui::EndTabItem();
+        }
         if (ImGui::BeginTabItem("Filter Macro")) {
             uint8_t one = 1; // ONE!!11!
             ImGui::SetNextItemWidth(ImGui::GetWindowSize().x * 0.25f);

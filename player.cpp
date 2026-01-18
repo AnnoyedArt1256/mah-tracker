@@ -190,6 +190,8 @@ typedef struct {
     uint8_t inst[3];
     uint8_t cur_arpwave_pos[3];
     uint16_t freq[3];
+    uint16_t pw[3];
+    uint16_t pw_speed[3];
 } pvars;
 
 pvars player_vars;
@@ -220,6 +222,8 @@ void advance_frame(song *song, cursor *cur_cursor) {
                     player_vars.cur_note[ch] = note;
                     player_vars.cur_arpwave_pos[ch] = 0;
                     player_vars.hr_delay[ch] = 0;
+                    player_vars.pw[ch] = song->instr[player_vars.inst[ch]].duty_start;
+                    player_vars.pw_speed[ch] = song->instr[player_vars.inst[ch]].duty_speed;
                     write_sid(ch*7+5, 0x00);
                     write_sid(ch*7+6, 0x00);
                     write_sid(ch*7+4, 0x08);
@@ -228,6 +232,8 @@ void advance_frame(song *song, cursor *cur_cursor) {
                     player_vars.inst[ch] = instr;
                     player_vars.cur_arpwave_pos[ch] = 0;
                     player_vars.hr_delay[ch] = 0;
+                    player_vars.pw[ch] = song->instr[player_vars.inst[ch]].duty_start;
+                    player_vars.pw_speed[ch] = song->instr[player_vars.inst[ch]].duty_speed;
                     write_sid(ch*7+5, 0x00);
                     write_sid(ch*7+6, 0x00);
                     write_sid(ch*7+4, 0x08);
@@ -258,9 +264,20 @@ void advance_frame(song *song, cursor *cur_cursor) {
                 if (player_vars.cur_arpwave_pos[ch] >= song->instr[inst].wav_len) {
                     player_vars.cur_arpwave_pos[ch] = song->instr[inst].wav_len-1;
                 }
+                player_vars.pw[ch] += player_vars.pw_speed[ch];
+                if (player_vars.pw[ch] >= song->instr[inst].duty_end) {
+                    player_vars.pw[ch] = song->instr[inst].duty_end;
+                    player_vars.pw_speed[ch] *= -1;
+                }
+                if (player_vars.pw[ch] <= song->instr[inst].duty_start) {
+                    player_vars.pw[ch] = song->instr[inst].duty_start;
+                    player_vars.pw_speed[ch] *= -1;
+                }
             }
             write_sid(ch*7+0,player_vars.freq[ch]&0xff);
             write_sid(ch*7+1,player_vars.freq[ch]>>8);
+            write_sid(ch*7+2,player_vars.pw[ch]&0xff);
+            write_sid(ch*7+3,player_vars.pw[ch]>>8);
         }
     }
 }

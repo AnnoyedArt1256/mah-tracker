@@ -58,9 +58,9 @@ typedef struct {
     uint8_t filter_loop; // also for arps
     uint8_t filter[128];
     uint8_t filter_mode[128];
-    uint16_t duty_start;
-    uint16_t duty_end;
-    int16_t duty_speed;
+    int duty_start;
+    int duty_end;
+    int duty_speed;
 } instrument;
 
 #define ORDER_END 0xff
