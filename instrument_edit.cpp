@@ -14,18 +14,11 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
 
     ImGui::Text("Arp/Wave Macro");
 
-    ImGui::SetNextItemWidth(ImGui::GetWindowSize().x * 0.3f);
-    if (ImGui::InputScalar("##arp_length",ImGuiDataType_U8,&song->instr[0].wav_len)) {
+    uint8_t one = 1; // ONE!!11!
+    ImGui::SetNextItemWidth(ImGui::GetWindowSize().x * 0.25f);
+    if (ImGui::InputScalar("##arp_length",ImGuiDataType_U8,&song->instr[0].wav_len, &one, NULL, "%d", 0)) {
+        if (song->instr[0].wav_len == 255) song->instr[0].wav_len = 0;
         if (song->instr[0].wav_len >= 128) song->instr[0].wav_len = 127;
-    }
-
-    ImGui::SameLine();
-    if (ImGui::Button("-")) {
-        if (song->instr[0].wav_len != 0) song->instr[0].wav_len--;
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("+")) {
-        if (song->instr[0].wav_len < 128) song->instr[0].wav_len++;
     }
 
     // i know this is not my best friend imgui, i don't fucking care...
@@ -51,6 +44,8 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
             ImVec2 slider_res = ImVec2(24.0f*io.FontGlobalScale,160.0f*io.FontGlobalScale);
             ImVec2 slider_drag_res = ImVec2(18.0f*io.FontGlobalScale,8.0f*io.FontGlobalScale);
 
+            // FIXME: when using an abs macro on the first column, the text is slightly higher than usual?
+
             /*
             if (ImGui::VSliderInt("##val",ImVec2(24.0f*io.FontGlobalScale,160.0f*io.FontGlobalScale),&arp_val,is_abs?0:-64,is_abs?127:63,"%d",ImGuislider)) {
                 if (is_abs) song->instr[0].arp[col] = arp_val|0x80;
@@ -58,7 +53,16 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
             }
             */
 
+            if (is_abs) {
+                ImGui::Text("%s%d",note_str[arp_val%12],(arp_val-(arp_val%12))/12);
+            } else {
+                ImGui::SetNextItemWidth(slider_res.x);
+                ImGui::InputInt("##arp_val",&arp_val,0,0);
+            }
+            
             // draw arp slider
+            ImGui::SetCursorPosY(io.FontGlobalScale*24.0);
+
             int v_min = is_abs?95:47;
             int v_max = is_abs?0:-48;
 
@@ -97,20 +101,14 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
             draw_list->AddRectFilled(slider_a,slider_b,
                                     IM_COL32(0x78,0xac,0xcc,0xff));
 
-            char arp_char[8];
-            memset(arp_char,0,8);
-            if (is_abs) snprintf(arp_char,8,"%s%d",note_str[arp_val%12],(arp_val-(arp_val%12))/12);
-            else snprintf(arp_char,8,"%d",arp_val);
-            draw_list->AddText(ImGui::GetCursorScreenPos(),IM_COL32(0xff,0xff,0xff,0xff),arp_char);
-            
             // draw rel/abs checkbox
-            ImGui::SetCursorPosY(slider_res.y+io.FontGlobalScale*8.0);
-            ImGui::Checkbox("",(bool *)&is_abs);
+            ImGui::SetCursorPosY(slider_res.y+io.FontGlobalScale*32.0);
+            ImGui::Checkbox("##arp_mode",(bool *)&is_abs);
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", is_abs?"Absolute":"Relative");
             if (is_abs) song->instr[0].arp[col] = CLAMP(arp_val,0,95)|0x80;
             else song->instr[0].arp[col] = CLAMP(arp_val,-48,47)+48;
 
-            ImGui::SetCursorPosY(slider_res.y+io.FontGlobalScale*24.0);
+            ImGui::SetCursorPosY(slider_res.y+io.FontGlobalScale*32.0);
 
             // TODO: add the waveform part of this macro
             //int wav_val = song->instr[0].arp[col];
@@ -121,7 +119,7 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
         }
         ImGui::EndTable();
     }
-    ImGui::SetCursorPosY(temp_ypos+io.FontGlobalScale*192.0);
-    ImGui::Separator();
+    //ImGui::SetCursorPosY(temp_ypos+io.FontGlobalScale*192.0);
+    //ImGui::Separator();
     ImGui::End();
 }
