@@ -115,6 +115,9 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
             // i know this is not my best friend imgui, i don't fucking care...
             float temp_ypos = ImGui::GetCursorPos().y;
 
+            ImVec2 table_pos_start = ImGui::GetCursorScreenPos(); // these two vars are used
+            ImVec2 table_pos_size = ImGui::GetContentRegionAvail(); // for clipping the label texts in the macros
+
             if (song->instr[cur_cursor->instr].wav_len != 0) {
                 ImGui::BeginTable("insedit_arp",song->instr[cur_cursor->instr].wav_len,ImGuiTableFlags_ScrollX|ImGuiTableFlags_NoPadInnerX);
                 for (int ch = 0; ch < song->instr[cur_cursor->instr].wav_len; ch++) {
@@ -212,8 +215,11 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
                         if (col == 0) {
                             // add text over the radio buttons so the 
                             // user actually knows what the buttons do :meatjob:
-                            ImGui::PushClipRect(boundary.Min,boundary.Max+ImVec2(slider_res.x*4.0,0.0f),false);
-                            draw_list->AddText(boundary.Min,IM_COL32(0xff,0xff,0xff,0xff),wave_names[row]);
+                            ImGuiStyle& style = ImGui::GetStyle();
+                            ImGui::PushClipRect(boundary.Min,
+                                                ImMin(boundary.Max+ImVec2(slider_res.x*4.0,0.0f),table_pos_start+table_pos_size-ImVec2(style.ScrollbarSize,0.0f)),false);
+                            ImGui::Text("%s",wave_names[row]);
+                            ImGui::SameLine();
                             ImGui::PopClipRect();
                         }
 
@@ -275,6 +281,9 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
 
 
             float temp_ypos = ImGui::GetCursorPos().y;
+
+            ImVec2 table_pos_start = ImGui::GetCursorScreenPos(); // these two vars are used
+            ImVec2 table_pos_size = ImGui::GetContentRegionAvail(); // for clipping the label texts in the macros
 
             if (song->instr[cur_cursor->instr].filter_len != 0) {
                 ImGui::BeginTable("insedit_filter",song->instr[cur_cursor->instr].filter_len,ImGuiTableFlags_ScrollX|ImGuiTableFlags_NoPadInnerX);
@@ -361,8 +370,11 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
                         if (col == 0) {
                             // add text over the radio buttons so the 
                             // user actually knows what the buttons do :meatjob:
-                            ImGui::PushClipRect(boundary.Min,boundary.Max+ImVec2(slider_res.x*4.0,0.0f),false);
-                            draw_list->AddText(boundary.Min,IM_COL32(0xff,0xff,0xff,0xff),filt_names[row]);
+                            ImGuiStyle& style = ImGui::GetStyle();
+                            ImGui::PushClipRect(boundary.Min,
+                                                ImMin(boundary.Max+ImVec2(slider_res.x*4.0,0.0f),table_pos_start+table_pos_size-ImVec2(style.ScrollbarSize,0.0f)),false);
+                            ImGui::Text("%s",filt_names[row]);
+                            ImGui::SameLine();
                             ImGui::PopClipRect();
                         }
 
