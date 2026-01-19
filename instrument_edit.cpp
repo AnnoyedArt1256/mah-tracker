@@ -199,13 +199,24 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
                         ImRect boundary = ImRect(ImVec4(ImGui::GetCursorScreenPos().x,ImGui::GetCursorScreenPos().y,
                                                         ImGui::GetCursorScreenPos().x+slider_res.x,
                                                         ImGui::GetCursorScreenPos().y+slider_res.x));
-                        draw_list->AddRectFilled(boundary.Min, boundary.Max,
+
+                        draw_list->AddRectFilled(boundary.Min, boundary.Max, // radio button base
                                                 IM_COL32(0x28,0x4c,0x7c,0xff));
-                        if ((wav_val>>b)&1) {
+
+                        if ((wav_val>>b)&1) { // radio button selection
                             draw_list->AddRectFilled(boundary.Min+ImVec2(io.FontGlobalScale*4.0,io.FontGlobalScale*4.0),
                                                     boundary.Max-ImVec2(io.FontGlobalScale*4.0,io.FontGlobalScale*4.0),
                                                     IM_COL32(0x78,0xac,0xcc,0xff));
                         }
+
+                        if (col == 0) {
+                            // add text over the radio buttons so the 
+                            // user actually knows what the buttons do :meatjob:
+                            ImGui::PushClipRect(boundary.Min,boundary.Max+ImVec2(slider_res.x*4.0,0.0f),false);
+                            draw_list->AddText(boundary.Min,IM_COL32(0xff,0xff,0xff,0xff),wave_names[row]);
+                            ImGui::PopClipRect();
+                        }
+
                         ImGui::Dummy(ImVec2(0.0f,slider_res.x+2+io.FontGlobalScale));
                         if (b == 4) ImGui::Dummy(ImVec2(0.0f,2+io.FontGlobalScale));
                         if (boundary.Contains(mouse_pos) && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
@@ -338,13 +349,23 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
                         ImRect boundary = ImRect(ImVec4(ImGui::GetCursorScreenPos().x,ImGui::GetCursorScreenPos().y,
                                                         ImGui::GetCursorScreenPos().x+slider_res.x,
                                                         ImGui::GetCursorScreenPos().y+slider_res.x));
-                        draw_list->AddRectFilled(boundary.Min, boundary.Max,
+
+                        draw_list->AddRectFilled(boundary.Min, boundary.Max, // radio button base
                                                 IM_COL32(0x28,0x4c,0x7c,0xff));
-                        if ((mode_val>>b)&1) {
+                        if ((mode_val>>b)&1) { // radio button selection
                             draw_list->AddRectFilled(boundary.Min+ImVec2(io.FontGlobalScale*4.0,io.FontGlobalScale*4.0),
                                                     boundary.Max-ImVec2(io.FontGlobalScale*4.0,io.FontGlobalScale*4.0),
                                                     IM_COL32(0x78,0xac,0xcc,0xff));
                         }
+
+                        if (col == 0) {
+                            // add text over the radio buttons so the 
+                            // user actually knows what the buttons do :meatjob:
+                            ImGui::PushClipRect(boundary.Min,boundary.Max+ImVec2(slider_res.x*4.0,0.0f),false);
+                            draw_list->AddText(boundary.Min,IM_COL32(0xff,0xff,0xff,0xff),filt_names[row]);
+                            ImGui::PopClipRect();
+                        }
+
                         ImGui::Dummy(ImVec2(0.0f,slider_res.x+2+io.FontGlobalScale));
                         if (boundary.Contains(mouse_pos) && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
                             ImGui::SetTooltip("%s", filt_names[row]);

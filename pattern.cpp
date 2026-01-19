@@ -226,13 +226,20 @@ void render_pat(song *song, cursor *cur_cursor, bool *enable) {
     ImGui::Begin("Pattern", enable);
 
     ImGui::PushStyleVar(ImGuiStyleVar_CellPadding,ImVec2(0.0f,0.0f));
-    ImGui::BeginTable("patview",3+2,ImGuiTableFlags_BordersInnerV|ImGuiTableFlags_ScrollX|ImGuiTableFlags_ScrollY|ImGuiTableFlags_NoPadInnerX);
-
+    // only render the table if it's on screen...
+    bool render_table = ImGui::BeginTable("patview",3+2,ImGuiTableFlags_BordersInnerV|ImGuiTableFlags_ScrollX|ImGuiTableFlags_ScrollY|ImGuiTableFlags_NoPadInnerX); 
     ImVec2 char_size_xy = ImGui::CalcTextSize("A");
     float char_size = char_size_xy.x; // from foiniss
     char_size_xy.y += io.FontGlobalScale+2;
     const float ch_row_len = 12.0; // C-4 69 420
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+    if (!render_table) {
+        // this is so the program doesn't crash when the pattern window is a hidden tab
+        ImGui::PopStyleVar();
+        ImGui::End();
+        return;
+    }
 
     ImGui::TableSetupColumn("row_pos",ImGuiTableColumnFlags_WidthFixed,4.0*char_size);
     for (int ch = 0; ch < 3; ch++) {
