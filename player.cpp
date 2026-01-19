@@ -222,6 +222,8 @@ void play_note_live(song *song, uint8_t ch, uint8_t note, uint8_t instr) {
 void advance_frame(song *song, cursor *cur_cursor) {
     if (cur_cursor->playing) {
         if (--player_vars.tick == 0) {
+            bool do_order_skip = false;
+            bool did_order_skip = false;
             player_vars.tick = player_vars.speed;
             uint8_t row = cur_cursor->play_row;
             for (int ch = 0; ch < 3; ch++) {
@@ -255,12 +257,26 @@ void advance_frame(song *song, cursor *cur_cursor) {
                             player_vars.speed = eff_arg&0x7f;
                             break;
                         }
+                        case 0xD: {
+                            do_order_skip = true;
+                            break;
+                        }
                         default: break;
                     }
                 }
             }
             cur_cursor->play_row++;
             if (cur_cursor->play_row == 64) {
+                cur_cursor->play_row = 0;
+                if (!cur_cursor->loop) {
+                    cur_cursor->order++;
+                    if (cur_cursor->order >= song->order_len) {
+                        cur_cursor->order = 0;
+                    }
+                    did_order_skip = true;
+                }
+            }
+            if (do_order_skip && (!did_order_skip)) {
                 cur_cursor->play_row = 0;
                 if (!cur_cursor->loop) {
                     cur_cursor->order++;
