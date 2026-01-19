@@ -35,6 +35,8 @@ typedef struct {
     int instr;
     int playing;
     int play_row;
+    bool loop;
+    bool do_record;
 } cursor;
 
 #define NOTE_OFF 0xfe
@@ -44,7 +46,7 @@ typedef struct {
 } pat_row;
 
 typedef struct {
-    pat_row rows[32];
+    pat_row rows[64];
 } pattern;
 
 #define INS_NO_LOOP 0xff
@@ -58,6 +60,7 @@ typedef struct {
     uint8_t filter_loop; // also for arps
     uint8_t filter[128];
     uint8_t filter_mode[128];
+    uint8_t filter_res;
     int duty_start;
     int duty_end;
     int duty_speed;

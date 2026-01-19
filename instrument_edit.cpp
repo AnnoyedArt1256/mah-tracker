@@ -33,8 +33,11 @@ const char* wave_names[8] = {
 };
 
 const char* filt_names[3] = {
-    "Low-pass", "Band-pass", "High-pass"
+    "High-pass", "Band-pass", "Low-pass"
 };
+
+extern void play_note_live(song *song, uint8_t ch, uint8_t note, uint8_t instr);
+extern ImGuiKey piano_keys[29];
 
 void render_instr(song *song, cursor *cur_cursor, bool *enable) {
     static bool was_hovering = false;
@@ -47,6 +50,15 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
     bool lmb_clicked = ImGui::IsMouseClicked(0);
 
     ImGui::Begin("Instrument Editor", enable);
+
+    if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) {
+        // live playing
+        for (int key_ind = 0; key_ind < sizeof(piano_keys)/sizeof(ImGuiKey); key_ind++) {
+            if (ImGui::IsKeyPressed(piano_keys[key_ind])) {
+                play_note_live(song,0,cur_cursor->octave*12+key_ind,cur_cursor->instr);
+            }
+        }
+    }
 
     char ins_name_preview[32];
     snprintf(ins_name_preview,32,"Insturment %02X",cur_cursor->instr);
@@ -82,6 +94,23 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
                 if (song->instr[cur_cursor->instr].wav_len == 255) song->instr[cur_cursor->instr].wav_len = 0;
                 if (song->instr[cur_cursor->instr].wav_len >= 128) song->instr[cur_cursor->instr].wav_len = 127;
             }
+            bool is_loop = song->instr[cur_cursor->instr].wav_loop != INS_NO_LOOP;
+            if (ImGui::Checkbox("Loop",&is_loop)) {
+                if (is_loop) {
+                    song->instr[cur_cursor->instr].wav_loop = 0;              
+                } else {
+                    song->instr[cur_cursor->instr].wav_loop = INS_NO_LOOP;
+                }
+            }
+            if (is_loop) {
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(ImGui::GetWindowSize().x * 0.25f);
+                if (ImGui::InputScalar("Loop Position",ImGuiDataType_U8,&song->instr[cur_cursor->instr].wav_loop, &one, NULL, "%d", 0)) {
+                    if (song->instr[cur_cursor->instr].wav_loop == 255) song->instr[cur_cursor->instr].wav_loop = 0;
+                    if (song->instr[cur_cursor->instr].wav_loop >= 128) song->instr[cur_cursor->instr].wav_loop = 127;
+                }  
+            }
+            
 
             // i know this is not my best friend imgui, i don't fucking care...
             float temp_ypos = ImGui::GetCursorPos().y;
@@ -200,19 +229,39 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Duty Macro")) {
-            ImGui::SliderInt("Duty Start",&song->instr[cur_cursor->instr].duty_start,0,4095);
-            ImGui::SliderInt("Duty End",&song->instr[cur_cursor->instr].duty_end,0,4095);
+            ImGui::SliderInt("Duty Start",&song->instr[cur_cursor->instr].duty_start,0,4095); rightClickable
+            ImGui::SliderInt("Duty End",&song->instr[cur_cursor->instr].duty_end,0,4095); rightClickable
             ImGui::Separator();
-            ImGui::SliderInt("Duty Speed",&song->instr[cur_cursor->instr].duty_speed,-2048,2047);
+            ImGui::SliderInt("Duty Speed",&song->instr[cur_cursor->instr].duty_speed,-2048,2047); rightClickable
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Filter Macro")) {
+            uint8_t zero = 0; // WHY
             uint8_t one = 1; // ONE!!11!
+            uint8_t fifteen = 15; // WHY
+            ImGui::SliderScalar("Resonance",ImGuiDataType_U8,&song->instr[cur_cursor->instr].filter_res,&zero,&fifteen); rightClickable
             ImGui::SetNextItemWidth(ImGui::GetWindowSize().x * 0.25f);
             if (ImGui::InputScalar("Length",ImGuiDataType_U8,&song->instr[cur_cursor->instr].filter_len, &one, NULL, "%d", 0)) {
                 if (song->instr[cur_cursor->instr].filter_len == 255) song->instr[cur_cursor->instr].filter_len = 0;
                 if (song->instr[cur_cursor->instr].filter_len >= 128) song->instr[cur_cursor->instr].filter_len = 127;
             }
+            bool is_loop = song->instr[cur_cursor->instr].filter_loop != INS_NO_LOOP;
+            if (ImGui::Checkbox("Loop",&is_loop)) {
+                if (is_loop) {
+                    song->instr[cur_cursor->instr].filter_loop = 0;              
+                } else {
+                    song->instr[cur_cursor->instr].filter_loop = INS_NO_LOOP;
+                }
+            }
+            if (is_loop) {
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(ImGui::GetWindowSize().x * 0.25f);
+                if (ImGui::InputScalar("Loop Position",ImGuiDataType_U8,&song->instr[cur_cursor->instr].filter_loop, &one, NULL, "%d", 0)) {
+                    if (song->instr[cur_cursor->instr].filter_loop == 255) song->instr[cur_cursor->instr].filter_loop = 0;
+                    if (song->instr[cur_cursor->instr].filter_loop >= 128) song->instr[cur_cursor->instr].filter_loop = 127;
+                }  
+            }
+
 
             float temp_ypos = ImGui::GetCursorPos().y;
 
@@ -285,7 +334,7 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
                     ImGui::SetCursorPosY(slider_res.y+io.FontGlobalScale*32.0);
                     int mode_val = song->instr[cur_cursor->instr].filter_mode[col];
                     int row = 0;
-                    for (int b = 0+4; b < 3+4; b++) {
+                    for (int b = 2+4; b >= 0+4; b--) {
                         ImRect boundary = ImRect(ImVec4(ImGui::GetCursorScreenPos().x,ImGui::GetCursorScreenPos().y,
                                                         ImGui::GetCursorScreenPos().x+slider_res.x,
                                                         ImGui::GetCursorScreenPos().y+slider_res.x));

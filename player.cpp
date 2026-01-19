@@ -207,6 +207,17 @@ void init_routine(song *song) {
     reset_audio_buffer();
 }
 
+void play_note_live(song *song, uint8_t ch, uint8_t note, uint8_t instr) {
+    player_vars.inst[ch] = instr;
+    player_vars.cur_note[ch] = note;
+    player_vars.cur_arpwave_pos[ch] = 0;
+    player_vars.hr_delay[ch] = 0;
+    player_vars.pw[ch] = song->instr[player_vars.inst[ch]].duty_start;
+    player_vars.pw_speed[ch] = song->instr[player_vars.inst[ch]].duty_speed;
+    write_sid(ch*7+5, 0x00);
+    write_sid(ch*7+6, 0x00);
+    write_sid(ch*7+4, 0x08);
+}
 
 void advance_frame(song *song, cursor *cur_cursor) {
     if (cur_cursor->playing) {
@@ -238,47 +249,63 @@ void advance_frame(song *song, cursor *cur_cursor) {
                     write_sid(ch*7+6, 0x00);
                     write_sid(ch*7+4, 0x08);
                 }
+                if (eff_type) {
+                    switch (eff_type) {
+                        case 0xF: {
+                            player_vars.speed = eff_arg&0x7f;
+                            break;
+                        }
+                        default: break;
+                    }
+                }
             }
             cur_cursor->play_row++;
-            if (cur_cursor->play_row == 32) {
+            if (cur_cursor->play_row == 64) {
                 cur_cursor->play_row = 0;
+                if (!cur_cursor->loop) {
+                    cur_cursor->order++;
+                    if (cur_cursor->order >= song->order_len) {
+                        cur_cursor->order = 0;
+                    }
+                }
             }
         }
-        for (int ch = 0; ch < 3; ch++) {
-            uint8_t inst = player_vars.inst[ch];
-            if (player_vars.hr_delay[ch] != 0xFF) {
-                if (player_vars.hr_delay[ch]++ == 1) {
-                    player_vars.hr_delay[ch] = 0xFF;
-                    write_sid(ch*7+5, (song->instr[inst].a<<4)|song->instr[inst].d);
-                    write_sid(ch*7+6, (song->instr[inst].s<<4)|song->instr[inst].r);
-                }
+    }
+    for (int ch = 0; ch < 3; ch++) {
+        uint8_t inst = player_vars.inst[ch];
+        if (player_vars.hr_delay[ch] != 0xFF) {
+            if (player_vars.hr_delay[ch]++ == 1) {
+                player_vars.hr_delay[ch] = 0xFF;
+                write_sid(ch*7+5, (song->instr[inst].a<<4)|song->instr[inst].d);
+                write_sid(ch*7+6, (song->instr[inst].s<<4)|song->instr[inst].r);
             }
-            if (player_vars.hr_delay[ch] == 0xFF) {
-                uint8_t arp_pos = player_vars.cur_arpwave_pos[ch];
-                uint8_t arp_val = song->instr[inst].arp[arp_pos];
-                if (arp_val&0x80) arp_val &= 0x7f; // abs
-                else arp_val = player_vars.cur_note[ch] + (arp_val-48); // rel
-                player_vars.freq[ch] = freqtbllo[arp_val&127]|(freqtblhi[arp_val&127]<<8);
-                write_sid(ch*7+4,song->instr[inst].wav[arp_pos]);
-                player_vars.cur_arpwave_pos[ch]++;
-                if (player_vars.cur_arpwave_pos[ch] >= song->instr[inst].wav_len) {
-                    player_vars.cur_arpwave_pos[ch] = song->instr[inst].wav_len-1;
-                }
-                player_vars.pw[ch] += player_vars.pw_speed[ch];
-                if (player_vars.pw[ch] >= song->instr[inst].duty_end) {
-                    player_vars.pw[ch] = song->instr[inst].duty_end;
-                    player_vars.pw_speed[ch] *= -1;
-                }
-                if (player_vars.pw[ch] <= song->instr[inst].duty_start) {
-                    player_vars.pw[ch] = song->instr[inst].duty_start;
-                    player_vars.pw_speed[ch] *= -1;
-                }
-            }
-            write_sid(ch*7+0,player_vars.freq[ch]&0xff);
-            write_sid(ch*7+1,player_vars.freq[ch]>>8);
-            write_sid(ch*7+2,player_vars.pw[ch]&0xff);
-            write_sid(ch*7+3,player_vars.pw[ch]>>8);
         }
+        if (player_vars.hr_delay[ch] == 0xFF) {
+            uint8_t arp_pos = player_vars.cur_arpwave_pos[ch];
+            uint8_t arp_val = song->instr[inst].arp[arp_pos];
+            if (arp_val&0x80) arp_val &= 0x7f; // abs
+            else arp_val = player_vars.cur_note[ch] + (arp_val-48); // rel
+            player_vars.freq[ch] = freqtbllo[arp_val&127]|(freqtblhi[arp_val&127]<<8);
+            write_sid(ch*7+4,song->instr[inst].wav[arp_pos]);
+            player_vars.cur_arpwave_pos[ch]++;
+            if (player_vars.cur_arpwave_pos[ch] >= song->instr[inst].wav_len) {
+                uint8_t loop = song->instr[inst].wav_loop;
+                player_vars.cur_arpwave_pos[ch] = loop == INS_NO_LOOP ? song->instr[inst].wav_len-1 : loop;
+            }
+            player_vars.pw[ch] += player_vars.pw_speed[ch];
+            if (player_vars.pw[ch] >= song->instr[inst].duty_end) {
+                player_vars.pw[ch] = song->instr[inst].duty_end;
+                player_vars.pw_speed[ch] *= -1;
+            }
+            if (player_vars.pw[ch] <= song->instr[inst].duty_start) {
+                player_vars.pw[ch] = song->instr[inst].duty_start;
+                player_vars.pw_speed[ch] *= -1;
+            }
+        }
+        write_sid(ch*7+0,player_vars.freq[ch]&0xff);
+        write_sid(ch*7+1,player_vars.freq[ch]>>8);
+        write_sid(ch*7+2,player_vars.pw[ch]&0xff);
+        write_sid(ch*7+3,player_vars.pw[ch]>>8);
     }
 }
 

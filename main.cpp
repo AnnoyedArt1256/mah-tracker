@@ -321,12 +321,14 @@ int main(int argc, char *argv[]) {
     cur_cursor.instr = 1;
     cur_cursor.playing = 0;
     cur_cursor.play_row = 0;
+    cur_cursor.loop = false;
+    cur_cursor.do_record = false; // jam
 
     // Main loop
     bool done = false;
     int cur_frame = 0;
     for (int pat = 0; pat < 256; pat++) {
-        for (int row = 0; row < 32; row++) {
+        for (int row = 0; row < 64; row++) {
             c_song.pattern[pat].rows[row].note = NOTE_EMPTY;
             c_song.pattern[pat].rows[row].instr = 0;
             c_song.pattern[pat].rows[row].eff_type = 0;
@@ -344,7 +346,7 @@ int main(int argc, char *argv[]) {
         c_song.instr[ins].r = 0x0;
         c_song.instr[ins].wav_len = 0x1;
         c_song.instr[ins].wav_loop = INS_NO_LOOP;
-        memset(c_song.instr[ins].wav,0,128);
+        memset(c_song.instr[ins].wav,0x01,128);
         memset(c_song.instr[ins].arp,48,128);
         c_song.instr[ins].wav[0] = 0x21;
 
@@ -430,9 +432,15 @@ int main(int argc, char *argv[]) {
             }
             if (ImGui::InputScalar("Speed",ImGuiDataType_U8,&c_song.init_speed,&one)) {
                 if (c_song.init_speed < 1) c_song.init_speed = 1;
-                else if (c_song.init_speed > 127) c_song.init_speed = 1277;
+                else if (c_song.init_speed > 127) c_song.init_speed = 127;
             }
-            
+            ImGui::Checkbox("Loop Pattern",&cur_cursor.loop);
+            ImGui::SameLine();
+            ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x/20.0,0.0f));
+            ImGui::SameLine();
+            if (ImGui::Button(cur_cursor.do_record?"RECORD":"JAM")) {
+                cur_cursor.do_record = !cur_cursor.do_record;
+            }
             ImGui::End();
         }
 
