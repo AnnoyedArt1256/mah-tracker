@@ -45,7 +45,7 @@ struct pat_row {
     uint8_t note, instr, eff_type, eff_arg;
 };
 
-struct pattern {
+struct pattern_data {
     pat_row rows[64];
 };
 
@@ -69,7 +69,7 @@ struct instrument {
 
 #define ORDER_END 0xff
 struct song {
-    pattern pattern[256];
+    pattern_data pattern[256];
     uint16_t order_table[3][256];
     uint8_t order_len;
     instrument instr[128];
