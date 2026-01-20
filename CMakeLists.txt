@@ -76,8 +76,8 @@ target_link_libraries(imgui_impl_sdl2 PRIVATE SDL2::SDL2-static)
 
 add_compile_definitions(ImTextureID=void*)
 add_compile_options(-O2 -g)
-add_compile_options(-fsanitize=address)
-add_link_options(-fsanitize=address)
+#add_compile_options(-fsanitize=address)
+#add_link_options(-fsanitize=address)
 
 add_executable(
     mah_tracker 

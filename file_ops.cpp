@@ -63,7 +63,7 @@ void load_file(char *filename, song *song) {
         }
     }  
     
-    // instruments (WIP)
+    // instruments
     for (int inst = 0; inst < 128; inst++) {
         instrument *instr = &song->instr[inst];
         instr->a = fgetc(f); // A
@@ -85,6 +85,16 @@ void load_file(char *filename, song *song) {
 
         instr->duty_speed = fgetc(f);
         instr->duty_speed |= fgetc(f)<<8;
+
+        uint8_t filter_res_enable = fgetc(f);
+        instr->filter_res = filter_res_enable&0xf;
+        instr->filter_enable = filter_res_enable&0x10;
+
+        instr->filter_len = fgetc(f);
+        instr->filter_loop = fgetc(f);
+
+        for (int col = 0; col < instr->filter_len; col++) instr->filter[col] = fgetc(f);
+        for (int col = 0; col < instr->filter_len; col++) instr->filter_mode[col] = fgetc(f);
     }
 
     fclose(f);
@@ -154,6 +164,13 @@ void save_file(char *filename, song *song) {
 
         fputc(instr->duty_speed&0xff, f);
         fputc(instr->duty_speed>>8&0xff, f);
+
+        fputc((instr->filter_res&0xf)|(instr->filter_enable?0x10:0), f);
+        fputc(instr->filter_len, f);
+        fputc(instr->filter_loop, f);
+
+        for (int col = 0; col < instr->filter_len; col++) fputc(instr->filter[col], f);
+        for (int col = 0; col < instr->filter_len; col++) fputc(instr->filter_mode[col], f);
     }
 
     fclose(f);

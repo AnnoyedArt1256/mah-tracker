@@ -61,6 +61,7 @@ typedef struct {
     uint8_t filter[128];
     uint8_t filter_mode[128];
     uint8_t filter_res;
+    bool filter_enable;
     int duty_start;
     int duty_end;
     int duty_speed;

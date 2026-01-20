@@ -196,6 +196,13 @@ typedef struct {
     uint16_t freq[3];
     uint16_t pw[3];
     uint16_t pw_speed[3];
+    uint8_t cur_filter_pos;
+    uint8_t filter_inst;
+    uint8_t filter_advance;
+    uint8_t resonance_ch_enable;
+    uint8_t cutoff;
+    uint8_t filt_mode;
+    uint8_t vol;
 } pvars;
 
 pvars player_vars;
@@ -208,6 +215,8 @@ void init_routine(song *song) {
     memset(&player_vars.inst,0,3);
     for (int i = 0; i <= 0x18; i++) write_sid(i,0);
     write_sid(0x18, 0x0F);
+    player_vars.vol = 0x0F;
+    player_vars.filt_mode = 0x00;
     reset_audio_buffer();
 }
 
@@ -299,6 +308,18 @@ void advance_frame(song *song, cursor *cur_cursor) {
                 player_vars.hr_delay[ch] = 0xFF;
                 write_sid(ch*7+5, (song->instr[inst].a<<4)|song->instr[inst].d);
                 write_sid(ch*7+6, (song->instr[inst].s<<4)|song->instr[inst].r);
+                if (song->instr[inst].filter_enable) {
+                    uint8_t resonance = song->instr[inst].filter_res;
+                    player_vars.resonance_ch_enable = (player_vars.resonance_ch_enable&0x0f)|(resonance<<4);
+                    player_vars.resonance_ch_enable |= 1<<ch;
+                    if (song->instr[inst].filter_len != 0) {
+                        player_vars.filter_inst = inst;
+                        player_vars.cur_filter_pos = 0;
+                        player_vars.filter_advance = true;
+                    }
+                } else {
+                    player_vars.resonance_ch_enable &= ~(1<<ch);
+                }
             }
         }
         if (player_vars.hr_delay[ch] == 0xFF) {
@@ -328,6 +349,21 @@ void advance_frame(song *song, cursor *cur_cursor) {
         write_sid(ch*7+2,player_vars.pw[ch]&0xff);
         write_sid(ch*7+3,player_vars.pw[ch]>>8);
     }
+    if (player_vars.filter_advance) {
+        // advance filter table
+        uint8_t inst = player_vars.filter_inst;
+        player_vars.cutoff = song->instr[inst].filter[player_vars.cur_filter_pos];
+        player_vars.filt_mode = song->instr[inst].filter_mode[player_vars.cur_filter_pos]&0x70;
+        player_vars.cur_filter_pos++;
+        if (player_vars.cur_filter_pos >= song->instr[inst].filter_len) {
+            uint8_t loop_pos = song->instr[inst].filter_loop;
+            if (loop_pos == 0xFF) player_vars.filter_advance = false;
+            else player_vars.cur_filter_pos = loop_pos;
+        }
+    }
+    write_sid(0x16,player_vars.cutoff);
+    write_sid(0x17,player_vars.resonance_ch_enable);
+    write_sid(0x18,player_vars.filt_mode|player_vars.vol);
 }
 
 void register_view(bool *open) {

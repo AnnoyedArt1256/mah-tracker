@@ -57,3 +57,16 @@ unless noted otherwise, each byte/word is treated as an **unsigned** value and i
     - 2 bytes: duty sweep start
     - 2 bytes: duty sweep end
     - 2 bytes: duty sweep speed (signed 16-bit!!)
+
+    - 1 byte: filter enable and resonance
+    ```
+        xxxERRRR
+           |++++- Resonance
+           +----- Filter enable  
+    ```
+
+    - 1 byte: filter/arp table length (0 = there's no arp/wav table)
+    - 1 byte: filter/arp table loop position
+        - if the loop position is 0xFF (255), then the wavetable/arp table DOES NOT LOOP!
+    - N bytes: the filter table
+        - each byte is just a raw SID high-byte cutoff value (for $d416), no conversion is needed

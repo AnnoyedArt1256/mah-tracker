@@ -262,6 +262,9 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
                 if (song->instr[cur_cursor->instr].filter_len == 255) song->instr[cur_cursor->instr].filter_len = 0;
                 if (song->instr[cur_cursor->instr].filter_len >= 128) song->instr[cur_cursor->instr].filter_len = 127;
             }
+            ImGui::SameLine();
+            ImGui::Checkbox("Enable Filter",&song->instr[cur_cursor->instr].filter_enable);
+
             bool is_loop = song->instr[cur_cursor->instr].filter_loop != INS_NO_LOOP;
             if (ImGui::Checkbox("Loop",&is_loop)) {
                 if (is_loop) {
