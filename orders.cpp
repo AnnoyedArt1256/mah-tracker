@@ -22,6 +22,7 @@ along with this program; if not, see
 #include "imgui_internal.h"
 #include "defines.h"
 
+// Get unused pattern
 int get_unused_pattern(song *song) {
     int pat_val = 0;
     for (int i = 0; i < 256; i++) {
@@ -41,7 +42,7 @@ int get_unused_pattern(song *song) {
     }
     return pat_val;
 }
-
+// Remove pattern from module
 void remove_pattern(song *song, int pat_ind) {
     for (int ch = 0; ch < 3; ch++) {
         int len = song->order_len-(pat_ind+1)-1;
@@ -52,12 +53,13 @@ void remove_pattern(song *song, int pat_ind) {
     }
     song->order_len--;
 }
-
+// Render orders and listen for when the respective buttons are pressed
 void render_orders(song *song, cursor *cur_cursor, bool *enable) {
     // init window and table
     ImGuiIO& io = ImGui::GetIO();
     ImGui::Begin("Orders", enable);
 
+    // Add order button
     if (ImGui::Button("Add")) {
         if (song->order_len < 255) {
             song->order_len++;
@@ -71,10 +73,14 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
         }
     }
     ImGui::SameLine();
+
+    // Remove order button
     if (ImGui::Button("Remove")) {
         if (song->order_len > 1) remove_pattern(song, cur_cursor->order);
     }
     ImGui::SameLine();
+
+    // Duplicate order button
     if (ImGui::Button("Duplicate")) {
         if (song->order_len < 255) {
             int pat_ind = cur_cursor->order+1;
@@ -88,6 +94,8 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
         }
     }
     ImGui::SameLine();
+
+    // Append order button
     if (ImGui::Button("Append")) {
         if (song->order_len < 255) {
             int order_ind = song->order_len++;
@@ -97,15 +105,19 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
         }
     }
 
-    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding,ImVec2(0.0f,0.0f));
-    ImGui::BeginTable("orderview",3+1,ImGuiTableFlags_BordersInnerV|ImGuiTableFlags_ScrollX|ImGuiTableFlags_ScrollY|ImGuiTableFlags_NoPadInnerX);
 
-    ImVec2 char_size_xy = ImGui::CalcTextSize("A");
+    // Disable cell padding
+    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding,ImVec2(0.0f,0.0f));
+
+    // Make the "orderview" table
+    ImGui::BeginTable("orderview",3+1,ImGuiTableFlags_BordersInnerV|ImGuiTableFlags_ScrollX|ImGuiTableFlags_ScrollY|ImGuiTableFlags_NoPadInnerX);
+    ImVec2 char_size_xy = ImGui::CalcTextSize("A"); // uses A as the base size for the font?
     float char_size = char_size_xy.x; // from foiniss
     char_size_xy.y += io.FontGlobalScale+2;
     float order_ch_size = (ImGui::GetWindowSize().x-(4.0*char_size))/3;
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
+    // Setup for order position 
     ImGui::TableSetupColumn("ord_pos",ImGuiTableColumnFlags_WidthFixed,4.0*char_size);
     for (int ch = 0; ch < 3; ch++) {
         char ch_id[16];

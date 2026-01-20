@@ -12,3 +12,9 @@ tests/
 *.app
 Makefile
 .DS_Store
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+imgui.ini
+mah-tracker.cfg
+*.mah

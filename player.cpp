@@ -40,6 +40,7 @@ int frame_cnt;
 uint32_t time_cur;
 #define CLAMP(x,y,z) ((x)>(z)?(z):((x)<(y)?(y):(x)))
 
+// Frequency table LOW
 unsigned char freqtbllo[] = {
   0x17,0x27,0x39,0x4b,0x5f,0x74,0x8a,0xa1,0xba,0xd4,0xf0,0x0e,
   0x2d,0x4e,0x71,0x96,0xbe,0xe8,0x14,0x43,0x74,0xa9,0xe1,0x1c,
@@ -54,6 +55,7 @@ unsigned char freqtbllo[] = {
   0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
   0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00 };
 
+// Frequency table HIGH
 unsigned char freqtblhi[] = {
   0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x02,
   0x02,0x02,0x02,0x02,0x02,0x02,0x03,0x03,0x03,0x03,0x03,0x04,
@@ -68,6 +70,7 @@ unsigned char freqtblhi[] = {
   0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
   0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00 };
 
+// Reset audio buffer
 void reset_audio_buffer() {
     audio_buffer_read = 0;
     audio_buffer_write = BUFFER_SIZE;
@@ -124,11 +127,13 @@ void init_sid() {
 
 uint8_t sid_regs[0x20];
 
+// SID write
 void write_sid(uint8_t addr, uint8_t val) {
     sid_regs[addr&0x1f] = val;
     sid_fp->write(addr,val);
 }
 
+// SID read
 uint8_t read_sid(uint8_t addr) {
     return sid_fp->read(addr);
 }
@@ -158,7 +163,7 @@ void advance_audio(song *song, cursor *cur_cursor) {
         audio_cycles += 256;
         if (audio_cycles >= sid_rate_inc) {
             audio_cycles -= sid_rate_inc;
-            if (++frame_cnt == (48000/50)) {
+            if (++frame_cnt == (SAMPLE_RATE/50)) {
                 frame_cnt = 0;
                 advance_frame(song, cur_cursor);
             }
@@ -214,6 +219,7 @@ struct pvars {
 
 pvars player_vars;
 
+// SID init routine
 void init_routine(song *song) {
     memset((void *)&player_vars,0,sizeof(pvars));
     player_vars.speed = song->init_speed;
@@ -228,6 +234,7 @@ void init_routine(song *song) {
     reset_audio_buffer();
 }
 
+// Live note playback
 void play_note_live(song *song, uint8_t ch, uint8_t note, uint8_t instr) {
     player_vars.inst[ch] = instr;
     player_vars.cur_note[ch] = note;

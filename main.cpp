@@ -74,6 +74,9 @@ song c_song; // current song
 extern bool audio_paused;
 
 void ShowExampleAppDockSpace(bool* p_open) {
+
+    ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true; // Don't know if there's a better way to do this right now
+
     // Variables to configure the Dockspace example.
     static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None; // Config flags for the Dockspace
 
@@ -322,7 +325,7 @@ int main(int argc, char *argv[]) {
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
-    //ImGui::StyleColorsLight();
+    //ImGui::StyleColorsLight(); What kind of soulless monster would use a LIGHT THEME?!
 
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
@@ -334,6 +337,7 @@ int main(int argc, char *argv[]) {
     load_settings();
     save_settings(); // for updating config files from older versions
 
+    // Define some variables for cursor operations
     cur_cursor.ch = 0;
     cur_cursor.row = 0;
     cur_cursor.selection = note;
@@ -361,22 +365,38 @@ int main(int argc, char *argv[]) {
         c_song.order_table[2][pat] = 0;
     }
 
+    // Default instrument settings for freshly created instrument.
+    // 0xFF (128) instruments pre-populated in the editor list
+    // >chiptune writers making the best sounds you've ever heard and they're all named "new instrument"
+
+    // Segfaults at instrument $EE %11101110 238
+    // 
     for (int ins = 0; ins < 128; ins++) {
+
+        // ADSR
         c_song.instr[ins].a = 0x0;
         c_song.instr[ins].d = 0x8;
         c_song.instr[ins].s = 0x0;
         c_song.instr[ins].r = 0x0;
+
+        // Arp/Waveform Length
+        // INS_NO_LOOP is 0xFF (see defines.h)
         c_song.instr[ins].wav_len = 0x1;
         c_song.instr[ins].wav_loop = INS_NO_LOOP;
+
         memset(c_song.instr[ins].wav,0x01,128);
         memset(c_song.instr[ins].arp,48,128);
+
+        // 0x21 in SID parlance is sawtooth
         c_song.instr[ins].wav[0] = 0x21;
 
+        // No filter by default
         c_song.instr[ins].filter_len = 0;
         c_song.instr[ins].filter_loop = INS_NO_LOOP;
         memset(c_song.instr[ins].filter,0,128);
         memset(c_song.instr[ins].filter_mode,0,128);
 
+        // Duty settings
         c_song.instr[ins].duty_start = 0x800;
         c_song.instr[ins].duty_end   = 0x800;
         c_song.instr[ins].duty_speed = 0;
@@ -416,8 +436,8 @@ int main(int argc, char *argv[]) {
         advance_audio(&c_song,&cur_cursor);
 
         cur_frame++;
-        if (cur_frame == (50*60)) {
-            cur_frame = 0;
+        if (cur_frame == (50*60)) { // 3000?
+            cur_frame = 0; //I would guess this is out-of-bounds protection
             save_settings();
         }
 
@@ -450,24 +470,29 @@ int main(int argc, char *argv[]) {
             ImGui::Begin("Controls", (bool *)&visible_windows.controls);
             //ImGui::SetNextItemWidth(ImGui::GetWindowSize().x * 0.2f);
             uint8_t one = 1;
+
+            // Out-of-bounds protection for octave and speed.
             if (ImGui::InputInt("Octave",&cur_cursor.octave)) {
-                if (cur_cursor.octave < 0) cur_cursor.octave = 0;
-                else if (cur_cursor.octave > 7) cur_cursor.octave = 7;
+                if (cur_cursor.octave < 0) cur_cursor.octave = 0; // put it back to 0
+                else if (cur_cursor.octave > 7) cur_cursor.octave = 7; // put it back to 7
             }
             if (ImGui::InputScalar("Speed",ImGuiDataType_U8,&c_song.init_speed,&one)) {
-                if (c_song.init_speed < 1) c_song.init_speed = 1;
-                else if (c_song.init_speed > 127) c_song.init_speed = 127;
+                if (c_song.init_speed < 1) c_song.init_speed = 1; // No speedcore for you
+                else if (c_song.init_speed > 127) c_song.init_speed = 127; // If you need more than 127 speed there's something wrong
             }
             ImGui::Checkbox("Loop Pattern",&cur_cursor.loop);
             ImGui::SameLine();
             ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x/20.0,0.0f));
             ImGui::SameLine();
+
+            // Toggle cursor state between record and jam
             if (ImGui::Button(cur_cursor.do_record?"RECORD":"JAM")) {
                 cur_cursor.do_record = !cur_cursor.do_record;
             }
             ImGui::End();
         }
 
+        // Checking if windows are visible, if not, then don't waste time rendering them
         if (visible_windows.orders) {
             render_orders(&c_song,&cur_cursor,(bool *)&visible_windows.pattern);
         }

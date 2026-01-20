@@ -27,11 +27,13 @@ along with this program; if not, see
 
 extern const char* note_str[12];
 
+// Waveform names
 const char* wave_names[8] = {
     "Noise", "Pulse", "Saw", "Triangle",
-    "Test-bit", "Ring-mod", "Hard-sync", "Gate-bit"
+    "Test Bit", "Ring Mod", "Hard Sync", "Gate Bit"
 };
 
+// Filter names
 const char* filt_names[3] = {
     "High-pass", "Band-pass", "Low-pass"
 };
@@ -39,11 +41,14 @@ const char* filt_names[3] = {
 extern void play_note_live(song *song, uint8_t ch, uint8_t note, uint8_t instr);
 extern ImGuiKey piano_keys[29];
 
+// Render instrument editor
 void render_instr(song *song, cursor *cur_cursor, bool *enable) {
     static bool was_hovering = false;
     static bool was_dragging_wave[128][8];
     static bool click_wav_val = false;
     ImGuiIO& io = ImGui::GetIO();
+
+    
     ImVec2 mouse_pos = io.MousePos;
     ImVec2 mouse_pos_prev = io.MousePosPrev;
     bool lmb_down = ImGui::IsMouseDown(0);

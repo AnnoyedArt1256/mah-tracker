@@ -17,6 +17,15 @@ along with this program; if not, see
 <https://www.gnu.org/licenses/>.
 */
 
+#include <cstdint>
+
+// Magic numbers for file format
+#define NOTE_OFF 0xfe // Note off in pattern
+#define NOTE_EMPTY 0xff // Empty cell in pattern
+#define INS_NO_LOOP 0xff // Telltale if an instrument "loops"
+#define ORDER_END 0xff // End of order
+
+// Pattern editor, for the column cursor position
 enum channel_mode {
     nothing = -1,
     note = 0,
@@ -26,6 +35,7 @@ enum channel_mode {
     end = 4
 };
 
+// Cursor for pattern editor
 struct cursor {
     int ch, row;
     enum channel_mode selection;
@@ -39,35 +49,40 @@ struct cursor {
     bool do_record;
 };
 
-#define NOTE_OFF 0xfe
-#define NOTE_EMPTY 0xff
+// Pattern row
 struct pat_row {
+    //      C-4     01       A        67
     uint8_t note, instr, eff_type, eff_arg;
 };
 
+// Pattern data, 64 rows each
 struct pattern_data {
     pat_row rows[64];
 };
 
-#define INS_NO_LOOP 0xff
+
+// Instrument
+// Max number of commands in an instrument struct is 128
 struct instrument {
-    uint8_t a, d, s, r;
+    uint8_t a, d, s, r; // ADSR envelope
     uint8_t wav_len; // also for arps
     uint8_t wav_loop; // also for arps
-    uint8_t wav[128];
-    uint8_t arp[128];
+    uint8_t wav[128]; // Waveform select
+    uint8_t arp[128]; // Arpeggio
     uint8_t filter_len; // also for arps
     uint8_t filter_loop; // also for arps
-    uint8_t filter[128];
-    uint8_t filter_mode[128];
-    uint8_t filter_res;
-    bool filter_enable;
-    int duty_start;
-    int duty_end;
-    int duty_speed;
+    uint8_t filter[128]; // Filter intensity
+    uint8_t filter_mode[128]; // Low-pass, band-pass, high-pass
+    uint8_t filter_res; // Filter resonance
+    bool filter_enable; // Filter enable
+    int duty_start; // Pulse duty start position
+    int duty_end; // Pulse duty end position
+    int duty_speed; // PWM speed
 };
 
-#define ORDER_END 0xff
+
+// Song
+// Pattern, order table, order length, 128 instruments, and initial speed
 struct song {
     pattern_data pattern[256];
     uint16_t order_table[3][256];
