@@ -27,6 +27,11 @@ along with this program; if not, see
 #include <iostream>
 #include <fstream>
 #include <SDL.h>
+#include <filesystem>
+#include "portable-file-dialogs.h"
+#include "defines.h"
+
+namespace fs = std::filesystem;
 
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 #include <SDL_opengles2.h>
@@ -59,6 +64,14 @@ struct window_bool {
 struct window_bool visible_windows;
 
 static bool opt_padding = false; // Is there padding (a blank space) between the window edge and the Dockspace?
+
+extern void load_file(char *filename, song *song);
+extern void save_file(char *filename, song *song);
+extern void reset_audio_buffer();
+
+cursor cur_cursor;
+song c_song; // current song
+extern bool audio_paused;
 
 void ShowExampleAppDockSpace(bool* p_open) {
     // Variables to configure the Dockspace example.
@@ -139,20 +152,33 @@ void ShowExampleAppDockSpace(bool* p_open) {
             // Disabling fullscreen would allow the window to be moved to the front of other windows,
             // which we can't undo at the moment without finer window depth/z control.
             if (ImGui::MenuItem("open file")) {
-                /*
                 audio_paused = true;
                 auto f = pfd::open_file("Choose a file to read", pfd::path::home(),
                             { "Mah-Tracker Files", "*.mah" },
                             pfd::opt::none).result();
                 if (!f.empty()) {
-                    load_file((char *)f[0].c_str());
-                    audio_paused = false;
-                    reset_audio_buffer_and_unpause();
-                } else {
-                    audio_paused = false;
-                    reset_audio_buffer_and_unpause();
+                    fs::path path_check = f[0];
+                    if (path_check.extension() != ".mah")
+                        path_check.replace_extension("mah");
+                    load_file((char *)path_check.c_str(), &c_song);
+                } 
+                audio_paused = false;
+                reset_audio_buffer();
+            }
+            if (ImGui::MenuItem("save file")) {
+                audio_paused = true;
+                auto f = pfd::save_file("Choose a file to write to", pfd::path::home(),
+                            { "Mah-Tracker Files", "*.mah" },
+                            pfd::opt::none).result();
+
+                if (!f.empty()) {
+                    fs::path path_check = f;
+                    if (path_check.extension() != ".mah")
+                        path_check.replace_extension("mah");
+                    save_file((char *)path_check.c_str(), &c_song);
                 }
-                */
+                audio_paused = false;
+                reset_audio_buffer();
             }
 
             ImGui::EndMenu();
@@ -204,14 +230,10 @@ void load_settings() {
     }
 }
 
-#include "defines.h"
-
 extern void init_sid(); // player.cpp
 extern void advance_audio(song *song, cursor *cur_cursor); // player.cpp
 extern void init_routine(song *song); // player.cpp
 extern void register_view(bool *open);
-cursor cur_cursor;
-song c_song; // current song
 
 float get_volume() { // for player.cpp
     return visible_windows.audio_volume;
@@ -368,6 +390,8 @@ int main(int argc, char *argv[]) {
     c_song.order_len = 1;
 
     c_song.init_speed = 6;
+
+    audio_paused = false;
 
     init_sid();
     init_routine(&c_song);

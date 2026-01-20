@@ -75,9 +75,9 @@ target_link_libraries(imgui_impl_opengl3 PRIVATE OpenGL::GL)
 target_link_libraries(imgui_impl_sdl2 PRIVATE SDL2::SDL2-static)
 
 add_compile_definitions(ImTextureID=void*)
-add_compile_options(-O2)
-#add_compile_options(-fsanitize=address)
-#add_link_options(-fsanitize=address)
+add_compile_options(-O2 -g)
+add_compile_options(-fsanitize=address)
+add_link_options(-fsanitize=address)
 
 add_executable(
     mah_tracker 
@@ -86,6 +86,7 @@ add_executable(
 	orders.cpp
 	instrument_edit.cpp
 	player.cpp
+    file_ops.cpp
 )
 
 target_link_libraries(mah_tracker

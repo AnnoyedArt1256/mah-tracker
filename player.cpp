@@ -74,8 +74,12 @@ void reset_audio_buffer() {
     time_cur = SDL_GetTicks();
 }
 
+bool audio_paused;
+
 void callback(void *udata, uint8_t *stream, int len) {
     SDL_memset(stream, 0, len);
+
+    if (audio_paused) return;
 
     if (len > ((BUFFER_SIZE)*sizeof(short))) len = (BUFFER_SIZE)*sizeof(short); // clamp length
 
@@ -201,7 +205,7 @@ void init_routine(song *song) {
     player_vars.speed = song->init_speed;
     player_vars.tick = player_vars.speed;
     memset(&player_vars.hr_delay,0xFF,3);
-    memset(&player_vars.inst,1,3);
+    memset(&player_vars.inst,0,3);
     for (int i = 0; i <= 0x18; i++) write_sid(i,0);
     write_sid(0x18, 0x0F);
     reset_audio_buffer();
@@ -289,6 +293,7 @@ void advance_frame(song *song, cursor *cur_cursor) {
     }
     for (int ch = 0; ch < 3; ch++) {
         uint8_t inst = player_vars.inst[ch];
+        if (inst == 0) continue;
         if (player_vars.hr_delay[ch] != 0xFF) {
             if (player_vars.hr_delay[ch]++ == 1) {
                 player_vars.hr_delay[ch] = 0xFF;
