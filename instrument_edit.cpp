@@ -216,7 +216,7 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
                             // add text over the radio buttons so the 
                             // user actually knows what the buttons do :meatjob:
                             ImGuiStyle& style = ImGui::GetStyle();
-                            ImGui::PushClipRect(boundary.Min,
+                            ImGui::PushClipRect(ImMax(boundary.Min,table_pos_start),
                                                 ImMin(boundary.Max+ImVec2(slider_res.x*4.0,0.0f),table_pos_start+table_pos_size-ImVec2(style.ScrollbarSize,0.0f)),false);
                             ImGui::Text("%s",wave_names[row]);
                             ImGui::SameLine();
@@ -374,7 +374,7 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
                             // add text over the radio buttons so the 
                             // user actually knows what the buttons do :meatjob:
                             ImGuiStyle& style = ImGui::GetStyle();
-                            ImGui::PushClipRect(boundary.Min,
+                            ImGui::PushClipRect(ImMax(boundary.Min,table_pos_start),
                                                 ImMin(boundary.Max+ImVec2(slider_res.x*4.0,0.0f),table_pos_start+table_pos_size-ImVec2(style.ScrollbarSize,0.0f)),false);
                             ImGui::Text("%s",filt_names[row]);
                             ImGui::SameLine();
