@@ -186,7 +186,7 @@ void advance_audio(song *song, cursor *cur_cursor) {
     } 
 }
 
-typedef struct {
+struct pvars {
     uint8_t tick;
     uint8_t speed;
     uint8_t hr_delay[3];
@@ -194,6 +194,8 @@ typedef struct {
     uint8_t inst[3];
     uint8_t cur_arpwave_pos[3];
     uint16_t freq[3];
+    uint16_t bend[3];
+    uint16_t bend_delta[3];
     uint16_t pw[3];
     uint16_t pw_speed[3];
     uint8_t cur_filter_pos;
@@ -203,7 +205,12 @@ typedef struct {
     uint8_t cutoff;
     uint8_t filt_mode;
     uint8_t vol;
-} pvars;
+    uint8_t gate_mask[3];
+    uint8_t vib_arg[3];
+    uint8_t vib_tim[3];
+    uint8_t last_eff[3];
+    uint8_t last_arg[3];
+};
 
 pvars player_vars;
 
@@ -213,6 +220,7 @@ void init_routine(song *song) {
     player_vars.tick = player_vars.speed;
     memset(&player_vars.hr_delay,0xFF,3);
     memset(&player_vars.inst,0,3);
+    memset(&player_vars.gate_mask,0xFF,3);
     for (int i = 0; i <= 0x18; i++) write_sid(i,0);
     write_sid(0x18, 0x0F);
     player_vars.vol = 0x0F;
@@ -245,14 +253,20 @@ void advance_frame(song *song, cursor *cur_cursor) {
                 uint8_t eff_type = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].eff_type;
                 uint8_t eff_arg  = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].eff_arg;
                 if (note != NOTE_EMPTY) {
-                    player_vars.cur_note[ch] = note;
-                    player_vars.cur_arpwave_pos[ch] = 0;
-                    player_vars.hr_delay[ch] = 0;
-                    player_vars.pw[ch] = song->instr[player_vars.inst[ch]].duty_start;
-                    player_vars.pw_speed[ch] = song->instr[player_vars.inst[ch]].duty_speed;
-                    write_sid(ch*7+5, 0x00);
-                    write_sid(ch*7+6, 0x00);
-                    write_sid(ch*7+4, 0x08);
+                    if (note == NOTE_OFF) {
+                        player_vars.gate_mask[ch] = 0xFE; // gate off
+                    } else {
+                        player_vars.cur_note[ch] = note;
+                        player_vars.cur_arpwave_pos[ch] = 0;
+                        player_vars.hr_delay[ch] = 0;
+                        player_vars.pw[ch] = song->instr[player_vars.inst[ch]].duty_start;
+                        player_vars.pw_speed[ch] = song->instr[player_vars.inst[ch]].duty_speed;
+                        player_vars.bend[ch] = 0;
+                        player_vars.vib_tim[ch] = 0;
+                        write_sid(ch*7+5, 0x00);
+                        write_sid(ch*7+6, 0x00);
+                        write_sid(ch*7+4, 0x08);
+                    }
                 }
                 if (instr != 0) {
                     player_vars.inst[ch] = instr;
@@ -264,8 +278,26 @@ void advance_frame(song *song, cursor *cur_cursor) {
                     write_sid(ch*7+6, 0x00);
                     write_sid(ch*7+4, 0x08);
                 }
+                player_vars.bend_delta[ch] = 0;
+                player_vars.vib_arg[ch] = 0;
                 if (eff_type) {
                     switch (eff_type) {
+                        case 0x1: {
+                            player_vars.bend_delta[ch] = eff_arg;
+                            player_vars.vib_tim[ch] = 0;
+                            break;
+                        }
+                        case 0x2: {
+                            player_vars.bend_delta[ch] = -eff_arg;
+                            player_vars.vib_tim[ch] = 0;
+                            break;
+                        }
+                        case 0x4: {
+                            if (player_vars.last_eff[ch] != eff_type)
+                                player_vars.vib_tim[ch] = 0;
+                            player_vars.vib_arg[ch] = eff_arg;
+                            break;
+                        }
                         case 0xF: {
                             player_vars.speed = eff_arg&0x7f;
                             break;
@@ -277,6 +309,8 @@ void advance_frame(song *song, cursor *cur_cursor) {
                         default: break;
                     }
                 }
+                player_vars.last_eff[ch] = eff_type;
+                player_vars.last_arg[ch] = eff_arg;
             }
             cur_cursor->play_row++;
             if (cur_cursor->play_row == 64) {
@@ -306,8 +340,17 @@ void advance_frame(song *song, cursor *cur_cursor) {
         if (player_vars.hr_delay[ch] != 0xFF) {
             if (player_vars.hr_delay[ch]++ == 1) {
                 player_vars.hr_delay[ch] = 0xFF;
-                write_sid(ch*7+5, (song->instr[inst].a<<4)|song->instr[inst].d);
-                write_sid(ch*7+6, (song->instr[inst].s<<4)|song->instr[inst].r);
+                player_vars.gate_mask[ch] = 0xFF; // gate on
+                if (player_vars.last_eff[ch] == 0x05)
+                    write_sid(ch*7+5, player_vars.last_arg[ch]);
+                else
+                    write_sid(ch*7+5, (song->instr[inst].a<<4)|song->instr[inst].d);
+
+                if (player_vars.last_eff[ch] == 0x06)
+                    write_sid(ch*7+6, player_vars.last_arg[ch]);
+                else
+                    write_sid(ch*7+6, (song->instr[inst].s<<4)|song->instr[inst].r);
+
                 if (song->instr[inst].filter_enable) {
                     uint8_t resonance = song->instr[inst].filter_res;
                     player_vars.resonance_ch_enable = (player_vars.resonance_ch_enable&0x0f)|(resonance<<4);
@@ -328,7 +371,7 @@ void advance_frame(song *song, cursor *cur_cursor) {
             if (arp_val&0x80) arp_val &= 0x7f; // abs
             else arp_val = player_vars.cur_note[ch] + (arp_val-48); // rel
             player_vars.freq[ch] = freqtbllo[arp_val&127]|(freqtblhi[arp_val&127]<<8);
-            write_sid(ch*7+4,song->instr[inst].wav[arp_pos]);
+            write_sid(ch*7+4,song->instr[inst].wav[arp_pos] & player_vars.gate_mask[ch]);
             player_vars.cur_arpwave_pos[ch]++;
             if (player_vars.cur_arpwave_pos[ch] >= song->instr[inst].wav_len) {
                 uint8_t loop = song->instr[inst].wav_loop;
@@ -344,8 +387,21 @@ void advance_frame(song *song, cursor *cur_cursor) {
                 player_vars.pw_speed[ch] *= -1;
             }
         }
-        write_sid(ch*7+0,player_vars.freq[ch]&0xff);
-        write_sid(ch*7+1,player_vars.freq[ch]>>8);
+        if (player_vars.vib_arg[ch]) {
+            // thanks goattracker! :meatjob:
+            uint8_t vib_depth = (player_vars.vib_arg[ch]<<4)&0xf0;
+            uint8_t vib_speed = (player_vars.vib_arg[ch]>>4)^0x0f;
+            if ((player_vars.vib_tim[ch] < 0x80) && (player_vars.vib_tim[ch] >= vib_speed)) {
+                player_vars.vib_tim[ch] ^= 0xff;
+            }
+            player_vars.vib_tim[ch] += 2;
+            if (player_vars.vib_tim[ch] & 1) player_vars.bend[ch] -= vib_depth;
+            else player_vars.bend[ch] += vib_depth;
+        }
+        player_vars.bend[ch] += player_vars.bend_delta[ch];
+        uint16_t final_freq = player_vars.freq[ch]+player_vars.bend[ch];
+        write_sid(ch*7+0,final_freq&0xff);
+        write_sid(ch*7+1,final_freq>>8);
         write_sid(ch*7+2,player_vars.pw[ch]&0xff);
         write_sid(ch*7+3,player_vars.pw[ch]>>8);
     }

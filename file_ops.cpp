@@ -54,7 +54,7 @@ void load_file(char *filename, song *song) {
 
     // patterns
     int max_pat = fgetc(f);
-    for (int pat = 0; pat < max_pat; pat++) {
+    for (int pat = 0; pat < max_pat+1; pat++) {
         for (int row = 0; row < 64; row++) {
             song->pattern[pat].rows[row].note = fgetc(f);
             song->pattern[pat].rows[row].instr = fgetc(f);
@@ -132,7 +132,7 @@ void save_file(char *filename, song *song) {
     }
     fputc(max_pat&0xff, f);
     // write the patterns
-    for (int pat = 0; pat < max_pat; pat++) {
+    for (int pat = 0; pat < max_pat+1; pat++) {
         for (int row = 0; row < 64; row++) {
             fputc(song->pattern[pat].rows[row].note, f);
             fputc(song->pattern[pat].rows[row].instr, f);

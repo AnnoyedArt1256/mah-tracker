@@ -13,7 +13,7 @@ unless noted otherwise, each byte/word is treated as an **unsigned** value and i
 - 16 bytes reserved (currently only zeros)
 
 ## Orders
-- 1 bytes: global order table length
+- 1 bytes: global order table length **MINUS** - 1
 
 - N*3 bytes: order table (NON-interleaved)
     - in the file, the first channel's order table is laid out first, then the second's and then the third's

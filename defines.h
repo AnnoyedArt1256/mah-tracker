@@ -26,7 +26,7 @@ enum channel_mode {
     end = 4
 };
 
-typedef struct {
+struct cursor {
     int ch, row;
     enum channel_mode selection;
     int octave;
@@ -37,20 +37,20 @@ typedef struct {
     int play_row;
     bool loop;
     bool do_record;
-} cursor;
+};
 
 #define NOTE_OFF 0xfe
 #define NOTE_EMPTY 0xff
-typedef struct {
+struct pat_row {
     uint8_t note, instr, eff_type, eff_arg;
-} pat_row;
+};
 
-typedef struct {
+struct pattern {
     pat_row rows[64];
-} pattern;
+};
 
 #define INS_NO_LOOP 0xff
-typedef struct {
+struct instrument {
     uint8_t a, d, s, r;
     uint8_t wav_len; // also for arps
     uint8_t wav_loop; // also for arps
@@ -65,16 +65,16 @@ typedef struct {
     int duty_start;
     int duty_end;
     int duty_speed;
-} instrument;
+};
 
 #define ORDER_END 0xff
-typedef struct {
+struct song {
     pattern pattern[256];
     uint16_t order_table[3][256];
     uint8_t order_len;
     instrument instr[128];
     uint8_t init_speed;
-} song;
+};
 
 extern void render_pat(song *song, cursor *cur_cursor, bool *enable);
 extern void render_orders(song *song, cursor *cur_cursor, bool *enable);

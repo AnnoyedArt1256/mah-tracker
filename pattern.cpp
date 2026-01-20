@@ -68,6 +68,8 @@ int get_select_width(enum channel_mode ch_select) {
 }
 
 void do_pat_keyboard(song *song, cursor *cur_cursor) {
+    static uint8_t last_eff_type;
+    static uint8_t last_eff_arg;
     ImGuiIO& io = ImGui::GetIO();
     ImVec2 char_size_xy = ImGui::CalcTextSize("A");
     char_size_xy.y += io.FontGlobalScale+2;
@@ -149,6 +151,14 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
                 play_note_live(song,0,cur_cursor->octave*12+key_ind,cur_cursor->instr);
             }
         }
+        if (ImGui::IsKeyPressed(ImGuiKey_1)) {
+            if (cur_cursor->do_record) {
+                song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].note = 
+                    NOTE_OFF;
+                cur_cursor->row = (cur_cursor->row+1)%64;
+                ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
+            }   
+        }
         if (ImGui::IsKeyPressed(ImGuiKey_Backspace)) {
             song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].note = 
                 NOTE_EMPTY;
@@ -182,6 +192,12 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
         for (int key = 0; key < 16; key++) {
             if (ImGui::IsKeyPressed(hex_keys[key]) && cur_cursor->do_record) {
                 song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].eff_type = key;
+                if (last_eff_type == key) {
+                    song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].eff_arg = last_eff_arg;
+                } else {
+                    last_eff_arg = 0;
+                }
+                last_eff_type = key;
                 cur_cursor->latch = 0;
                 cur_cursor->row = (cur_cursor->row+1)%64;
                 ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
@@ -193,16 +209,17 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
         }
     }
     if (cur_cursor->selection == eff_arg) {
-        for (int key = 1; key < 16; key++) {
+        for (int key = 0; key < 16; key++) {
             if (ImGui::IsKeyPressed(hex_keys[key]) && cur_cursor->do_record) {
                 if (cur_cursor->latch) {
                     song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].eff_arg <<= 4;
                     song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].eff_arg |= key;
+                    last_eff_arg = song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].eff_arg;
                     cur_cursor->latch = 0;
                     cur_cursor->row = (cur_cursor->row+1)%64;
                     ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
                 } else {
-                    song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].eff_arg = key;
+                    last_eff_arg = song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].eff_arg = key;
                     cur_cursor->latch = 1;
                 }
             }
@@ -376,8 +393,12 @@ void render_pat(song *song, cursor *cur_cursor, bool *enable) {
             uint8_t eff_type = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].eff_type;
             uint8_t eff_arg  = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].eff_arg;
             if (note != NOTE_EMPTY) {
-                memcpy(cur_note,note_str[note%12],2);
-                cur_note[2] = "0123456789ABCDEF"[(note-(note%12))/12];
+                if (note != NOTE_OFF) {
+                    memcpy(cur_note,note_str[note%12],2);
+                    cur_note[2] = "0123456789ABCDEF"[(note-(note%12))/12];
+                } else {
+                    memcpy(cur_note,"OFF",3);
+                }
             }
             if (instr != 0) {
                 const char *hex_str = "0123456789ABCDEF";
