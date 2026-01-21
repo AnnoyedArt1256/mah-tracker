@@ -369,8 +369,6 @@ int main(int argc, char *argv[]) {
     // 0xFF (128) instruments pre-populated in the editor list
     // >chiptune writers making the best sounds you've ever heard and they're all named "new instrument"
 
-    // Segfaults at instrument $EE %11101110 238
-    // 
     for (int ins = 0; ins < 128; ins++) {
 
         // ADSR

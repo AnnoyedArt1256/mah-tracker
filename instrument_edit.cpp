@@ -68,7 +68,7 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
     char ins_name_preview[32];
     snprintf(ins_name_preview,32,"Insturment %02X",cur_cursor->instr);
     if (ImGui::BeginCombo("##ins_select",ins_name_preview)) {
-        for (int n = 1; n < 256; n++) {
+        for (int n = 1; n < 128; n++) {
             char ins_name_select[32];
             snprintf(ins_name_select,32,"Insturment %02X",n);
             const bool is_selected = (cur_cursor->instr == n);
