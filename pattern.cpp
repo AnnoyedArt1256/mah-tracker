@@ -22,10 +22,24 @@ along with this program; if not, see
 #include "imgui_internal.h"
 #include "defines.h"
 
+// Note string definitions.
+/* TODO? Maybe? 
+// Add flat-rendering support. Some people like flats in their trackers. 
+ Those people are weird. */
+
+/*
+const char* flats[12] = {
+    "C-", "Db", "D-", "Eb", "E-", "F-", "Gb", "G-", "Ab", "A-", "Bb", "B-"
+
+};
+
+*/
+
 const char* note_str[12] = {
     "C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"
 };
 
+// Piano keys
 ImGuiKey piano_keys[] = {
     ImGuiKey_Z, ImGuiKey_S, ImGuiKey_X, ImGuiKey_D, ImGuiKey_C, ImGuiKey_V,
     ImGuiKey_G, ImGuiKey_B, ImGuiKey_H, ImGuiKey_N, ImGuiKey_J, ImGuiKey_M,
@@ -34,6 +48,7 @@ ImGuiKey piano_keys[] = {
     ImGuiKey_I, ImGuiKey_9, ImGuiKey_O, ImGuiKey_0, ImGuiKey_P
 };
 
+// Hex keys
 const ImGuiKey hex_keys[16] = {
     ImGuiKey_0, ImGuiKey_1, ImGuiKey_2, ImGuiKey_3, 
     ImGuiKey_4, ImGuiKey_5, ImGuiKey_6, ImGuiKey_7, 
@@ -56,6 +71,8 @@ int get_select_offset(enum channel_mode ch_select) {
     return 0;
 }
 
+// get selection width, idk
+// how many spaces something takes up, check what it is and return how many spaces it should have
 int get_select_width(enum channel_mode ch_select) {
     switch (ch_select) {
         case note: { return 3; }
@@ -67,6 +84,7 @@ int get_select_width(enum channel_mode ch_select) {
     return 0;
 }
 
+// Row/column controls
 void do_pat_keyboard(song *song, cursor *cur_cursor) {
     static uint8_t last_eff_type;
     static uint8_t last_eff_arg;
@@ -77,17 +95,24 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
         // set jam/record mode
         cur_cursor->do_record = !cur_cursor->do_record;
     }
+
+
+    // Down one row
     if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
         cur_cursor->latch = 0;
         cur_cursor->row = (cur_cursor->row+1)%64;
         ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
     }
+
+    // Up one row
     if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
         cur_cursor->latch = 0;
         cur_cursor->row--;
         if (cur_cursor->row < 0) cur_cursor->row = 64-1;
         ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
     }
+
+    // Column right
     if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)) {
         cur_cursor->latch = 0;
         switch (cur_cursor->selection) {
@@ -111,6 +136,8 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
             default: break;
         }
     }
+
+    // Column left
     if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) {
         cur_cursor->latch = 0;
         switch (cur_cursor->selection) {
