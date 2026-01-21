@@ -104,6 +104,20 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
             }
         }
     }
+    ImGui::SameLine();
+
+    // Deep clone order button
+    if (ImGui::Button("Deep Clone")) {
+        if (song->order_len < 255) {
+            int pat_ind_cursor = cur_cursor->order;
+            int order_ind = song->order_len++;
+            for (int ch = 0; ch < 3; ch++) {
+                uint8_t cur_order = get_unused_pattern(song);
+                song->order_table[ch][order_ind] = cur_order;
+                memcpy(&song->pattern[cur_order], &song->pattern[song->order_table[ch][pat_ind_cursor]], sizeof(pattern_data));
+            }
+        }
+    }
 
 
     // Disable cell padding
