@@ -18,3 +18,7 @@ cmake_install.cmake
 imgui.ini
 mah-tracker.cfg
 *.mah
+*.lbl
+*.lst
+*.prg
+music.asm
