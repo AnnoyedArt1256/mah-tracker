@@ -68,6 +68,7 @@ static bool opt_padding = false; // Is there padding (a blank space) between the
 extern void load_file(char *filename, song *song);
 extern void save_file(char *filename, song *song);
 extern void reset_audio_buffer();
+extern void shut_Up();
 
 cursor cur_cursor;
 song c_song; // current song
@@ -294,7 +295,7 @@ int main(int argc, char *argv[]) {
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI| SDL_WINDOW_MAXIMIZED);
-    SDL_Window* window = SDL_CreateWindow("mah tracker baybeee!!11", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
+    SDL_Window* window = SDL_CreateWindow("Mah-Tracker -- Under Construction", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags); // mah tracker baybeee!!11
     if (window == nullptr)
     {
         printf("Error: SDL_CreateWindow(): %s\n", SDL_GetError());
@@ -487,6 +488,15 @@ int main(int argc, char *argv[]) {
             if (ImGui::Button(cur_cursor.do_record?"RECORD":"JAM")) {
                 cur_cursor.do_record = !cur_cursor.do_record;
             }
+
+            // Play controls
+            if (ImGui::Button(cur_cursor.playing?"Stop":"Play")) {
+                cur_cursor.playing ^= 1; // Xor toggle
+                cur_cursor.play_row = 0;
+                cur_cursor.latch = 0;
+                init_routine(&c_song);
+            }
+
             ImGui::End();
         }
 

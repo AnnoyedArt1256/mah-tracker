@@ -234,6 +234,8 @@ void init_routine(song *song) {
     reset_audio_buffer();
 }
 
+
+
 // Live note playback
 void play_note_live(song *song, uint8_t ch, uint8_t note, uint8_t instr) {
     player_vars.inst[ch] = instr;
