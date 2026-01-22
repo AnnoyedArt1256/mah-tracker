@@ -5,6 +5,8 @@ They are licensed under the public domain.
 Use this driver and converter whenever and wherever you want, commercial or for fun!
 """
 
+import sys
+
 def convert(filename):
     file = open(filename,"rb")
     out = "; blah\n"
@@ -199,7 +201,7 @@ def convert(filename):
     file.write(out)
     file.close()
 
-convert("jammer5.mah")
+convert(sys.argv[1])
 
 # frequency calculation code taken from
 # https://codebase64.org/doku.php?id=base:how_to_calculate_your_own_sid_frequency_table
