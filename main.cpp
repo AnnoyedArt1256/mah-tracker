@@ -78,6 +78,9 @@ void ShowExampleAppDockSpace(bool* p_open) {
 
     ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true; // Don't know if there's a better way to do this right now
 
+    
+
+
     // Variables to configure the Dockspace example.
     static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None; // Config flags for the Dockspace
 
@@ -323,6 +326,7 @@ int main(int argc, char *argv[]) {
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.Fonts->AddFontDefault();
+    io.Fonts->AddFontFromFileTTF("res/fontawesome.otf", 12.0f);
     //io.Fonts->AddFontFromFileTTF("IBMPlexMono-Regular.ttf", 25.0f); // FOINISS FONT OH MAI GAHHHH
 
     io.FontGlobalScale = 1.0f;
@@ -486,14 +490,16 @@ int main(int argc, char *argv[]) {
                 else if (c_song.init_speed > 127) c_song.init_speed = 127; // If you need more than 127 speed there's something wrong
             }
             ImGui::Checkbox("Loop Pattern",&cur_cursor.loop);
-            ImGui::SameLine();
-            ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x/20.0,0.0f));
-            ImGui::SameLine();
+
+            //ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x/20.0,0.0f));
+            ImGui::NewLine();
 
             // Toggle cursor state between record and jam
-            if (ImGui::Button(cur_cursor.do_record?"RECORD":"JAM")) {
+            if (ImGui::Button(cur_cursor.do_record?"Jam":"Record")) {
                 cur_cursor.do_record = !cur_cursor.do_record;
             }
+
+            ImGui::SameLine();
 
             // Play controls
             if (ImGui::Button(cur_cursor.playing?"Stop":"Play")) {
