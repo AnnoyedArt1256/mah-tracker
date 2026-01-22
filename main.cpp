@@ -163,7 +163,7 @@ void ShowExampleAppDockSpace(bool* p_open) {
                     fs::path path_check = f[0];
                     if (path_check.extension() != ".mah")
                         path_check.replace_extension("mah");
-                    load_file((char *)path_check.c_str(), &c_song);
+                    load_file((char *)path_check.string().c_str(), &c_song);
                 } 
                 audio_paused = false;
                 reset_audio_buffer();
@@ -178,7 +178,7 @@ void ShowExampleAppDockSpace(bool* p_open) {
                     fs::path path_check = f;
                     if (path_check.extension() != ".mah")
                         path_check.replace_extension("mah");
-                    save_file((char *)path_check.c_str(), &c_song);
+                    save_file((char *)path_check.string().c_str(), &c_song);
                 }
                 audio_paused = false;
                 reset_audio_buffer();
