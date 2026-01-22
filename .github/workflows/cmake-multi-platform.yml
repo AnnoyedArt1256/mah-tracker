@@ -27,7 +27,7 @@ jobs:
       #
       # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest, macos-14-large]
+        os: [ubuntu-latest, windows-latest, macos-latest, macos-14/x86-64]
         build_type: [Release]
         c_compiler: [gcc, clang, cl]
         include:
@@ -40,7 +40,7 @@ jobs:
           - os: macos-latest
             c_compiler: clang
             cpp_compiler: clang++
-          - os: macos-14-large
+          - os: macos-14
             c_compiler: clang
             cpp_compiler: clang++
         exclude:
@@ -54,11 +54,11 @@ jobs:
             c_compiler: clang
           - os: macos-latest
             c_compiler: gcc
-          - os: macos-14-large
+          - os: macos-14
             c_compiler: gcc
           - os: macos-latest
             c_compiler: cl
-          - os: macos-14-large
+          - os: macos-14
             c_compiler: cl
             
     steps:
@@ -119,8 +119,8 @@ jobs:
         binPath=${{ steps.strings.outputs.build-output-dir }}
         mkdir ${{ steps.package-identify.outputs.filename }}
         pushd ${{ steps.package-identify.outputs.filename }}
-        cp -vr ${binPath}/${{ matrix.build_type }}/mah-tracker.exe mah-tracker.exe
-        sha256sum ${binPath}/${{ matrix.build_type }}/mah-tracker.exe > checksum.txt
+        cp -vr ${binPath}/${{ matrix.build_type }}/mah_tracker.exe mah_tracker.exe
+        sha256sum ${binPath}/${{ matrix.build_type }}/mah_tracker.exe > checksum.txt
         mkdir -vr ${{ steps.strings.outputs.build-source-dir }}/export ./export
         popd
   
@@ -131,7 +131,7 @@ jobs:
         mkdir ${{ steps.package-identify.outputs.filename }}
         pushd ${{ steps.package-identify.outputs.filename }}
         ls ${binPath}
-        cp -v ${binPath}/mah-tracker mah-tracker
+        cp -v ${binPath}/mah_tracker mah_tracker
         mkdir -vr ${{ steps.strings.outputs.build-source-dir }}/export ./export
         popd
         
@@ -141,7 +141,7 @@ jobs:
         binPath=${{ steps.strings.outputs.build-output-dir }}
         mkdir ${{ steps.package-identify.outputs.filename }}
         pushd ${{ steps.package-identify.outputs.filename }}
-        cp -v ${binPath}/mah-tracker mah-tracker
+        cp -v ${binPath}/mah_tracker mah_tracker
         mkdir -vr ${{ steps.strings.outputs.build-source-dir }}/export ./export
         popd
 
