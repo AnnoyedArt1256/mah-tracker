@@ -95,7 +95,7 @@ def convert(filename):
                 pattern_data.extend(write_buffer)
                 last_write = 0
 
-            if not is_dxx: last_write += 1
+            if not is_dxx and row != 63: last_write += 1
 
         # write the remaining waits
         if last_write > 0: pattern_data.append(last_write)
