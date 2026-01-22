@@ -47,7 +47,8 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
     static bool was_dragging_wave[128][8];
     static bool click_wav_val = false;
     ImGuiIO& io = ImGui::GetIO();
-
+    // For use in instrument copy & paste
+    static instrument instr_copy = {};
     
     ImVec2 mouse_pos = io.MousePos;
     ImVec2 mouse_pos_prev = io.MousePosPrev;
@@ -80,6 +81,14 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
                 ImGui::SetItemDefaultFocus();
         }
         ImGui::EndCombo();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Copy")) {
+        instr_copy = song->instr[cur_cursor->instr];
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Paste")) {
+        song->instr[cur_cursor->instr] = instr_copy;
     }
 
     if (ImGui::BeginTabBar("tabs_i_guess")) {
