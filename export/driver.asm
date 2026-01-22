@@ -97,10 +97,14 @@ skipseq:
 :
     jsr do_wav
     jsr do_pulse_sweep
+    jsr do_vibrato
     ldy sid_mul, x
     lda final_freq
+    clc
+    adc bend_lo, x
     sta $d400, y
     lda final_freq+1
+    adc bend_hi, x
     sta $d401, y
     lda duty_lo, x
     sta $d402, y
@@ -327,6 +331,7 @@ do_wav:
     adc ins_wave_len, y
     tay
     lda (temp), y
+    and gate_mask, x
     ldy sid_mul, x
     sta $d404, y
 
@@ -370,6 +375,9 @@ do_ch:
     and #$3f
     sta ins, x
     jsr inc_pat
+    lda eff_type, x
+    cmp #3
+    beq @parse_rept
     jsr reinit_note_inst
     jmp @parse_rept
 :
@@ -378,6 +386,9 @@ do_ch:
     and #$7f
     sta cur_note, x
     jsr inc_pat
+    lda eff_type, x
+    cmp #3
+    beq @parse_rept
     jsr reinit_note_inst
     jmp @parse_rept
 :
@@ -392,7 +403,9 @@ do_ch:
     cmp #$f0
     bcs :+
     and #$0f
+    ldy eff_type, x
     sta eff_type, x
+    sty last_eff
     ldy #1
     lda (temp), y
     sta eff_arg, x
@@ -412,6 +425,12 @@ do_ch:
     sta do_patend
 :
 @end_parse:
+    lda last_eff
+    cmp eff_arg, x
+    beq :+
+    lda #0
+    sta vib_tim, x
+:
 
     lda temp
     sta pat_ptr_lo, x
@@ -431,6 +450,9 @@ reinit_note_inst:
     lda #0
     sta hr_delay, x
     sta arp_pos, x
+    sta vib_tim, x
+    sta bend_lo, x
+    sta bend_hi, x
     lda #$ff
     sta gate_mask, x
     lda #0
@@ -503,6 +525,57 @@ set_pat:
     sta dur+2
     rts
 
+do_vibrato:
+    lda eff_type, x
+    cmp #4
+    beq :+
+    rts
+:
+
+    lda eff_arg, x
+    asl
+    asl
+    asl
+    asl
+    sta temp
+    lda eff_arg, x
+    lsr
+    lsr
+    lsr
+    lsr
+    eor #$0f
+    sta temp+1
+    lda vib_tim, x
+    bmi :+
+    cmp temp+1
+    bcc :+
+    eor #$ff
+:
+    clc
+    adc #2
+    sta vib_tim, x
+    and #1
+    beq vib_add
+    ;bne vib_sub
+    lda bend_lo, x
+    sec
+    sbc temp
+    sta bend_lo, x
+    lda bend_hi, x
+    sbc #0
+    sta bend_hi, x
+    rts
+
+vib_add:
+    lda bend_lo, x
+    clc
+    adc temp
+    sta bend_lo, x
+    lda bend_hi, x
+    adc #0
+    sta bend_hi, x
+    rts
+
 order_lo:
     .lobytes order_ch0, order_ch1, order_ch2
 
@@ -534,6 +607,10 @@ duty_speed_hi: .res 3, 0
 filt_resonance_temp: .byte 0
 filt_inst: .byte 0
 filter_pos: .byte 0
+vib_tim: .res 3, 0
+bend_lo: .res 3, 0
+bend_hi: .res 3, 0
+last_eff: .byte 0
 vars_end:
 
 freq_lo:

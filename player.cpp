@@ -266,26 +266,30 @@ void advance_frame(song *song, cursor *cur_cursor) {
                         player_vars.gate_mask[ch] = 0xFE; // gate off
                     } else {
                         player_vars.cur_note[ch] = note;
-                        player_vars.cur_arpwave_pos[ch] = 0;
-                        player_vars.hr_delay[ch] = 0;
-                        player_vars.pw[ch] = song->instr[player_vars.inst[ch]].duty_start;
-                        player_vars.pw_speed[ch] = song->instr[player_vars.inst[ch]].duty_speed;
-                        player_vars.bend[ch] = 0;
-                        player_vars.vib_tim[ch] = 0;
-                        write_sid(ch*7+5, 0x00);
-                        write_sid(ch*7+6, 0x00);
-                        write_sid(ch*7+4, 0x08);
+                        if (eff_type != 3) {
+                            player_vars.cur_arpwave_pos[ch] = 0;
+                            player_vars.hr_delay[ch] = 0;
+                            player_vars.pw[ch] = song->instr[player_vars.inst[ch]].duty_start;
+                            player_vars.pw_speed[ch] = song->instr[player_vars.inst[ch]].duty_speed;
+                            player_vars.bend[ch] = 0;
+                            player_vars.vib_tim[ch] = 0;
+                            write_sid(ch*7+5, 0x00);
+                            write_sid(ch*7+6, 0x00);
+                            write_sid(ch*7+4, 0x08);
+                        }
                     }
                 }
                 if (instr != 0) {
                     player_vars.inst[ch] = instr;
-                    player_vars.cur_arpwave_pos[ch] = 0;
-                    player_vars.hr_delay[ch] = 0;
-                    player_vars.pw[ch] = song->instr[player_vars.inst[ch]].duty_start;
-                    player_vars.pw_speed[ch] = song->instr[player_vars.inst[ch]].duty_speed;
-                    write_sid(ch*7+5, 0x00);
-                    write_sid(ch*7+6, 0x00);
-                    write_sid(ch*7+4, 0x08);
+                    if (eff_type != 3) {
+                        player_vars.cur_arpwave_pos[ch] = 0;
+                        player_vars.hr_delay[ch] = 0;
+                        player_vars.pw[ch] = song->instr[player_vars.inst[ch]].duty_start;
+                        player_vars.pw_speed[ch] = song->instr[player_vars.inst[ch]].duty_speed;
+                        write_sid(ch*7+5, 0x00);
+                        write_sid(ch*7+6, 0x00);
+                        write_sid(ch*7+4, 0x08);
+                    }
                 }
                 player_vars.bend_delta[ch] = 0;
                 player_vars.vib_arg[ch] = 0;

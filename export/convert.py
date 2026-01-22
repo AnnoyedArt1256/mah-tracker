@@ -53,7 +53,7 @@ def convert(filename):
 
     max_ins = 0
     for pat in range(max_pat+1):
-        cur_eff_type = 0
+        cur_eff_type = 0xff
         cur_eff_arg = 0
         pattern_data = []
         last_write = 0
