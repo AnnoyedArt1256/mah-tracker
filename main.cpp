@@ -246,7 +246,13 @@ float get_volume() { // for player.cpp
 // Main code
 int main(int argc, char *argv[]) {
     visible_windows.imgui_debugger = false;
-    
+    visible_windows.controls = true;
+    visible_windows.instr = true;
+    visible_windows.orders = true;
+    visible_windows.pattern = true;
+    visible_windows.settings = true;
+    visible_windows.audio_volume = 1.0f;
+
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
     {
