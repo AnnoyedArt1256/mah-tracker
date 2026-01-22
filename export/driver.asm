@@ -97,7 +97,7 @@ skipseq:
 :
     jsr do_wav
     jsr do_pulse_sweep
-    jsr do_vibrato
+    jsr do_eff
     ldy sid_mul, x
     lda final_freq
     clc
@@ -525,10 +525,22 @@ set_pat:
     sta dur+2
     rts
 
-do_vibrato:
+do_eff:
     lda eff_type, x
     cmp #4
     beq :+
+    cmp #1
+    bne @skip1
+    lda eff_arg, x
+    sta temp
+    jmp vib_add
+@skip1:
+    cmp #2
+    bne @skip2
+    lda eff_arg, x
+    sta temp
+    jmp vib_sub
+@skip2:
     rts
 :
 
@@ -557,6 +569,7 @@ do_vibrato:
     and #1
     beq vib_add
     ;bne vib_sub
+vib_sub:
     lda bend_lo, x
     sec
     sbc temp
