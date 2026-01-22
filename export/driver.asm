@@ -346,7 +346,9 @@ do_wav:
 do_ch:
     dec dur, x
     lda dur, x
-    bne ch_skip_parse
+    beq :+
+    rts
+:
 
     lda pat_ptr_lo, x
     sta temp
@@ -395,6 +397,12 @@ do_ch:
     lda (temp), y
     sta eff_arg, x
     jsr inc_pat
+    jsr inc_pat
+    jmp @parse_rept
+:
+    cmp #$fe
+    bne :+
+    sta gate_mask, x
     jsr inc_pat
     jmp @parse_rept
 :
