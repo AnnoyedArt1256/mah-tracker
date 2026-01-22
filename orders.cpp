@@ -124,12 +124,18 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
     ImGui::PushStyleVar(ImGuiStyleVar_CellPadding,ImVec2(0.0f,0.0f));
 
     // Make the "orderview" table
-    ImGui::BeginTable("orderview",3+1,ImGuiTableFlags_BordersInnerV|ImGuiTableFlags_ScrollX|ImGuiTableFlags_ScrollY|ImGuiTableFlags_NoPadInnerX);
+    bool render_table = ImGui::BeginTable("orderview",3+1,ImGuiTableFlags_BordersInnerV|ImGuiTableFlags_ScrollX|ImGuiTableFlags_ScrollY|ImGuiTableFlags_NoPadInnerX);
     ImVec2 char_size_xy = ImGui::CalcTextSize("A"); // uses A as the base size for the font?
     float char_size = char_size_xy.x; // from foiniss
     char_size_xy.y += io.FontGlobalScale+2;
     float order_ch_size = (ImGui::GetWindowSize().x-(4.0*char_size))/3;
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+    if (!render_table) {
+        ImGui::PopStyleVar();
+        ImGui::End();
+        return;
+    }
 
     // Setup for order position 
     ImGui::TableSetupColumn("ord_pos",ImGuiTableColumnFlags_WidthFixed,4.0*char_size);
