@@ -106,6 +106,18 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
     }
     ImGui::SameLine();
 
+    // Clone order button
+    if (ImGui::Button("Clone")) {
+        if (song->order_len < 255) {
+            int pat_ind_cursor = cur_cursor->order;
+            int order_ind = song->order_len++;
+            for (int ch = 0; ch < 3; ch++) {
+                song->order_table[ch][order_ind] = song->order_table[ch][pat_ind_cursor];
+            }
+        }
+    }
+    ImGui::SameLine();
+
     // Deep clone order button
     if (ImGui::Button("Deep Clone")) {
         if (song->order_len < 255) {
