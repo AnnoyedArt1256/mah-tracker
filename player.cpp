@@ -317,6 +317,7 @@ void advance_frame(song *song, cursor *cur_cursor) {
                         }
                         case 0xF: {
                             player_vars.speed = eff_arg&0x7f;
+                            player_vars.tick = player_vars.speed;
                             break;
                         }
                         case 0xD: {
