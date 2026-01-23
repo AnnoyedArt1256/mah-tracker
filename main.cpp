@@ -111,6 +111,8 @@ void init_default_song(song *song) {
         song->instr[ins].wav[0] = 0x21;
 
         // No filter by default
+        song->instr[ins].filter_enable = 0;
+        song->instr[ins].filter_res = 0;
         song->instr[ins].filter_len = 0;
         song->instr[ins].filter_loop = INS_NO_LOOP;
         memset(song->instr[ins].filter,0,128);
@@ -475,6 +477,9 @@ int main(int argc, char *argv[]) {
                 ImGui::TextUnformatted("Are you sure you want to create a new song?");
                 if (ImGui::Button("Yes")) {
                     init_default_song(&c_song);
+                    init_routine(&c_song);
+                    cur_cursor.latch = 0;
+                    cur_cursor.chip_mode = true;
                     cur_cursor.new_file_popup = false;
                     ImGui::CloseCurrentPopup();
                 }
