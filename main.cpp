@@ -70,9 +70,80 @@ extern void save_file(char *filename, song *song);
 extern void reset_audio_buffer();
 extern void shut_Up();
 
+extern void init_sid(); // player.cpp
+extern void change_sid(int model); // player.cpp
+extern void advance_audio(song *song, cursor *cur_cursor); // player.cpp
+extern void init_routine(song *song); // player.cpp
+extern void register_view(bool *open);
+
+float get_volume() { // for player.cpp
+    return visible_windows.audio_volume;
+}
+
 cursor cur_cursor;
 song c_song; // current song
 extern bool audio_paused;
+extern int model;
+
+void init_song(song *song) {
+    for (int pat = 0; pat < 256; pat++) {
+        for (int row = 0; row < 64; row++) {
+            song->pattern[pat].rows[row].note = NOTE_EMPTY;
+            song->pattern[pat].rows[row].instr = 0;
+            song->pattern[pat].rows[row].eff_type = 0;
+            song->pattern[pat].rows[row].eff_arg = 0;
+        }
+        song->order_table[0][pat] = 0;
+        song->order_table[1][pat] = 0;
+        song->order_table[2][pat] = 0;
+    }
+    
+    // Default instrument settings for freshly created instrument.
+    // 0xFF (128) instruments pre-populated in the editor list
+    // >chiptune writers making the best sounds you've ever heard and they're all named "new instrument"
+
+    for (int ins = 0; ins < 128; ins++) {
+
+        // ADSR
+        song->instr[ins].a = 0x0;
+        song->instr[ins].d = 0x8;
+        song->instr[ins].s = 0x0;
+        song->instr[ins].r = 0x0;
+
+        // Arp/Waveform Length
+        // INS_NO_LOOP is 0xFF (see defines.h)
+        song->instr[ins].wav_len = 0x1;
+        song->instr[ins].wav_loop = INS_NO_LOOP;
+
+        memset(song->instr[ins].wav,0x01,128);
+        memset(song->instr[ins].arp,48,128);
+
+        // 0x21 in SID parlance is sawtooth
+        song->instr[ins].wav[0] = 0x21;
+
+        // No filter by default
+        song->instr[ins].filter_enable = false;
+        song->instr[ins].filter_res = 0;
+        song->instr[ins].filter_len = 0;
+        song->instr[ins].filter_loop = INS_NO_LOOP;
+        memset(song->instr[ins].filter,0,128);
+        memset(song->instr[ins].filter_mode,0,128);
+
+        // Duty settings
+        song->instr[ins].duty_start = 0x800;
+        song->instr[ins].duty_end   = 0x800;
+        song->instr[ins].duty_speed = 0;
+    }
+
+    //                      00 01
+    // initial order table: 00 END
+    song->order_table[0][0] = 0x00;
+    song->order_table[1][0] = 0x01;
+    song->order_table[2][0] = 0x02;
+    song->order_len = 1;
+
+    song->init_speed = 6;
+}
 
 void ShowExampleAppDockSpace(bool* p_open) {
 
@@ -158,6 +229,16 @@ void ShowExampleAppDockSpace(bool* p_open) {
         if (ImGui::BeginMenu("file")) {
             // Disabling fullscreen would allow the window to be moved to the front of other windows,
             // which we can't undo at the moment without finer window depth/z control.
+            if (ImGui::MenuItem("new file")) {
+                audio_paused = true;
+                init_song(&c_song);
+                cur_cursor.playing = 0; // otherwise we get hanging sound from previous module
+                cur_cursor.play_row = 0;
+                cur_cursor.latch = 0;
+                init_routine(&c_song);
+                audio_paused = false;
+                reset_audio_buffer();
+            }
             if (ImGui::MenuItem("open file")) {
                 audio_paused = true;
                 auto f = pfd::open_file("Choose a file to read", pfd::path::home(),
@@ -235,15 +316,6 @@ void load_settings() {
     for (int i = 0; i < sizeof(visible_windows); i++) {
         getline(f,value); if (!value.empty()) ((uint8_t*)&visible_windows)[i] = std::stoi(value);
     }
-}
-
-extern void init_sid(); // player.cpp
-extern void advance_audio(song *song, cursor *cur_cursor); // player.cpp
-extern void init_routine(song *song); // player.cpp
-extern void register_view(bool *open);
-
-float get_volume() { // for player.cpp
-    return visible_windows.audio_volume;
 }
 
 // Main code
@@ -364,61 +436,8 @@ int main(int argc, char *argv[]) {
     // Main loop
     bool done = false;
     int cur_frame = 0;
-    for (int pat = 0; pat < 256; pat++) {
-        for (int row = 0; row < 64; row++) {
-            c_song.pattern[pat].rows[row].note = NOTE_EMPTY;
-            c_song.pattern[pat].rows[row].instr = 0;
-            c_song.pattern[pat].rows[row].eff_type = 0;
-            c_song.pattern[pat].rows[row].eff_arg = 0;
-        }
-        c_song.order_table[0][pat] = 0;
-        c_song.order_table[1][pat] = 0;
-        c_song.order_table[2][pat] = 0;
-    }
 
-    // Default instrument settings for freshly created instrument.
-    // 0xFF (128) instruments pre-populated in the editor list
-    // >chiptune writers making the best sounds you've ever heard and they're all named "new instrument"
-
-    for (int ins = 0; ins < 128; ins++) {
-
-        // ADSR
-        c_song.instr[ins].a = 0x0;
-        c_song.instr[ins].d = 0x8;
-        c_song.instr[ins].s = 0x0;
-        c_song.instr[ins].r = 0x0;
-
-        // Arp/Waveform Length
-        // INS_NO_LOOP is 0xFF (see defines.h)
-        c_song.instr[ins].wav_len = 0x1;
-        c_song.instr[ins].wav_loop = INS_NO_LOOP;
-
-        memset(c_song.instr[ins].wav,0x01,128);
-        memset(c_song.instr[ins].arp,48,128);
-
-        // 0x21 in SID parlance is sawtooth
-        c_song.instr[ins].wav[0] = 0x21;
-
-        // No filter by default
-        c_song.instr[ins].filter_len = 0;
-        c_song.instr[ins].filter_loop = INS_NO_LOOP;
-        memset(c_song.instr[ins].filter,0,128);
-        memset(c_song.instr[ins].filter_mode,0,128);
-
-        // Duty settings
-        c_song.instr[ins].duty_start = 0x800;
-        c_song.instr[ins].duty_end   = 0x800;
-        c_song.instr[ins].duty_speed = 0;
-    }
-
-    //                      00 01
-    // initial order table: 00 END
-    c_song.order_table[0][0] = 0x00;
-    c_song.order_table[1][0] = 0x01;
-    c_song.order_table[2][0] = 0x02;
-    c_song.order_len = 1;
-
-    c_song.init_speed = 6;
+    init_song(&c_song);
 
     audio_paused = false;
 
@@ -490,6 +509,11 @@ int main(int argc, char *argv[]) {
                 else if (c_song.init_speed > 127) c_song.init_speed = 127; // If you need more than 127 speed there's something wrong
             }
             ImGui::Checkbox("Loop Pattern",&cur_cursor.loop);
+            ImGui::SameLine();
+            if (ImGui::Button(model?"6581":"8580")) {
+                model ^= 1;
+                change_sid(model);
+            }
 
             //ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x/20.0,0.0f));
             ImGui::NewLine();

@@ -78,6 +78,7 @@ void reset_audio_buffer() {
 }
 
 bool audio_paused;
+int model; // 0=8580, 1=6581
 
 void callback(void *udata, uint8_t *stream, int len) {
     SDL_memset(stream, 0, len);
@@ -105,6 +106,7 @@ int audio_cycles = 0;
 void init_sid() {
     frame_cnt = 0;
     audio_cycles = 0;
+    model = 0;
 
     sid_fp=new reSIDfp::SID;
     sid_fp->setChipModel(reSIDfp::MOS8580);
@@ -136,6 +138,11 @@ void write_sid(uint8_t addr, uint8_t val) {
 // SID read
 uint8_t read_sid(uint8_t addr) {
     return sid_fp->read(addr);
+}
+
+void change_sid(int model) {
+    // model: 0=8580, 1=6581
+    sid_fp->setChipModel(model?(reSIDfp::MOS6581):(reSIDfp::MOS8580));
 }
 
 void free_sid() {
