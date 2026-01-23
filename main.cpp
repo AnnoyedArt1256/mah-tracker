@@ -470,6 +470,9 @@ int main(int argc, char *argv[]) {
 
         ShowExampleAppDockSpace((bool*)false);
 
+        if (cur_cursor.order >= c_song.order_len)
+            cur_cursor.order = c_song.order_len-1;
+
         if (cur_cursor.new_file_popup) {
             ImGui::OpenPopup("Warning");
             if (ImGui::BeginPopupModal("Warning")) {

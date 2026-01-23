@@ -426,10 +426,17 @@ do_ch:
 :
 @end_parse:
     lda last_eff
-    cmp eff_arg, x
+    cmp eff_type, x
     beq :+
     lda #0
     sta vib_tim, x
+:
+
+    lda eff_type, x
+    cmp #$0f
+    bne :+
+    lda eff_arg, x
+    sta speed
 :
 
     lda temp
