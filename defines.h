@@ -47,6 +47,8 @@ struct cursor {
     int play_row;
     bool loop;
     bool do_record;
+    bool new_file_popup;
+    bool chip_mode;
 };
 
 // Pattern row

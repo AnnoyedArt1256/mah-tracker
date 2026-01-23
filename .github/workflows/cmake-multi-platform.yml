@@ -122,6 +122,9 @@ jobs:
         cp -vr ${binPath}/${{ matrix.build_type }}/mah_tracker.exe mah_tracker.exe
         sha256sum ${binPath}/${{ matrix.build_type }}/mah_tracker.exe > checksum.txt
         cp -vr ${{ steps.strings.outputs.build-source-dir }}/export ./export
+        cp -vr ${{ steps.strings.outputs.build-source-dir }}/res ./res
+        cp -v ${{ steps.strings.outputs.build-source-dir }}/LICENSE ./LICENSE
+        cp -v ${{ steps.strings.outputs.build-source-dir }}/README.md ./README.md
         popd
   
     - name: Package [macOS]
@@ -133,6 +136,9 @@ jobs:
         ls ${binPath}
         cp -v ${binPath}/mah_tracker mah_tracker
         cp -vr ${{ steps.strings.outputs.build-source-dir }}/export ./export
+        cp -vr ${{ steps.strings.outputs.build-source-dir }}/res ./res
+        cp -v ${{ steps.strings.outputs.build-source-dir }}/LICENSE ./LICENSE
+        cp -v ${{ steps.strings.outputs.build-source-dir }}/README.md ./README.md
         popd
         
     - name: Package [Linux]
@@ -143,6 +149,9 @@ jobs:
         pushd ${{ steps.package-identify.outputs.filename }}
         cp -v ${binPath}/mah_tracker mah_tracker
         cp -vr ${{ steps.strings.outputs.build-source-dir }}/export ./export
+        cp -vr ${{ steps.strings.outputs.build-source-dir }}/res ./res
+        cp -v ${{ steps.strings.outputs.build-source-dir }}/LICENSE ./LICENSE
+        cp -v ${{ steps.strings.outputs.build-source-dir }}/README.md ./README.md
         popd
 
     - name: 'Upload Artifact'

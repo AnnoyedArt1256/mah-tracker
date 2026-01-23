@@ -24,6 +24,8 @@ along with this program; if not, see
 
 const char magic_string[] = "MAHTRACK";
 
+extern void init_default_song(song *song);
+
 void load_file(char *filename, song *song) {
     FILE *f = fopen(filename, "rb");
 
@@ -33,6 +35,8 @@ void load_file(char *filename, song *song) {
         fclose(f);
         return;
     }
+
+    init_default_song(song);
 
     song->init_speed = fgetc(f);
 

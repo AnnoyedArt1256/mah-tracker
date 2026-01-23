@@ -153,6 +153,10 @@ short SID_advance_sample() {
     return sid_buf[0];
 }
 
+void SID_set_chip(bool mode) {
+    sid_fp->setChipModel(mode?reSIDfp::MOS8580:reSIDfp::MOS6581);
+}
+
 void advance_frame(song *song, cursor *cur_cursor);
 extern float get_volume();
 
