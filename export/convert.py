@@ -29,10 +29,13 @@ def convert(filename):
 
     # TODO: what to do for patterns $FF?
     order_len = file.read(1)[0]
+    pats_used = []
     for ch in range(3):
         order_line = f"order_ch{ch}: .byte "
         for ord in range(order_len):
-            order_line += f"{file.read(1)[0]}"
+            pat = file.read(1)[0]
+            if pat not in pats_used: pats_used.append(pat)
+            order_line += f"{pat}"
             if ord == order_len-1: order_line += ",$ff\n"
             else: order_line += ","
         out += order_line
@@ -102,6 +105,9 @@ def convert(filename):
         last_write = 0
 
         pattern_data.append(0xFF)
+
+        if pat not in pats_used: pattern_data = [0xFF] # unused pattern
+
         out += f"pattern{pat}: .byte {str(pattern_data)[1:-1]}\n"
 
     ins_properties = []

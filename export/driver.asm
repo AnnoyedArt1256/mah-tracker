@@ -3,6 +3,8 @@
 ; They are licensed under the public domain. 
 ; Use this driver and converter whenever and wherever you want, commercial or for fun!
 
+HR_MODE = 1
+
 .zeropage
 .org $fe
 temp: .res 2
@@ -465,6 +467,9 @@ reinit_note_inst:
     lda #0
     ldy sid_mul, x
     sta $d405, y
+    .if HR_MODE = 1
+        lda #$0f
+    .endif
     sta $d406, y
     lda #$08
     sta $d404, y
