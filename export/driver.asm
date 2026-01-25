@@ -3,7 +3,9 @@
 ; They are licensed under the public domain. 
 ; Use this driver and converter whenever and wherever you want, commercial or for fun!
 
-HR_MODE = 1
+; HR_MODE = 0: use the hard-restart method that the GUI editor uses
+; HR_MODE = 1: use the hard-restart method that GT2 and other players use
+HR_MODE = 0
 
 .zeropage
 .org $fe
@@ -100,6 +102,11 @@ skipseq:
     jsr do_wav
     jsr do_pulse_sweep
     jsr do_eff
+    .if HR_MODE = 1
+        lda hr_delay, x
+        cmp #$ff
+        bne @skip_freq
+    .endif
     ldy sid_mul, x
     lda final_freq
     clc
@@ -112,6 +119,9 @@ skipseq:
     sta $d402, y
     lda duty_hi, x
     sta $d403, y
+    .if HR_MODE = 1
+@skip_freq:
+    .endif
     dex
     bpl :-
 
@@ -211,7 +221,7 @@ flip_duty_speed:
 :
     rts
 
-init_note_macros:
+set_adsr_note:
     ldy ins, x
     lda ins_ad, y
     sta temp
@@ -235,6 +245,10 @@ init_note_macros:
     sta $d405, y
     lda temp+1
     sta $d406, y
+    rts
+
+init_note_macros:
+    jsr set_adsr_note
 
     ldy ins, x
     lda ins_duty_start_lo, y 
@@ -286,7 +300,18 @@ do_wav:
     beq @skip_to_wav
     inc hr_delay, x
     lda hr_delay, x
-    cmp #2 ; HR frames
+    .if HR_MODE = 1
+        cmp #2
+        bne :+
+        jsr set_adsr_note
+        lda #$09
+        sta $d404, y
+        rts
+    :
+        cmp #3 ; HR frames
+    .else
+        cmp #2
+    .endif
     bne @skip_note_macro_init
     jsr init_note_macros
     jmp @skip_to_wav
@@ -336,6 +361,9 @@ do_wav:
     and gate_mask, x
     ldy sid_mul, x
     sta $d404, y
+    .if HR_MODE = 1
+        sta wave_temp, x
+    .endif
 
     inc arp_pos, x
     rts
@@ -464,15 +492,23 @@ reinit_note_inst:
     sta bend_hi, x
     lda #$ff
     sta gate_mask, x
-    lda #0
-    ldy sid_mul, x
-    sta $d405, y
     .if HR_MODE = 1
-        lda #$0f
+        ldy sid_mul, x
+        lda #$00
+        sta $d405, y
+        lda #$00
+        sta $d406, y
+        lda wave_temp, x
+        and #$fe
+        sta $d404, y
+    .else
+        lda #0
+        ldy sid_mul, x
+        sta $d405, y
+        sta $d406, y
+        lda #$08
+        sta $d404, y
     .endif
-    sta $d406, y
-    lda #$08
-    sta $d404, y
     rts
 
 sid_mul: .byte 0, 7, 14
@@ -636,6 +672,9 @@ vib_tim: .res 3, 0
 bend_lo: .res 3, 0
 bend_hi: .res 3, 0
 last_eff: .byte 0
+.if HR_MODE = 1
+    wave_temp: .res 3, 0
+.endif
 vars_end:
 
 freq_lo:
