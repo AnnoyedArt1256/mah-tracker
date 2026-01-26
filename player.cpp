@@ -219,6 +219,7 @@ struct pvars {
     uint8_t vib_tim[3];
     uint8_t last_eff[3];
     uint8_t last_arg[3];
+    uint8_t transpose[3];
 };
 
 pvars player_vars;
@@ -230,6 +231,7 @@ void init_routine(song *song) {
     player_vars.tick = player_vars.speed;
     memset(&player_vars.hr_delay,0xFF,3);
     memset(&player_vars.inst,0,3);
+    memset(&player_vars.transpose,0,3);
     memset(&player_vars.gate_mask,0xFF,3);
     for (int i = 0; i <= 0x18; i++) write_sid(i,0);
     write_sid(0x18, 0x0F);
@@ -315,6 +317,10 @@ void advance_frame(song *song, cursor *cur_cursor) {
                             player_vars.vib_arg[ch] = eff_arg;
                             break;
                         }
+                        case 0xC: {
+                            player_vars.transpose[ch] = eff_arg&0x7f;
+                            break;
+                        }
                         case 0xF: {
                             player_vars.speed = eff_arg&0x7f;
                             player_vars.tick = player_vars.speed;
@@ -387,7 +393,7 @@ void advance_frame(song *song, cursor *cur_cursor) {
             uint8_t arp_pos = player_vars.cur_arpwave_pos[ch];
             uint8_t arp_val = song->instr[inst].arp[arp_pos];
             if (arp_val&0x80) arp_val &= 0x7f; // abs
-            else arp_val = player_vars.cur_note[ch] + (arp_val-48); // rel
+            else arp_val = player_vars.cur_note[ch] + (arp_val-48) + player_vars.transpose[ch]; // rel
             player_vars.freq[ch] = freqtbllo[arp_val&127]|(freqtblhi[arp_val&127]<<8);
             write_sid(ch*7+4,song->instr[inst].wav[arp_pos] & player_vars.gate_mask[ch]);
             player_vars.cur_arpwave_pos[ch]++;
