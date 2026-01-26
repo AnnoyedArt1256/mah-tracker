@@ -5,7 +5,7 @@
 
 ; HR_MODE = 0: use the hard-restart method that the GUI editor uses
 ; HR_MODE = 1: use the hard-restart method that GT2 and other players use
-HR_MODE = 1
+HR_MODE = 0
 
 .zeropage
 .org $fe
@@ -681,7 +681,7 @@ vib_tim: .res 3, 0
 bend_lo: .res 3, 0
 bend_hi: .res 3, 0
 last_eff: .byte 0
-transpose: .byte 0
+transpose: .res 3, 0
 .if HR_MODE = 1
     wave_temp: .res 3, 0
 .endif
