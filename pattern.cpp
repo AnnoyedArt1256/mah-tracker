@@ -85,6 +85,9 @@ int get_select_width(enum channel_mode ch_select) {
 }
 
 void copy_pat(song *song, cursor *cur_cursor) {
+    // skip if the cursor has not already dragged an area at the moment
+    if (!cur_cursor->already_dragged) return;
+
     // get the row and column areas (and swap coords if necessary)
     int row_start = cur_cursor->drag_y_start;
     int row_end = cur_cursor->drag_y_end;
@@ -163,6 +166,8 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
     // Down one row
     if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
         cur_cursor->latch = 0;
+        cur_cursor->already_dragged = false;
+        cur_cursor->dragging = false;
         cur_cursor->row = (cur_cursor->row+1)%64;
         ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
     }
@@ -170,6 +175,8 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
     // Up one row
     if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
         cur_cursor->latch = 0;
+        cur_cursor->already_dragged = false;
+        cur_cursor->dragging = false;
         cur_cursor->row--;
         if (cur_cursor->row < 0) cur_cursor->row = 64-1;
         ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
@@ -178,6 +185,8 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
     // Column right
     if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)) {
         cur_cursor->latch = 0;
+        cur_cursor->already_dragged = false;
+        cur_cursor->dragging = false;
         switch (cur_cursor->selection) {
             case note: {
                 cur_cursor->selection = instr;
@@ -203,6 +212,8 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
     // Column left
     if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) {
         cur_cursor->latch = 0;
+        cur_cursor->already_dragged = false;
+        cur_cursor->dragging = false;
         switch (cur_cursor->selection) {
             case note: {
                 cur_cursor->selection = eff_arg;
@@ -241,6 +252,8 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
                     ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
                 }
                 cur_cursor->latch = 0;
+                cur_cursor->already_dragged = false;
+                cur_cursor->dragging = false;
                 play_note_live(song,0,cur_cursor->octave*12+key_ind,cur_cursor->instr);
             }
         }
@@ -249,6 +262,9 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
                 cur_pattern_rows[cur_cursor->row].note = 
                     NOTE_OFF;
                 cur_cursor->row = (cur_cursor->row+1)%64;
+                cur_cursor->latch = 0;
+                cur_cursor->already_dragged = false;
+                cur_cursor->dragging = false;
                 ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
             }   
         }
@@ -264,6 +280,8 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
     if (cur_cursor->selection == instr) {
         for (int key = 0; key < 16; key++) {
             if (ImGui::IsKeyPressed(hex_keys[key]) && cur_cursor->do_record && !ctrl_pressed) {
+                cur_cursor->already_dragged = false;
+                cur_cursor->dragging = false;
                 if (cur_cursor->latch) {
                     cur_pattern_rows[cur_cursor->row].instr <<= 4;
                     cur_pattern_rows[cur_cursor->row].instr |= key;
@@ -284,6 +302,8 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
     if (cur_cursor->selection == eff_type) {
         for (int key = 0; key < 16; key++) {
             if (ImGui::IsKeyPressed(hex_keys[key]) && cur_cursor->do_record && !ctrl_pressed) {
+                cur_cursor->already_dragged = false;
+                cur_cursor->dragging = false;
                 cur_pattern_rows[cur_cursor->row].eff_type = key;
                 if (last_eff_type == key) {
                     cur_pattern_rows[cur_cursor->row].eff_arg = last_eff_arg;
@@ -304,6 +324,8 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
     if (cur_cursor->selection == eff_arg) {
         for (int key = 0; key < 16; key++) {
             if (ImGui::IsKeyPressed(hex_keys[key]) && cur_cursor->do_record && !ctrl_pressed) {
+                cur_cursor->already_dragged = false;
+                cur_cursor->dragging = false;
                 if (cur_cursor->latch) {
                     cur_pattern_rows[cur_cursor->row].eff_arg <<= 4;
                     cur_pattern_rows[cur_cursor->row].eff_arg |= key;
@@ -511,7 +533,7 @@ void render_pat(song *song, cursor *cur_cursor, bool *enable) {
         }
         if (ImGui::IsMouseReleased(0) && cur_cursor->dragging) {
             cur_cursor->dragging = false;
-            cur_cursor->ch = cur_cursor->drag_x_end/12;
+            cur_cursor->ch = cur_cursor->drag_x_end/4;
             cur_cursor->selection = cur_cursor->drag_x_end_sel;
             cur_cursor->row = cur_cursor->drag_y_end;
         }
