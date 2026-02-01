@@ -9,6 +9,7 @@ AArt1256's custom SID chiptune tracker meant to be easy to use for newcomers and
 - 6xy: set sustain and release to XY
 - Cxx: set transpose for channel to XX
 - Dxx: jump to next pattern
+- Exy: set funk tempo (aka two alternating speeds) to be x and y for each speed value
 - Fxx: set speed to xx
 
 ## legal

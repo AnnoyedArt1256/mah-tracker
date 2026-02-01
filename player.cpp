@@ -197,7 +197,8 @@ void advance_audio(song *song, cursor *cur_cursor) {
 
 struct pvars {
     uint8_t tick;
-    uint8_t speed;
+    uint8_t tick_sel;
+    uint8_t speed[2];
     uint8_t hr_delay[3];
     uint8_t cur_note[3];
     uint8_t inst[3];
@@ -227,8 +228,10 @@ pvars player_vars;
 // SID init routine
 void init_routine(song *song) {
     memset((void *)&player_vars,0,sizeof(pvars));
-    player_vars.speed = song->init_speed;
-    player_vars.tick = player_vars.speed;
+    player_vars.speed[0] = song->init_speed;
+    player_vars.speed[1] = song->init_speed;
+    player_vars.tick = player_vars.speed[0];
+    player_vars.tick_sel = 0;
     memset(&player_vars.hr_delay,0xFF,3);
     memset(&player_vars.inst,0,3);
     memset(&player_vars.transpose,0,3);
@@ -260,7 +263,8 @@ void advance_frame(song *song, cursor *cur_cursor) {
         if (--player_vars.tick == 0) {
             bool do_order_skip = false;
             bool did_order_skip = false;
-            player_vars.tick = player_vars.speed;
+            player_vars.tick_sel ^= 1;
+            player_vars.tick = player_vars.speed[player_vars.tick_sel];
             uint8_t row = cur_cursor->play_row;
             for (int ch = 0; ch < 3; ch++) {
                 uint8_t note     = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].note;
@@ -321,9 +325,16 @@ void advance_frame(song *song, cursor *cur_cursor) {
                             player_vars.transpose[ch] = eff_arg&0x7f;
                             break;
                         }
+                        case 0xE: {
+                            player_vars.speed[0] = eff_arg>>4&0xf;
+                            player_vars.speed[1] = eff_arg&0xf;
+                            player_vars.tick = player_vars.speed[player_vars.tick_sel];
+                            break;
+                        }
                         case 0xF: {
-                            player_vars.speed = eff_arg&0x7f;
-                            player_vars.tick = player_vars.speed;
+                            player_vars.speed[0] = eff_arg&0x7f;
+                            player_vars.speed[1] = eff_arg&0x7f;
+                            player_vars.tick = player_vars.speed[0];
                             break;
                         }
                         case 0xD: {

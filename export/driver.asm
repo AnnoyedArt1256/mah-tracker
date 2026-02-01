@@ -6,6 +6,7 @@
 ; HR_MODE = 0: use the hard-restart method that the GUI editor uses
 ; HR_MODE = 1: use the hard-restart method that GT2 and other players use
 HR_MODE = 0
+HR_FRAME_LENGTH = 1
 
 .zeropage
 .org $fe
@@ -93,8 +94,12 @@ ch_loop:
     jsr set_pat
 :
 
-    lda speed
+    ldx tick_sel
+    lda speed, x
     sta tick
+    lda tick_sel
+    eor #1
+    sta tick_sel
 skipseq:
 
     ldx #2
@@ -301,16 +306,16 @@ do_wav:
     inc hr_delay, x
     lda hr_delay, x
     .if HR_MODE = 1
-        cmp #2
+        cmp #HR_FRAME_LENGTH
         bne :+
         jsr set_adsr_note
         lda #$09
         sta $d404, y
         rts
     :
-        cmp #3 ; HR frames
+        cmp #HR_FRAME_LENGTH+1 ; HR frames
     .else
-        cmp #2
+        cmp #HR_FRAME_LENGTH+1
     .endif
     bne @skip_note_macro_init
     jsr init_note_macros
@@ -465,10 +470,25 @@ do_ch:
 :
 
     lda eff_type, x
+    cmp #$0e
+    bne :+
+    lda eff_arg, x
+    and #$0f
+    sta speed+1
+    lda eff_arg, x
+    lsr
+    lsr
+    lsr
+    lsr
+    sta speed
+:
+
+    lda eff_type, x
     cmp #$0f
     bne :+
     lda eff_arg, x
     sta speed
+    sta speed+1
 :
 
     lda eff_type, x
@@ -540,6 +560,7 @@ init:
     sta $d418
     lda init_speed
     sta speed
+    sta speed+1
     lda #1
     sta tick
     lda #0
@@ -653,8 +674,9 @@ order_hi:
     .hibytes order_ch0, order_ch1, order_ch2
 
 vars_start:
-speed: .byte 0
+speed: .byte 0, 0
 tick: .byte 0
+tick_sel: .byte 0
 dur: .res 3, 0
 ins: .res 3, 0
 gate_mask: .res 3,0
