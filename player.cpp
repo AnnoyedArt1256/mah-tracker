@@ -230,7 +230,7 @@ void init_routine(song *song) {
     memset((void *)&player_vars,0,sizeof(pvars));
     player_vars.speed[0] = song->init_speed;
     player_vars.speed[1] = song->init_speed;
-    player_vars.tick = player_vars.speed[0];
+    player_vars.tick = 1;
     player_vars.tick_sel = 0;
     memset(&player_vars.hr_delay,0xFF,3);
     memset(&player_vars.inst,0,3);
@@ -263,7 +263,6 @@ void advance_frame(song *song, cursor *cur_cursor) {
         if (--player_vars.tick == 0) {
             bool do_order_skip = false;
             bool did_order_skip = false;
-            player_vars.tick_sel ^= 1;
             player_vars.tick = player_vars.speed[player_vars.tick_sel];
             uint8_t row = cur_cursor->play_row;
             for (int ch = 0; ch < 3; ch++) {
@@ -347,6 +346,7 @@ void advance_frame(song *song, cursor *cur_cursor) {
                 player_vars.last_eff[ch] = eff_type;
                 player_vars.last_arg[ch] = eff_arg;
             }
+            player_vars.tick_sel ^= 1;
             cur_cursor->play_row++;
             if (cur_cursor->play_row == 64) {
                 cur_cursor->play_row = 0;
