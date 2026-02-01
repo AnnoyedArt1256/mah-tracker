@@ -49,6 +49,15 @@ struct cursor {
     bool do_record;
     bool new_file_popup;
     bool chip_mode;
+    int drag_pat;
+    int drag_x_start;
+    int drag_x_end;
+    enum channel_mode drag_x_start_sel;
+    enum channel_mode drag_x_end_sel;
+    int drag_y_start;
+    int drag_y_end;
+    bool dragging;
+    bool already_dragged;
 };
 
 // Pattern row

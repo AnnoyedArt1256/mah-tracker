@@ -330,8 +330,28 @@ void render_pat(song *song, cursor *cur_cursor, bool *enable) {
                                  IM_COL32(0x30,0x1b,0x1b,0xff));
     }
 
+    if (cur_cursor->already_dragged) {
+        ImVec2 c_start = ImGui::GetCursorScreenPos();
+        c_start.x += char_size_xy.x*5.0; // offset it correctly
+        c_start.x += get_select_offset(cur_cursor->drag_x_start_sel)*char_size_xy.x+1.0;
+        c_start.x += (cur_cursor->drag_x_start-(cur_cursor->drag_x_start%12))*char_size_xy.x;
+        c_start.y += cur_cursor->drag_y_start*char_size_xy.y;
+        c_start.y += dummy_row_cnt*char_size_xy.y;
+
+        ImVec2 c_end = ImGui::GetCursorScreenPos();
+        c_end.x += char_size_xy.x*5.0; // offset it correctly
+        c_end.x += get_select_offset(cur_cursor->drag_x_end_sel)*char_size_xy.x+1.0;
+        c_end.x += (cur_cursor->drag_x_end-(cur_cursor->drag_x_end%12))*char_size_xy.x;
+        c_end.y += cur_cursor->drag_y_end*char_size_xy.y;
+        c_end.y += dummy_row_cnt*char_size_xy.y;
+        c_end += ImVec2(get_select_width(cur_cursor->drag_x_end_sel)*char_size_xy.x, char_size_xy.y);
+
+        draw_list->AddRectFilled(c_start, c_end,
+                                 IM_COL32(0x66,0x66,0x72,0x67));
+    }
+
     // get mouse
-    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows) && ImGui::IsWindowFocused()) {
+    if (ImGui::IsWindowFocused()) {
         // get the absolute coords OF THE WINDOW
         float x = ImGui::GetMousePos().x+ImGui::GetScrollX()+1.0;
         float y = ImGui::GetMousePos().y+ImGui::GetScrollY();
@@ -372,14 +392,59 @@ void render_pat(song *song, cursor *cur_cursor, bool *enable) {
         }
 
         //printf("%02d %02d %d\n",ch,char_y,ch_select);
-        if (ch >= 0 && ch < 3 && char_y >= 0 && char_y < 64) {
+        if (ch >= 0 && ch < 3 && char_y >= 0 && char_y < 64
+            && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
             if (ImGui::IsMouseClicked(0)) {
                 cur_cursor->ch = ch;
                 cur_cursor->row = char_y;
                 cur_cursor->selection = ch_select;
                 cur_cursor->latch = 0;
+                cur_cursor->dragging = false;
+                cur_cursor->already_dragged = false;
+                cur_cursor->drag_x_start = char_x;
+                cur_cursor->drag_y_start = char_y;
+                cur_cursor->drag_x_start_sel = ch_select;
                 ImGui::SetScrollY(char_y*char_size_xy.y);
             }
+        }
+        // the mouse dragging code (eventually for copy+paste)
+        if (ImGui::IsMouseDragging(0) && (!ImGui::IsMouseClicked(0))) {
+            if (ch_select != nothing) {
+                cur_cursor->dragging = true;
+                cur_cursor->already_dragged = true;
+                cur_cursor->drag_x_end = char_x;
+                cur_cursor->drag_y_end = char_y;
+                cur_cursor->drag_x_end_sel = ch_select;  
+                // clamp the drag coords
+                if ((cur_cursor->drag_x_end/12) >= 3) {
+                    cur_cursor->drag_x_end = 12*3-1;
+                    cur_cursor->drag_x_end_sel = eff_arg;
+                }
+                if ((cur_cursor->drag_x_end/12) < 0) { // just in case
+                    cur_cursor->drag_x_end = 0;
+                    cur_cursor->drag_x_end_sel = note;
+                }
+                if (cur_cursor->drag_y_end >= 63) cur_cursor->drag_y_end = 63;
+                if (cur_cursor->drag_y_end < 0) cur_cursor->drag_y_end = 0;
+            }
+            if ((ImGui::GetMousePos().y-ImGui::GetWindowPos().y) >= (ImGui::GetWindowHeight()-char_size_xy.y*1.5)
+                && (fabs(io.MouseDelta.y) > 0 || fabs(io.MouseDelta.x) > 0)) {
+                cur_cursor->latch = 0;
+                if (cur_cursor->row < 63) cur_cursor->row++;
+                ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
+            }
+            if ((ImGui::GetMousePos().y-ImGui::GetWindowPos().y) <= char_size_xy.y*1.5
+                && (fabs(io.MouseDelta.y) > 0 || fabs(io.MouseDelta.x) > 0)) {
+                cur_cursor->latch = 0;
+                if (cur_cursor->row > 0) cur_cursor->row--;
+                ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
+            }
+        }
+        if (ImGui::IsMouseReleased(0) && cur_cursor->dragging) {
+            cur_cursor->dragging = false;
+            cur_cursor->ch = cur_cursor->drag_x_end/12;
+            cur_cursor->selection = cur_cursor->drag_x_end_sel;
+            cur_cursor->row = cur_cursor->drag_y_end;
         }
     }
 

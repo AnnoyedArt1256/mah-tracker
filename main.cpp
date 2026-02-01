@@ -427,6 +427,8 @@ int main(int argc, char *argv[]) {
     cur_cursor.do_record = false; // jam
     cur_cursor.new_file_popup = false;
     cur_cursor.chip_mode = true; // 8580 SID
+    cur_cursor.dragging = false;
+    cur_cursor.already_dragged = false;
 
     // Main loop
     bool done = false;
