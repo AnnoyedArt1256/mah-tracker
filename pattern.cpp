@@ -84,6 +84,63 @@ int get_select_width(enum channel_mode ch_select) {
     return 0;
 }
 
+void copy_pat(song *song, cursor *cur_cursor) {
+    // get the row and column areas (and swap coords if necessary)
+    int row_start = cur_cursor->drag_y_start;
+    int row_end = cur_cursor->drag_y_end;
+    if (row_start > row_end) {
+        int temp = row_end;
+        row_end = row_start;
+        row_start = temp;
+    }
+    int row_len = (row_end-row_start)+1;
+
+    int col_start = cur_cursor->drag_x_start;
+    int col_end = cur_cursor->drag_x_end;
+    if (col_start > col_end) {
+        int temp = col_end;
+        col_end = col_start;
+        col_start = temp;
+    }
+    int col_len = (col_end-col_start)+1;
+
+    cur_cursor->pattern_copy_buffer.row_len = row_len;
+    cur_cursor->pattern_copy_buffer.col_start = col_start;
+    cur_cursor->pattern_copy_buffer.col_len = col_len;
+
+    for (int ch = 0; ch < 3; ch++) {
+        memcpy(cur_cursor->pattern_copy_buffer.ch_rows[ch].rows,
+               &song->pattern[song->order_table[ch][cur_cursor->order]].rows[row_start],
+               sizeof(pat_row)*row_len);
+    }
+}
+
+void paste_pat(song *song, cursor *cur_cursor) {
+    ImGuiIO& io = ImGui::GetIO();
+    ImVec2 char_size_xy = ImGui::CalcTextSize("A");
+    char_size_xy.y += io.FontGlobalScale+2;
+
+    pattern_chunk_copy *copy_buffer = &cur_cursor->pattern_copy_buffer;
+    int cursor_row = cur_cursor->row;
+    for (int row = 0; row < copy_buffer->row_len; row++) {
+        if ((row+cursor_row) >= 64) break;
+        for (int col = copy_buffer->col_start; col < copy_buffer->col_start+copy_buffer->col_len; col++) {
+            // i could use memcpy, but just in case someone's using big-endian or smth...
+            int rel_col = col-copy_buffer->col_start;
+            pat_row *cur_pat_rows = song->pattern[song->order_table[cur_cursor->ch+(rel_col>>2)][cur_cursor->order]].rows;
+            switch (col&3) {
+                case 0: cur_pat_rows[row+cursor_row].note = copy_buffer->ch_rows[col>>2].rows[row].note; break;
+                case 1: cur_pat_rows[row+cursor_row].instr = copy_buffer->ch_rows[col>>2].rows[row].instr; break;
+                case 2: cur_pat_rows[row+cursor_row].eff_type = copy_buffer->ch_rows[col>>2].rows[row].eff_type; break;
+                case 3: cur_pat_rows[row+cursor_row].eff_arg = copy_buffer->ch_rows[col>>2].rows[row].eff_arg; break;
+            }
+        }
+        cur_cursor->row++;
+        if (cur_cursor->row >= 64) cur_cursor->row = 63;
+    }
+    ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);   
+}
+
 // Row/column controls
 void do_pat_keyboard(song *song, cursor *cur_cursor) {
     static uint8_t last_eff_type;
@@ -96,6 +153,12 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
         cur_cursor->do_record = !cur_cursor->do_record;
     }
 
+    // Copy-paste function
+    bool ctrl_pressed = ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl);
+    if (ctrl_pressed) {
+        if (ImGui::IsKeyPressed(ImGuiKey_C)) copy_pat(song, cur_cursor);
+        if (ImGui::IsKeyPressed(ImGuiKey_V)) paste_pat(song, cur_cursor);
+    }
 
     // Down one row
     if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
@@ -163,13 +226,16 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
             default: break;
         }
     }
+
+    pat_row *cur_pattern_rows = song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows;
+
     if (cur_cursor->selection == note) {
         for (int key_ind = 0; key_ind < sizeof(piano_keys)/sizeof(ImGuiKey); key_ind++) {
-            if (ImGui::IsKeyPressed(piano_keys[key_ind])) {
+            if (ImGui::IsKeyPressed(piano_keys[key_ind]) && !ctrl_pressed) {
                 if (cur_cursor->do_record) {
-                    song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].note = 
+                    cur_pattern_rows[cur_cursor->row].note = 
                         cur_cursor->octave*12+key_ind;
-                    song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].instr = 
+                    cur_pattern_rows[cur_cursor->row].instr = 
                         cur_cursor->instr;
                     cur_cursor->row = (cur_cursor->row+1)%64;
                     ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
@@ -180,16 +246,16 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
         }
         if (ImGui::IsKeyPressed(ImGuiKey_1)) {
             if (cur_cursor->do_record) {
-                song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].note = 
+                cur_pattern_rows[cur_cursor->row].note = 
                     NOTE_OFF;
                 cur_cursor->row = (cur_cursor->row+1)%64;
                 ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
             }   
         }
         if (ImGui::IsKeyPressed(ImGuiKey_Backspace)) {
-            song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].note = 
+            cur_pattern_rows[cur_cursor->row].note = 
                 NOTE_EMPTY;
-            song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].instr = 0;
+            cur_pattern_rows[cur_cursor->row].instr = 0;
             cur_cursor->latch = 0;
             //cur_cursor->row = (cur_cursor->row+1)%64;
             //ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
@@ -197,30 +263,30 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
     }
     if (cur_cursor->selection == instr) {
         for (int key = 0; key < 16; key++) {
-            if (ImGui::IsKeyPressed(hex_keys[key]) && cur_cursor->do_record) {
+            if (ImGui::IsKeyPressed(hex_keys[key]) && cur_cursor->do_record && !ctrl_pressed) {
                 if (cur_cursor->latch) {
-                    song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].instr <<= 4;
-                    song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].instr |= key;
+                    cur_pattern_rows[cur_cursor->row].instr <<= 4;
+                    cur_pattern_rows[cur_cursor->row].instr |= key;
                     cur_cursor->latch = 0;
                     cur_cursor->row = (cur_cursor->row+1)%64;
                     ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
                 } else {
-                    song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].instr = key;
+                    cur_pattern_rows[cur_cursor->row].instr = key;
                     cur_cursor->latch = 1;
                 }
             }
         }
         if (ImGui::IsKeyPressed(ImGuiKey_Backspace)) {
-            song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].instr = 0;
+            cur_pattern_rows[cur_cursor->row].instr = 0;
             cur_cursor->latch = 0;
         }
     }
     if (cur_cursor->selection == eff_type) {
         for (int key = 0; key < 16; key++) {
-            if (ImGui::IsKeyPressed(hex_keys[key]) && cur_cursor->do_record) {
-                song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].eff_type = key;
+            if (ImGui::IsKeyPressed(hex_keys[key]) && cur_cursor->do_record && !ctrl_pressed) {
+                cur_pattern_rows[cur_cursor->row].eff_type = key;
                 if (last_eff_type == key) {
-                    song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].eff_arg = last_eff_arg;
+                    cur_pattern_rows[cur_cursor->row].eff_arg = last_eff_arg;
                 } else {
                     last_eff_arg = 0;
                 }
@@ -231,28 +297,28 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
             }
         }
         if (ImGui::IsKeyPressed(ImGuiKey_Backspace)) {
-            song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].eff_type = 0;
+            cur_pattern_rows[cur_cursor->row].eff_type = 0;
             cur_cursor->latch = 0;
         }
     }
     if (cur_cursor->selection == eff_arg) {
         for (int key = 0; key < 16; key++) {
-            if (ImGui::IsKeyPressed(hex_keys[key]) && cur_cursor->do_record) {
+            if (ImGui::IsKeyPressed(hex_keys[key]) && cur_cursor->do_record && !ctrl_pressed) {
                 if (cur_cursor->latch) {
-                    song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].eff_arg <<= 4;
-                    song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].eff_arg |= key;
-                    last_eff_arg = song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].eff_arg;
+                    cur_pattern_rows[cur_cursor->row].eff_arg <<= 4;
+                    cur_pattern_rows[cur_cursor->row].eff_arg |= key;
+                    last_eff_arg = cur_pattern_rows[cur_cursor->row].eff_arg;
                     cur_cursor->latch = 0;
                     cur_cursor->row = (cur_cursor->row+1)%64;
                     ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
                 } else {
-                    last_eff_arg = song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].eff_arg = key;
+                    last_eff_arg = cur_pattern_rows[cur_cursor->row].eff_arg = key;
                     cur_cursor->latch = 1;
                 }
             }
         }
         if (ImGui::IsKeyPressed(ImGuiKey_Backspace)) {
-            song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows[cur_cursor->row].eff_arg = 0;
+            cur_pattern_rows[cur_cursor->row].eff_arg = 0;
             cur_cursor->latch = 0;
         }
     }
@@ -334,18 +400,21 @@ void render_pat(song *song, cursor *cur_cursor, bool *enable) {
         ImVec2 c_start = ImGui::GetCursorScreenPos();
         c_start.x += char_size_xy.x*5.0; // offset it correctly
         c_start.x += get_select_offset(cur_cursor->drag_x_start_sel)*char_size_xy.x+1.0;
-        c_start.x += (cur_cursor->drag_x_start-(cur_cursor->drag_x_start%12))*char_size_xy.x;
+        c_start.x += floorf(cur_cursor->drag_x_start/4)*12*char_size_xy.x;
         c_start.y += cur_cursor->drag_y_start*char_size_xy.y;
         c_start.y += dummy_row_cnt*char_size_xy.y;
+        if (cur_cursor->drag_x_start > cur_cursor->drag_x_end)
+            c_start += ImVec2(get_select_width(cur_cursor->drag_x_start_sel)*char_size_xy.x, 0.0f);
 
         ImVec2 c_end = ImGui::GetCursorScreenPos();
         c_end.x += char_size_xy.x*5.0; // offset it correctly
         c_end.x += get_select_offset(cur_cursor->drag_x_end_sel)*char_size_xy.x+1.0;
-        c_end.x += (cur_cursor->drag_x_end-(cur_cursor->drag_x_end%12))*char_size_xy.x;
+        c_end.x += floorf(cur_cursor->drag_x_end/4)*12*char_size_xy.x;
         c_end.y += cur_cursor->drag_y_end*char_size_xy.y;
         c_end.y += dummy_row_cnt*char_size_xy.y;
-        c_end += ImVec2(get_select_width(cur_cursor->drag_x_end_sel)*char_size_xy.x, char_size_xy.y);
-
+        if (cur_cursor->drag_x_start <= cur_cursor->drag_x_end)
+            c_end += ImVec2(get_select_width(cur_cursor->drag_x_end_sel)*char_size_xy.x, char_size_xy.y);
+    
         draw_list->AddRectFilled(c_start, c_end,
                                  IM_COL32(0x66,0x66,0x72,0x67));
     }
@@ -401,7 +470,7 @@ void render_pat(song *song, cursor *cur_cursor, bool *enable) {
                 cur_cursor->latch = 0;
                 cur_cursor->dragging = false;
                 cur_cursor->already_dragged = false;
-                cur_cursor->drag_x_start = char_x;
+                cur_cursor->drag_x_start = ch*4+((int)ch_select);
                 cur_cursor->drag_y_start = char_y;
                 cur_cursor->drag_x_start_sel = ch_select;
                 ImGui::SetScrollY(char_y*char_size_xy.y);
@@ -412,15 +481,15 @@ void render_pat(song *song, cursor *cur_cursor, bool *enable) {
             if (ch_select != nothing) {
                 cur_cursor->dragging = true;
                 cur_cursor->already_dragged = true;
-                cur_cursor->drag_x_end = char_x;
+                cur_cursor->drag_x_end = ch*4+((int)ch_select);
                 cur_cursor->drag_y_end = char_y;
                 cur_cursor->drag_x_end_sel = ch_select;  
                 // clamp the drag coords
-                if ((cur_cursor->drag_x_end/12) >= 3) {
-                    cur_cursor->drag_x_end = 12*3-1;
+                if ((cur_cursor->drag_x_end/4) >= 3) {
+                    cur_cursor->drag_x_end = 4*3-1;
                     cur_cursor->drag_x_end_sel = eff_arg;
                 }
-                if ((cur_cursor->drag_x_end/12) < 0) { // just in case
+                if ((cur_cursor->drag_x_end/4) < 0) { // just in case
                     cur_cursor->drag_x_end = 0;
                     cur_cursor->drag_x_end_sel = note;
                 }

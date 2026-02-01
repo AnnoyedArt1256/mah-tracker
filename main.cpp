@@ -430,6 +430,19 @@ int main(int argc, char *argv[]) {
     cur_cursor.dragging = false;
     cur_cursor.already_dragged = false;
 
+    cur_cursor.pattern_copy_buffer.row_len = 0;
+    cur_cursor.pattern_copy_buffer.col_start = 0;
+    cur_cursor.pattern_copy_buffer.col_len = 0;
+    for (int ch = 0; ch < 3; ch++) {
+        for (int row = 0; row < 64; row++) {
+            cur_cursor.pattern_copy_buffer.ch_rows[ch].rows[row].note = NOTE_EMPTY;
+            cur_cursor.pattern_copy_buffer.ch_rows[ch].rows[row].instr = 0;
+            cur_cursor.pattern_copy_buffer.ch_rows[ch].rows[row].eff_arg = 0;
+            cur_cursor.pattern_copy_buffer.ch_rows[ch].rows[row].eff_type = 0;
+
+        }
+    }
+
     // Main loop
     bool done = false;
     int cur_frame = 0;

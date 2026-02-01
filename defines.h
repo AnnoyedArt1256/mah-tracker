@@ -35,6 +35,25 @@ enum channel_mode {
     end = 4
 };
 
+// Pattern row
+struct pat_row {
+    //      C-4     01       A        67
+    uint8_t note, instr, eff_type, eff_arg;
+};
+
+// Pattern data, 64 rows each
+struct pattern_data {
+    pat_row rows[64];
+};
+
+struct pattern_chunk_copy {
+    pattern_data ch_rows[3];
+    //int row_start;
+    int row_len;
+    int col_start;
+    int col_len;
+};
+
 // Cursor for pattern editor
 struct cursor {
     int ch, row;
@@ -58,17 +77,8 @@ struct cursor {
     int drag_y_end;
     bool dragging;
     bool already_dragged;
-};
-
-// Pattern row
-struct pat_row {
-    //      C-4     01       A        67
-    uint8_t note, instr, eff_type, eff_arg;
-};
-
-// Pattern data, 64 rows each
-struct pattern_data {
-    pat_row rows[64];
+    // TODO: make this less memory-intensive :P
+    pattern_chunk_copy pattern_copy_buffer;
 };
 
 
