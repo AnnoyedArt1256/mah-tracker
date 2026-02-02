@@ -472,6 +472,8 @@ void render_pat(song *song, cursor *cur_cursor, bool *enable) {
         c_start.y += dummy_row_cnt*char_size_xy.y;
         if (cur_cursor->drag_x_start > cur_cursor->drag_x_end)
             c_start += ImVec2(get_select_width(cur_cursor->drag_x_start_sel)*char_size_xy.x, 0.0f);
+        if (cur_cursor->drag_y_start > cur_cursor->drag_y_end)
+            c_start += ImVec2(0.0f, char_size_xy.y);
 
         ImVec2 c_end = ImGui::GetCursorScreenPos();
         c_end.x += char_size_xy.x*5.0; // offset it correctly
