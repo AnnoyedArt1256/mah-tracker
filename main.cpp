@@ -439,7 +439,6 @@ int main(int argc, char *argv[]) {
             cur_cursor.pattern_copy_buffer.ch_rows[ch].rows[row].instr = 0;
             cur_cursor.pattern_copy_buffer.ch_rows[ch].rows[row].eff_arg = 0;
             cur_cursor.pattern_copy_buffer.ch_rows[ch].rows[row].eff_type = 0;
-
         }
     }
 

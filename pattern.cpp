@@ -144,6 +144,46 @@ void paste_pat(song *song, cursor *cur_cursor) {
     ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);   
 }
 
+void clear_pat_selection(song *song, cursor *cur_cursor) {
+    // skip if the cursor has not already dragged an area at the moment
+    if (!cur_cursor->already_dragged) return;
+
+    // get the row and column areas (and swap coords if necessary)
+    int row_start = cur_cursor->drag_y_start;
+    int row_end = cur_cursor->drag_y_end;
+    if (row_start > row_end) {
+        int temp = row_end;
+        row_end = row_start;
+        row_start = temp;
+    }
+    int row_len = (row_end-row_start)+1;
+
+    int col_start = cur_cursor->drag_x_start;
+    int col_end = cur_cursor->drag_x_end;
+    if (col_start > col_end) {
+        int temp = col_end;
+        col_end = col_start;
+        col_start = temp;
+    }
+    int col_len = (col_end-col_start)+1;
+    
+    int cursor_row = row_start;
+    for (int row = 0; row < row_len; row++) {
+        if ((row+cursor_row) >= 64) break;
+        for (int col = col_start; col < col_start+col_len; col++) {
+            // i could use memcpy, but just in case someone's using big-endian or smth...
+            int rel_col = col_start;
+            pat_row *cur_pat_rows = song->pattern[song->order_table[cur_cursor->ch+(rel_col>>2)][cur_cursor->order]].rows;
+            switch (col&3) {
+                case 0: cur_pat_rows[row+cursor_row].note = NOTE_EMPTY; break;
+                case 1: cur_pat_rows[row+cursor_row].instr = 0; break;
+                case 2: cur_pat_rows[row+cursor_row].eff_type = 0; break;
+                case 3: cur_pat_rows[row+cursor_row].eff_arg = 0; break;
+            }
+        }
+    }
+}
+
 // Row/column controls
 void do_pat_keyboard(song *song, cursor *cur_cursor) {
     static uint8_t last_eff_type;
@@ -238,6 +278,11 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
         }
     }
 
+    if (ImGui::IsKeyPressed(ImGuiKey_Backspace) && cur_cursor->already_dragged) {
+        // clear dragged selection if backspace is pressed (thx theduccinator for the advice!)
+        clear_pat_selection(song, cur_cursor);
+    }
+
     pat_row *cur_pattern_rows = song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows;
 
     if (cur_cursor->selection == note) {
@@ -268,7 +313,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
                 ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
             }   
         }
-        if (ImGui::IsKeyPressed(ImGuiKey_Backspace)) {
+        if (ImGui::IsKeyPressed(ImGuiKey_Backspace) && !cur_cursor->already_dragged) {
             cur_pattern_rows[cur_cursor->row].note = 
                 NOTE_EMPTY;
             cur_pattern_rows[cur_cursor->row].instr = 0;
@@ -294,7 +339,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
                 }
             }
         }
-        if (ImGui::IsKeyPressed(ImGuiKey_Backspace)) {
+        if (ImGui::IsKeyPressed(ImGuiKey_Backspace) && !cur_cursor->already_dragged) {
             cur_pattern_rows[cur_cursor->row].instr = 0;
             cur_cursor->latch = 0;
         }
@@ -316,7 +361,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
                 ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
             }
         }
-        if (ImGui::IsKeyPressed(ImGuiKey_Backspace)) {
+        if (ImGui::IsKeyPressed(ImGuiKey_Backspace) && !cur_cursor->already_dragged) {
             cur_pattern_rows[cur_cursor->row].eff_type = 0;
             cur_cursor->latch = 0;
         }
@@ -339,7 +384,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
                 }
             }
         }
-        if (ImGui::IsKeyPressed(ImGuiKey_Backspace)) {
+        if (ImGui::IsKeyPressed(ImGuiKey_Backspace) && !cur_cursor->already_dragged) {
             cur_pattern_rows[cur_cursor->row].eff_arg = 0;
             cur_cursor->latch = 0;
         }
