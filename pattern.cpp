@@ -172,7 +172,7 @@ void clear_pat_selection(song *song, cursor *cur_cursor) {
         if ((row+cursor_row) >= 64) break;
         for (int col = col_start; col < col_start+col_len; col++) {
             // i could use memcpy, but just in case someone's using big-endian or smth...
-            int rel_col = col_start;
+            int rel_col = col-col_start;
             pat_row *cur_pat_rows = song->pattern[song->order_table[cur_cursor->ch+(rel_col>>2)][cur_cursor->order]].rows;
             switch (col&3) {
                 case 0: cur_pat_rows[row+cursor_row].note = NOTE_EMPTY; break;
