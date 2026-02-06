@@ -207,23 +207,31 @@ def convert(filename):
     file.write(out)
     file.close()
 
-convert(sys.argv[1])
+if len(sys.argv) >= 2:
+    convert(sys.argv[1])
 
-# frequency calculation code taken from
-# https://codebase64.org/doku.php?id=base:how_to_calculate_your_own_sid_frequency_table
+    # frequency calculation code taken from
+    # https://codebase64.org/doku.php?id=base:how_to_calculate_your_own_sid_frequency_table
 
-tuning = 440
-f = open("note_lo.bin","wb")
-for i in range(96):
-    hz = tuning * (2**(float(i-57)/12.0))
-    cnst = (256**3)/985248.0 # PAL frequency
-    freq = min(max(hz*cnst,0),0xffff)
-    f.write(bytearray([int(freq)&0xff]))
-f.close()
-f = open("note_hi.bin","wb")
-for i in range(96):
-    hz = tuning * (2**(float(i-57)/12.0))
-    cnst = (256**3)/985248.0 # PAL frequency
-    freq = min(max(hz*cnst,0),0xffff)
-    f.write(bytearray([(int(freq)>>8)&0xff]))
-f.close()
+    tuning = 440
+    f = open("note_lo.bin","wb")
+    for i in range(96):
+        hz = tuning * (2**(float(i-57)/12.0))
+        cnst = (256**3)/985248.0 # PAL frequency
+        freq = min(max(hz*cnst,0),0xffff)
+        f.write(bytearray([int(freq)&0xff]))
+    f.close()
+    f = open("note_hi.bin","wb")
+    for i in range(96):
+        hz = tuning * (2**(float(i-57)/12.0))
+        cnst = (256**3)/985248.0 # PAL frequency
+        freq = min(max(hz*cnst,0),0xffff)
+        f.write(bytearray([(int(freq)>>8)&0xff]))
+    f.close()
+else:
+    print("not enough arguments!\n")
+    print("run the python converter like this")
+    print(f"    python3 {sys.argv[0]} example_module.mah\n")
+    print("OR run the provided shell file like this")
+    print(f"    sh compile.sh example_module.mah")
+    sys.exit(1)
