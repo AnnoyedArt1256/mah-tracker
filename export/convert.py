@@ -19,7 +19,9 @@ def convert(filename):
     out += f"init_speed: .byte {init_speed}\n"
 
     # reserved bytes
-    file.read(7)
+    version = file.read(1)[0]
+    version |= file.read(1)[0]<<8
+    file.read(5)
 
     file.read(32)
     file.read(32)
@@ -65,6 +67,9 @@ def convert(filename):
         is_dxx = False
         for row in range(64):
             note, instr, eff_type, eff_arg = file.read(4)
+            if version == 0 and eff_type == 3: # workaround for tie notes in older modules
+                eff_arg = 0
+
             write_buffer = []
 
             if is_dxx:

@@ -104,9 +104,9 @@ skipseq:
 
     ldx #2
 :
-    jsr do_wav
     jsr do_pulse_sweep
     jsr do_eff
+    jsr do_wav
     .if HR_MODE = 1
         lda hr_delay, x
         cmp #$ff
@@ -421,6 +421,13 @@ do_ch:
     cmp #$e0
     bcs :+
     and #$7f
+    ldy eff_type, x
+    cpy #3
+    bne @goto_set_note
+    ldy eff_arg, x
+    beq @goto_set_note
+    jmp @do_glide_eff
+@goto_set_note:
     sta cur_note, x
     jsr inc_pat
     lda eff_type, x
@@ -502,8 +509,43 @@ do_ch:
     sta pat_ptr_lo, x
     lda temp+1
     sta pat_ptr_hi, x
-ch_skip_parse:
+;ch_skip_parse:
     rts
+
+@do_glide_eff:
+    sta glide_note, x
+    pha
+    tya
+    sta glide_speed, x
+    pla
+    tay
+
+    lda #0
+    sta vib_tim, x
+
+    txa
+    pha
+
+    lda cur_note, x
+    tax
+
+    lda freq_lo, y
+    sec
+    sbc freq_lo, x
+    sta glide_temp
+    lda freq_hi, y
+    sbc freq_hi, x
+    sta glide_temp+1
+
+    pla
+    tax
+    lda glide_temp
+    sta glide_limit_lo, x
+    lda glide_temp+1
+    sta glide_limit_hi, x
+    ldy #0
+    jsr inc_pat
+    jmp @parse_rept
 
 inc_pat:
     inc temp
@@ -531,7 +573,7 @@ reinit_note_inst:
         and #$fe
         sta $d404, y
     .else
-        lda #0
+        lda #$00
         ldy sid_mul, x
         sta $d405, y
         sta $d406, y
@@ -606,7 +648,7 @@ set_pat:
 do_eff:
     lda eff_type, x
     cmp #4
-    beq :+
+    beq @jump_to_vib
     cmp #1
     bne @skip1
     lda eff_arg, x
@@ -619,8 +661,51 @@ do_eff:
     sta temp
     jmp vib_sub
 @skip2:
-    rts
+    cmp #3
+    bne @skip3
+    lda eff_arg, x
+    beq @skip3
+
+    lda glide_speed, x
+    sta temp
+
+    lda glide_limit_hi, x
+    bmi @skip_to_dec_glide
+    ; +
+    jsr vib_add
+    lda glide_limit_lo, x
+    sec
+    sbc bend_lo, x
+    lda glide_limit_hi, x
+    sbc bend_hi, x
+    bcs :+
+    lda #0
+    sta bend_lo, x
+    sta bend_hi, x
+    sta glide_speed, x
+    lda glide_note, x
+    sta cur_note, x
 :
+    rts
+@skip_to_dec_glide:
+    jsr vib_sub
+    lda bend_lo, x
+    sec
+    sbc glide_limit_lo, x
+    lda bend_hi, x
+    sbc glide_limit_hi, x
+    bcs :+
+    lda #0
+    sta bend_lo, x
+    sta bend_hi, x
+    sta glide_speed, x
+    lda glide_note, x
+    sta cur_note, x
+:
+    rts
+@skip3:
+    rts
+@jump_to_vib:
 
     lda eff_arg, x
     asl
@@ -707,6 +792,11 @@ transpose: .res 3, 0
 .if HR_MODE = 1
     wave_temp: .res 3, 0
 .endif
+glide_limit_lo: .res 3, 0
+glide_limit_hi: .res 3, 0
+glide_note: .res 3, 0
+glide_speed: .res 3, 0
+glide_temp: .word 0
 vars_end:
 
 freq_lo:

@@ -221,6 +221,8 @@ struct pvars {
     uint8_t last_eff[3];
     uint8_t last_arg[3];
     uint8_t transpose[3];
+    uint16_t glide_limit[3];
+    uint8_t glide_note[3];
 };
 
 pvars player_vars;
@@ -274,7 +276,17 @@ void advance_frame(song *song, cursor *cur_cursor) {
                     if (note == NOTE_OFF) {
                         player_vars.gate_mask[ch] = 0xFE; // gate off
                     } else {
-                        player_vars.cur_note[ch] = note;
+                        if (eff_type == 3 && eff_arg != 0) {
+                            uint8_t prev_note = player_vars.cur_note[ch];
+                            uint16_t cur_freq = freqtbllo[prev_note&127]|(freqtblhi[prev_note&127]<<8);
+                            uint16_t dest_freq = freqtbllo[note&127]|(freqtblhi[note&127]<<8);
+                            player_vars.glide_limit[ch] = dest_freq-cur_freq;
+                            player_vars.glide_note[ch] = note&127;
+                            player_vars.bend_delta[ch] = player_vars.cur_note[ch]<player_vars.glide_note[ch]?eff_arg:-eff_arg;
+                            player_vars.vib_tim[ch] = 0;
+                        } else if (!(eff_type == 3 && eff_arg == 0)) {
+                            player_vars.cur_note[ch] = note;
+                        }
                         if (eff_type != 3) {
                             player_vars.cur_arpwave_pos[ch] = 0;
                             player_vars.hr_delay[ch] = 0;
@@ -300,7 +312,7 @@ void advance_frame(song *song, cursor *cur_cursor) {
                         write_sid(ch*7+4, 0x08);
                     }
                 }
-                player_vars.bend_delta[ch] = 0;
+                if (!(eff_type == 3 && eff_arg != 0)) player_vars.bend_delta[ch] = 0;
                 player_vars.vib_arg[ch] = 0;
                 if (eff_type) {
                     switch (eff_type) {
@@ -435,6 +447,21 @@ void advance_frame(song *song, cursor *cur_cursor) {
         }
         player_vars.bend[ch] += player_vars.bend_delta[ch];
         uint16_t final_freq = player_vars.freq[ch]+player_vars.bend[ch];
+        if (player_vars.last_eff[ch] == 3 && player_vars.last_arg[ch] != 0) {
+            if (((int16_t)player_vars.glide_limit[ch]) > 0) {
+                if (player_vars.bend[ch] >= player_vars.glide_limit[ch]) {
+                    player_vars.bend[ch] = 0; 
+                    player_vars.bend_delta[ch] = 0;
+                    player_vars.cur_note[ch] = player_vars.glide_note[ch];
+                }
+            } else {
+                if (player_vars.bend[ch] <= player_vars.glide_limit[ch]) {
+                    player_vars.bend[ch] = 0; 
+                    player_vars.bend_delta[ch] = 0;
+                    player_vars.cur_note[ch] = player_vars.glide_note[ch];
+                }
+            }
+        }
         write_sid(ch*7+0,final_freq&0xff);
         write_sid(ch*7+1,final_freq>>8);
         write_sid(ch*7+2,player_vars.pw[ch]&0xff);

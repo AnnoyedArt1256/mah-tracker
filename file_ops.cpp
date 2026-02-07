@@ -39,8 +39,10 @@ void load_file(char *filename, song *song) {
     init_default_song(song);
 
     song->init_speed = fgetc(f);
+    uint16_t version = fgetc(f);
+    version |= fgetc(f)<<8;
 
-    fseek(f, 7L, SEEK_CUR);
+    fseek(f, 5L, SEEK_CUR);
 
     fseek(f, 32L, SEEK_CUR);
     fseek(f, 32L, SEEK_CUR);
@@ -64,6 +66,11 @@ void load_file(char *filename, song *song) {
             song->pattern[pat].rows[row].instr = fgetc(f);
             song->pattern[pat].rows[row].eff_type = fgetc(f);
             song->pattern[pat].rows[row].eff_arg = fgetc(f);
+            if (version == 0) {
+                // in version 0 modules, all 3xx effects are TIE NOTES (aka 300 / 3..)
+                if (song->pattern[pat].rows[row].eff_type == 3)
+                    song->pattern[pat].rows[row].eff_arg = 0;
+            }
         }
     }  
     
@@ -110,7 +117,12 @@ void save_file(char *filename, song *song) {
     // header
     fwrite(magic_string, 1, 8, f); // header
     fputc(song->init_speed, f); // init. speed
-    for (int i = 0; i < 7; i++) fputc(0,f); // reserved
+
+    uint16_t version = MAH_CURRENT_VERSION;
+    fputc(version&0xff, f);
+    fputc((version>>8)&0xff, f);
+
+    for (int i = 0; i < 5; i++) fputc(0,f); // reserved
 
     for (int i = 0; i < 32; i++) fputc(0,f); // reserved
     for (int i = 0; i < 32; i++) fputc(0,f); // reserved

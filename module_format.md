@@ -6,7 +6,8 @@ unless noted otherwise, each byte/word is treated as an **unsigned** value and i
 ## Header (128 bytes)
 - 8 byte magic string: `MAHTRACK` (\0 is null terminator or $00 in hex)
 - 1 byte: initial tick speed
-- 7 bytes reserved (currently only zeros)
+- 2 bytes: version (0-1 for now)
+- 5 bytes reserved (currently only zeros)
 - 32 bytes reserved for title (in the future)
 - 32 bytes reserved for author (in the future)
 - 32 bytes reserved for copyright/year (in the future)

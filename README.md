@@ -4,7 +4,9 @@ AArt1256's custom SID chiptune tracker meant to be easy to use for newcomers and
 ### effects (in the editor, just in case)
 - 1xx: pitch up
 - 2xx: pitch down
-- 3..: tie note (TBA: glissando)
+- 3.. (or 300): tie note
+- 3xx (where xx is a **non-zero** value): glissando/pitch glide
+- 4xy: vibrato (x: speed, y: depth)
 - 5xy: set attack and decay to XY
 - 6xy: set sustain and release to XY
 - Cxx: set transpose for channel to XX
