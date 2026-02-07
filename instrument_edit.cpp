@@ -133,127 +133,128 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
             ImVec2 table_pos_size = ImGui::GetContentRegionAvail(); // for clipping the label texts in the macros
 
             if (song->instr[cur_cursor->instr].wav_len != 0) {
-                ImGui::BeginTable("insedit_arp",song->instr[cur_cursor->instr].wav_len,ImGuiTableFlags_ScrollX|ImGuiTableFlags_NoPadInnerX);
-                for (int ch = 0; ch < song->instr[cur_cursor->instr].wav_len; ch++) {
-                    ImVec2 slider_res = ImVec2(24.0f*io.FontGlobalScale,160.0f*io.FontGlobalScale);
-                    char ch_id[16];
-                    snprintf(ch_id,16,"arp%d",ch);
-                    ImGui::TableSetupColumn(ch_id,ImGuiTableColumnFlags_WidthFixed,slider_res.x+4*io.FontGlobalScale);
-                }
-                ImGui::TableNextColumn();
-
-                ImDrawList* draw_list = ImGui::GetWindowDrawList();
-                for (int col = 0; col < song->instr[cur_cursor->instr].wav_len; col++) {
-                    bool is_abs = song->instr[cur_cursor->instr].arp[col]&0x80;
-                    int arp_val;
-                    if (is_abs) arp_val = song->instr[cur_cursor->instr].arp[col]&127;
-                    else arp_val = (song->instr[cur_cursor->instr].arp[col]&127)-48;
-                    ImGui::PushID(col+512);
-                    ImVec2 slider_res = ImVec2(24.0f*io.FontGlobalScale,160.0f*io.FontGlobalScale);
-                    ImVec2 slider_drag_res = ImVec2(18.0f*io.FontGlobalScale,8.0f*io.FontGlobalScale);
-
-                    if (is_abs) {
-                        ImGui::Text("%s%d",note_str[arp_val%12],(arp_val-(arp_val%12))/12);
-                    } else {
-                        ImGui::SetNextItemWidth(slider_res.x);
-                        ImGui::InputInt("##arp_val",&arp_val,0,0);
+                if (ImGui::BeginTable("insedit_arp",song->instr[cur_cursor->instr].wav_len,ImGuiTableFlags_ScrollX|ImGuiTableFlags_NoPadInnerX)) {    
+                    for (int ch = 0; ch < song->instr[cur_cursor->instr].wav_len; ch++) {
+                        ImVec2 slider_res = ImVec2(24.0f*io.FontGlobalScale,160.0f*io.FontGlobalScale);
+                        char ch_id[16];
+                        snprintf(ch_id,16,"arp%d",ch);
+                        ImGui::TableSetupColumn(ch_id,ImGuiTableColumnFlags_WidthFixed,slider_res.x+4*io.FontGlobalScale);
                     }
-                    
-                    // draw arp slider
-                    ImGui::SetCursorPosY(io.FontGlobalScale*24.0);
+                    ImGui::TableNextColumn();
 
-                    int v_min = is_abs?95:47;
-                    int v_max = is_abs?0:-48;
+                    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+                    for (int col = 0; col < song->instr[cur_cursor->instr].wav_len; col++) {
+                        bool is_abs = song->instr[cur_cursor->instr].arp[col]&0x80;
+                        int arp_val;
+                        if (is_abs) arp_val = song->instr[cur_cursor->instr].arp[col]&127;
+                        else arp_val = (song->instr[cur_cursor->instr].arp[col]&127)-48;
+                        ImGui::PushID(col+512);
+                        ImVec2 slider_res = ImVec2(24.0f*io.FontGlobalScale,160.0f*io.FontGlobalScale);
+                        ImVec2 slider_drag_res = ImVec2(18.0f*io.FontGlobalScale,8.0f*io.FontGlobalScale);
 
-                    float padding = slider_res.y/64.0;
-                    float arp_norm = (((float)arp_val)-v_min)/(v_max-v_min);
-                    ImVec2 arp_off = ImVec2(0.0f,arp_norm*(slider_res.y-(slider_drag_res.y+padding*2)));
-                    ImVec2 slider_bb_a = ImGui::GetCursorScreenPos();
-                    ImVec2 slider_bb_b = ImGui::GetCursorScreenPos()+slider_res;
-                    ImRect slider_bb = ImRect(slider_bb_a.x,slider_bb_a.y,slider_bb_b.x,slider_bb_b.y);
-                    ImVec2 slider_a = ImGui::GetCursorScreenPos()+arp_off+ImVec2((slider_res.x-slider_drag_res.x)/2,padding);
-                    ImVec2 slider_b = ImGui::GetCursorScreenPos()+arp_off+slider_drag_res+ImVec2((slider_res.x-slider_drag_res.x)/2,padding);
-                    ImRect slider_rect = ImRect(ImVec4(slider_a.x,slider_a.y,slider_b.x,slider_b.y));
-
-                    int x_rel = mouse_pos.x-slider_bb_a.x;
-                    bool is_in_x_boundary = x_rel >= 0 && x_rel < slider_res.x;
-                    if ((slider_bb.Contains(mouse_pos) || (was_hovering && is_in_x_boundary)) &&
-                        ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
-                        float rel_pos = ((mouse_pos - ImGui::GetCursorScreenPos()).y)/slider_res.y;
-                        int final_pos = (int)((rel_pos*(v_max-v_min))+v_min);
-                        if (v_min > v_max) {
-                            int temp = v_min;
-                            v_min = v_max;
-                            v_max = temp;
-                        }
-                        final_pos = CLAMP(final_pos,v_min,v_max);
-                        if (lmb_down) {
-                            was_hovering = true;
-                            arp_val = final_pos;
+                        if (is_abs) {
+                            ImGui::Text("%s%d",note_str[arp_val%12],(arp_val-(arp_val%12))/12);
                         } else {
-                            was_hovering = false;
+                            ImGui::SetNextItemWidth(slider_res.x);
+                            ImGui::InputInt("##arp_val",&arp_val,0,0);
                         }
-                    }
+                        
+                        // draw arp slider
+                        ImGui::SetCursorPosY(io.FontGlobalScale*24.0);
 
-                    draw_list->AddRectFilled(ImGui::GetCursorScreenPos(),
-                                            ImGui::GetCursorScreenPos()+slider_res,
-                                            IM_COL32(0x28,0x4c,0x7c,0xff));
-                    draw_list->AddRectFilled(slider_a,slider_b,
-                                            IM_COL32(0x78,0xac,0xcc,0xff));
+                        int v_min = is_abs?95:47;
+                        int v_max = is_abs?0:-48;
 
-                    // draw rel/abs checkbox
-                    ImGui::SetCursorPosY(slider_res.y+io.FontGlobalScale*32.0);
-                    ImGui::Checkbox("##arp_mode",(bool *)&is_abs);
-                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", is_abs?"Absolute":"Relative");
-                    if (is_abs) song->instr[cur_cursor->instr].arp[col] = CLAMP(arp_val,0,95)|0x80;
-                    else song->instr[cur_cursor->instr].arp[col] = CLAMP(arp_val,-48,47)+48;
+                        float padding = slider_res.y/64.0;
+                        float arp_norm = (((float)arp_val)-v_min)/(v_max-v_min);
+                        ImVec2 arp_off = ImVec2(0.0f,arp_norm*(slider_res.y-(slider_drag_res.y+padding*2)));
+                        ImVec2 slider_bb_a = ImGui::GetCursorScreenPos();
+                        ImVec2 slider_bb_b = ImGui::GetCursorScreenPos()+slider_res;
+                        ImRect slider_bb = ImRect(slider_bb_a.x,slider_bb_a.y,slider_bb_b.x,slider_bb_b.y);
+                        ImVec2 slider_a = ImGui::GetCursorScreenPos()+arp_off+ImVec2((slider_res.x-slider_drag_res.x)/2,padding);
+                        ImVec2 slider_b = ImGui::GetCursorScreenPos()+arp_off+slider_drag_res+ImVec2((slider_res.x-slider_drag_res.x)/2,padding);
+                        ImRect slider_rect = ImRect(ImVec4(slider_a.x,slider_a.y,slider_b.x,slider_b.y));
 
-                    ImGui::SetCursorPosY(slider_res.y+io.FontGlobalScale*64.0);
-
-                    int wav_val = song->instr[cur_cursor->instr].wav[col];
-                    int row = 0;
-                    for (int b = 7; b >= 0; b--) {
-                        ImRect boundary = ImRect(ImVec4(ImGui::GetCursorScreenPos().x,ImGui::GetCursorScreenPos().y,
-                                                        ImGui::GetCursorScreenPos().x+slider_res.x,
-                                                        ImGui::GetCursorScreenPos().y+slider_res.x));
-
-                        draw_list->AddRectFilled(boundary.Min, boundary.Max, // radio button base
-                                                IM_COL32(0x28,0x4c,0x7c,0xff));
-
-                        if ((wav_val>>b)&1) { // radio button selection
-                            draw_list->AddRectFilled(boundary.Min+ImVec2(io.FontGlobalScale*4.0,io.FontGlobalScale*4.0),
-                                                    boundary.Max-ImVec2(io.FontGlobalScale*4.0,io.FontGlobalScale*4.0),
-                                                    IM_COL32(0x78,0xac,0xcc,0xff));
-                        }
-
-                        if (col == 0) {
-                            // add text over the radio buttons so the 
-                            // user actually knows what the buttons do :meatjob:
-                            ImGuiStyle& style = ImGui::GetStyle();
-                            ImGui::PushClipRect(ImMax(boundary.Min,table_pos_start),
-                                                ImMin(boundary.Max+ImVec2(slider_res.x*4.0,0.0f),table_pos_start+table_pos_size-ImVec2(style.ScrollbarSize,0.0f)),false);
-                            ImGui::Text("%s",wave_names[row]);
-                            ImGui::SameLine();
-                            ImGui::PopClipRect();
-                        }
-
-                        ImGui::Dummy(ImVec2(0.0f,slider_res.x+2+io.FontGlobalScale));
-                        if (b == 4) ImGui::Dummy(ImVec2(0.0f,2+io.FontGlobalScale));
-                        if (boundary.Contains(mouse_pos) && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
-                            ImGui::SetTooltip("%s", wave_names[row]);
-                            if ((lmb_down && !boundary.Contains(mouse_pos_prev) && (((wav_val>>b)&1) == click_wav_val)) || lmb_clicked) { 
-                                if (lmb_clicked) click_wav_val = (wav_val>>b)&1;
-                                wav_val ^= (1<<b);
+                        int x_rel = mouse_pos.x-slider_bb_a.x;
+                        bool is_in_x_boundary = x_rel >= 0 && x_rel < slider_res.x;
+                        if ((slider_bb.Contains(mouse_pos) || (was_hovering && is_in_x_boundary)) &&
+                            ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
+                            float rel_pos = ((mouse_pos - ImGui::GetCursorScreenPos()).y)/slider_res.y;
+                            int final_pos = (int)((rel_pos*(v_max-v_min))+v_min);
+                            if (v_min > v_max) {
+                                int temp = v_min;
+                                v_min = v_max;
+                                v_max = temp;
+                            }
+                            final_pos = CLAMP(final_pos,v_min,v_max);
+                            if (lmb_down) {
+                                was_hovering = true;
+                                arp_val = final_pos;
+                            } else {
+                                was_hovering = false;
                             }
                         }
-                        row++;
-                    }
-                    song->instr[cur_cursor->instr].wav[col] = wav_val;
 
-                    ImGui::PopID();
-                    ImGui::TableNextColumn();
+                        draw_list->AddRectFilled(ImGui::GetCursorScreenPos(),
+                                                ImGui::GetCursorScreenPos()+slider_res,
+                                                IM_COL32(0x28,0x4c,0x7c,0xff));
+                        draw_list->AddRectFilled(slider_a,slider_b,
+                                                IM_COL32(0x78,0xac,0xcc,0xff));
+
+                        // draw rel/abs checkbox
+                        ImGui::SetCursorPosY(slider_res.y+io.FontGlobalScale*32.0);
+                        ImGui::Checkbox("##arp_mode",(bool *)&is_abs);
+                        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", is_abs?"Absolute":"Relative");
+                        if (is_abs) song->instr[cur_cursor->instr].arp[col] = CLAMP(arp_val,0,95)|0x80;
+                        else song->instr[cur_cursor->instr].arp[col] = CLAMP(arp_val,-48,47)+48;
+
+                        ImGui::SetCursorPosY(slider_res.y+io.FontGlobalScale*64.0);
+
+                        int wav_val = song->instr[cur_cursor->instr].wav[col];
+                        int row = 0;
+                        for (int b = 7; b >= 0; b--) {
+                            ImRect boundary = ImRect(ImVec4(ImGui::GetCursorScreenPos().x,ImGui::GetCursorScreenPos().y,
+                                                            ImGui::GetCursorScreenPos().x+slider_res.x,
+                                                            ImGui::GetCursorScreenPos().y+slider_res.x));
+
+                            draw_list->AddRectFilled(boundary.Min, boundary.Max, // radio button base
+                                                    IM_COL32(0x28,0x4c,0x7c,0xff));
+
+                            if ((wav_val>>b)&1) { // radio button selection
+                                draw_list->AddRectFilled(boundary.Min+ImVec2(io.FontGlobalScale*4.0,io.FontGlobalScale*4.0),
+                                                        boundary.Max-ImVec2(io.FontGlobalScale*4.0,io.FontGlobalScale*4.0),
+                                                        IM_COL32(0x78,0xac,0xcc,0xff));
+                            }
+
+                            if (col == 0) {
+                                // add text over the radio buttons so the 
+                                // user actually knows what the buttons do :meatjob:
+                                ImGuiStyle& style = ImGui::GetStyle();
+                                ImGui::PushClipRect(ImMax(boundary.Min,table_pos_start),
+                                                    ImMin(boundary.Max+ImVec2(slider_res.x*4.0,0.0f),table_pos_start+table_pos_size-ImVec2(style.ScrollbarSize,0.0f)),false);
+                                ImGui::Text("%s",wave_names[row]);
+                                ImGui::SameLine();
+                                ImGui::PopClipRect();
+                            }
+
+                            ImGui::Dummy(ImVec2(0.0f,slider_res.x+2+io.FontGlobalScale));
+                            if (b == 4) ImGui::Dummy(ImVec2(0.0f,2+io.FontGlobalScale));
+                            if (boundary.Contains(mouse_pos) && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
+                                ImGui::SetTooltip("%s", wave_names[row]);
+                                if ((lmb_down && !boundary.Contains(mouse_pos_prev) && (((wav_val>>b)&1) == click_wav_val)) || lmb_clicked) { 
+                                    if (lmb_clicked) click_wav_val = (wav_val>>b)&1;
+                                    wav_val ^= (1<<b);
+                                }
+                            }
+                            row++;
+                        }
+                        song->instr[cur_cursor->instr].wav[col] = wav_val;
+
+                        ImGui::PopID();
+                        ImGui::TableNextColumn();
+                    }
+                    ImGui::EndTable();
                 }
-                ImGui::EndTable();
             }
             //ImGui::SetCursorPosY(temp_ypos+io.FontGlobalScale*192.0);
             //ImGui::Separator();
@@ -303,115 +304,116 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
             ImVec2 table_pos_size = ImGui::GetContentRegionAvail(); // for clipping the label texts in the macros
 
             if (song->instr[cur_cursor->instr].filter_len != 0) {
-                ImGui::BeginTable("insedit_filter",song->instr[cur_cursor->instr].filter_len,ImGuiTableFlags_ScrollX|ImGuiTableFlags_NoPadInnerX);
-                for (int ch = 0; ch < song->instr[cur_cursor->instr].filter_len; ch++) {
-                    ImVec2 slider_res = ImVec2(24.0f*io.FontGlobalScale,160.0f*io.FontGlobalScale);
-                    char ch_id[16];
-                    snprintf(ch_id,16,"filt%d",ch);
-                    ImGui::TableSetupColumn(ch_id,ImGuiTableColumnFlags_WidthFixed,slider_res.x+4*io.FontGlobalScale);
-                }
-                ImGui::TableNextColumn();
-
-                ImDrawList* draw_list = ImGui::GetWindowDrawList();
-                for (int col = 0; col < song->instr[cur_cursor->instr].filter_len; col++) {
-                    int filt_val = song->instr[cur_cursor->instr].filter[col];
-                    ImGui::PushID(col+512);
-                    ImVec2 slider_res = ImVec2(24.0f*io.FontGlobalScale,160.0f*io.FontGlobalScale);
-                    ImVec2 slider_drag_res = ImVec2(18.0f*io.FontGlobalScale,8.0f*io.FontGlobalScale);
-
-                    ImGui::SetNextItemWidth(slider_res.x);
-                    ImGui::InputInt("##filt_val",&filt_val,0,0);
-                    
-                    // draw filter bar slider
-
-                    int v_min = 255;
-                    int v_max = 0;
-
-                    float padding = slider_res.y/64.0;
-                    float filt_norm = (((float)filt_val)-v_min)/(v_max-v_min);
-                    ImVec2 filt_off = ImVec2(0.0f,filt_norm*(slider_res.y-slider_drag_res.y+padding));
-                    ImVec2 slider_bb_a = ImGui::GetCursorScreenPos();
-                    ImVec2 slider_bb_b = ImGui::GetCursorScreenPos()+slider_res;
-                    ImRect slider_bb = ImRect(slider_bb_a.x,slider_bb_a.y,slider_bb_b.x,slider_bb_b.y);
-                    ImVec2 slider_a = ImGui::GetCursorScreenPos()+filt_off+ImVec2((slider_res.x-slider_drag_res.x)/2,padding);
-                    ImVec2 slider_b = ImGui::GetCursorScreenPos()+ImVec2(slider_res.x-(slider_res.x-slider_drag_res.x)/2,slider_res.y-padding);
-                    ImRect slider_rect = ImRect(ImVec4(slider_a.x,slider_a.y,slider_b.x,slider_b.y));
-
-                    int x_rel = mouse_pos.x-slider_bb_a.x;
-                    bool is_in_x_boundary = x_rel >= 0 && x_rel < slider_res.x;
-                    if ((slider_bb.Contains(mouse_pos) || (was_hovering && is_in_x_boundary)) &&
-                        ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
-                        float rel_pos = ((mouse_pos - ImGui::GetCursorScreenPos()).y)/slider_res.y;
-                        int final_pos = (int)((rel_pos*(v_max-v_min))+v_min);
-                        if (v_min > v_max) {
-                            int temp = v_min;
-                            v_min = v_max;
-                            v_max = temp;
-                        }
-                        final_pos = CLAMP(final_pos,v_min,v_max);
-                        if (lmb_down) {
-                            was_hovering = true;
-                            filt_val = final_pos;
-                        } else {
-                            was_hovering = false;
-                        }
+                if (ImGui::BeginTable("insedit_filter",song->instr[cur_cursor->instr].filter_len,ImGuiTableFlags_ScrollX|ImGuiTableFlags_NoPadInnerX)) {
+                    for (int ch = 0; ch < song->instr[cur_cursor->instr].filter_len; ch++) {
+                        ImVec2 slider_res = ImVec2(24.0f*io.FontGlobalScale,160.0f*io.FontGlobalScale);
+                        char ch_id[16];
+                        snprintf(ch_id,16,"filt%d",ch);
+                        ImGui::TableSetupColumn(ch_id,ImGuiTableColumnFlags_WidthFixed,slider_res.x+4*io.FontGlobalScale);
                     }
+                    ImGui::TableNextColumn();
 
-                    draw_list->AddRectFilled(ImGui::GetCursorScreenPos(),
-                                            ImGui::GetCursorScreenPos()+slider_res,
-                                            IM_COL32(0x28,0x4c,0x7c,0xff));
-                    if (filt_val) {
-                        // HACK: make the filter slider NOT render at 0 cutoff
-                        draw_list->AddRectFilled(slider_a,slider_b,
-                                                IM_COL32(0x78,0xac,0xcc,0xff));
-                    }
-                    song->instr[cur_cursor->instr].filter[col] = CLAMP(filt_val,0,255);
+                    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+                    for (int col = 0; col < song->instr[cur_cursor->instr].filter_len; col++) {
+                        int filt_val = song->instr[cur_cursor->instr].filter[col];
+                        ImGui::PushID(col+512);
+                        ImVec2 slider_res = ImVec2(24.0f*io.FontGlobalScale,160.0f*io.FontGlobalScale);
+                        ImVec2 slider_drag_res = ImVec2(18.0f*io.FontGlobalScale,8.0f*io.FontGlobalScale);
 
-                    // draw the filter mode bitfields
-                    ImGui::SetCursorPosY(slider_res.y+io.FontGlobalScale*32.0);
-                    int mode_val = song->instr[cur_cursor->instr].filter_mode[col];
-                    int row = 0;
-                    for (int b = 2+4; b >= 0+4; b--) {
-                        ImRect boundary = ImRect(ImVec4(ImGui::GetCursorScreenPos().x,ImGui::GetCursorScreenPos().y,
-                                                        ImGui::GetCursorScreenPos().x+slider_res.x,
-                                                        ImGui::GetCursorScreenPos().y+slider_res.x));
+                        ImGui::SetNextItemWidth(slider_res.x);
+                        ImGui::InputInt("##filt_val",&filt_val,0,0);
+                        
+                        // draw filter bar slider
 
-                        draw_list->AddRectFilled(boundary.Min, boundary.Max, // radio button base
-                                                IM_COL32(0x28,0x4c,0x7c,0xff));
-                        if ((mode_val>>b)&1) { // radio button selection
-                            draw_list->AddRectFilled(boundary.Min+ImVec2(io.FontGlobalScale*4.0,io.FontGlobalScale*4.0),
-                                                    boundary.Max-ImVec2(io.FontGlobalScale*4.0,io.FontGlobalScale*4.0),
-                                                    IM_COL32(0x78,0xac,0xcc,0xff));
-                        }
+                        int v_min = 255;
+                        int v_max = 0;
 
-                        if (col == 0) {
-                            // add text over the radio buttons so the 
-                            // user actually knows what the buttons do :meatjob:
-                            ImGuiStyle& style = ImGui::GetStyle();
-                            ImGui::PushClipRect(ImMax(boundary.Min,table_pos_start),
-                                                ImMin(boundary.Max+ImVec2(slider_res.x*4.0,0.0f),table_pos_start+table_pos_size-ImVec2(style.ScrollbarSize,0.0f)),false);
-                            ImGui::Text("%s",filt_names[row]);
-                            ImGui::SameLine();
-                            ImGui::PopClipRect();
-                        }
+                        float padding = slider_res.y/64.0;
+                        float filt_norm = (((float)filt_val)-v_min)/(v_max-v_min);
+                        ImVec2 filt_off = ImVec2(0.0f,filt_norm*(slider_res.y-slider_drag_res.y+padding));
+                        ImVec2 slider_bb_a = ImGui::GetCursorScreenPos();
+                        ImVec2 slider_bb_b = ImGui::GetCursorScreenPos()+slider_res;
+                        ImRect slider_bb = ImRect(slider_bb_a.x,slider_bb_a.y,slider_bb_b.x,slider_bb_b.y);
+                        ImVec2 slider_a = ImGui::GetCursorScreenPos()+filt_off+ImVec2((slider_res.x-slider_drag_res.x)/2,padding);
+                        ImVec2 slider_b = ImGui::GetCursorScreenPos()+ImVec2(slider_res.x-(slider_res.x-slider_drag_res.x)/2,slider_res.y-padding);
+                        ImRect slider_rect = ImRect(ImVec4(slider_a.x,slider_a.y,slider_b.x,slider_b.y));
 
-                        ImGui::Dummy(ImVec2(0.0f,slider_res.x+2+io.FontGlobalScale));
-                        if (boundary.Contains(mouse_pos) && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
-                            ImGui::SetTooltip("%s", filt_names[row]);
-                            if ((lmb_down && !boundary.Contains(mouse_pos_prev) && (((mode_val>>b)&1) == click_wav_val)) || lmb_clicked) { 
-                                if (lmb_clicked) click_wav_val = (mode_val>>b)&1;
-                                mode_val ^= (1<<b);
-                                printf("%02x\n",mode_val);
+                        int x_rel = mouse_pos.x-slider_bb_a.x;
+                        bool is_in_x_boundary = x_rel >= 0 && x_rel < slider_res.x;
+                        if ((slider_bb.Contains(mouse_pos) || (was_hovering && is_in_x_boundary)) &&
+                            ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
+                            float rel_pos = ((mouse_pos - ImGui::GetCursorScreenPos()).y)/slider_res.y;
+                            int final_pos = (int)((rel_pos*(v_max-v_min))+v_min);
+                            if (v_min > v_max) {
+                                int temp = v_min;
+                                v_min = v_max;
+                                v_max = temp;
+                            }
+                            final_pos = CLAMP(final_pos,v_min,v_max);
+                            if (lmb_down) {
+                                was_hovering = true;
+                                filt_val = final_pos;
+                            } else {
+                                was_hovering = false;
                             }
                         }
-                        row++;
+
+                        draw_list->AddRectFilled(ImGui::GetCursorScreenPos(),
+                                                ImGui::GetCursorScreenPos()+slider_res,
+                                                IM_COL32(0x28,0x4c,0x7c,0xff));
+                        if (filt_val) {
+                            // HACK: make the filter slider NOT render at 0 cutoff
+                            draw_list->AddRectFilled(slider_a,slider_b,
+                                                    IM_COL32(0x78,0xac,0xcc,0xff));
+                        }
+                        song->instr[cur_cursor->instr].filter[col] = CLAMP(filt_val,0,255);
+
+                        // draw the filter mode bitfields
+                        ImGui::SetCursorPosY(slider_res.y+io.FontGlobalScale*32.0);
+                        int mode_val = song->instr[cur_cursor->instr].filter_mode[col];
+                        int row = 0;
+                        for (int b = 2+4; b >= 0+4; b--) {
+                            ImRect boundary = ImRect(ImVec4(ImGui::GetCursorScreenPos().x,ImGui::GetCursorScreenPos().y,
+                                                            ImGui::GetCursorScreenPos().x+slider_res.x,
+                                                            ImGui::GetCursorScreenPos().y+slider_res.x));
+
+                            draw_list->AddRectFilled(boundary.Min, boundary.Max, // radio button base
+                                                    IM_COL32(0x28,0x4c,0x7c,0xff));
+                            if ((mode_val>>b)&1) { // radio button selection
+                                draw_list->AddRectFilled(boundary.Min+ImVec2(io.FontGlobalScale*4.0,io.FontGlobalScale*4.0),
+                                                        boundary.Max-ImVec2(io.FontGlobalScale*4.0,io.FontGlobalScale*4.0),
+                                                        IM_COL32(0x78,0xac,0xcc,0xff));
+                            }
+
+                            if (col == 0) {
+                                // add text over the radio buttons so the 
+                                // user actually knows what the buttons do :meatjob:
+                                ImGuiStyle& style = ImGui::GetStyle();
+                                ImGui::PushClipRect(ImMax(boundary.Min,table_pos_start),
+                                                    ImMin(boundary.Max+ImVec2(slider_res.x*4.0,0.0f),table_pos_start+table_pos_size-ImVec2(style.ScrollbarSize,0.0f)),false);
+                                ImGui::Text("%s",filt_names[row]);
+                                ImGui::SameLine();
+                                ImGui::PopClipRect();
+                            }
+
+                            ImGui::Dummy(ImVec2(0.0f,slider_res.x+2+io.FontGlobalScale));
+                            if (boundary.Contains(mouse_pos) && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
+                                ImGui::SetTooltip("%s", filt_names[row]);
+                                if ((lmb_down && !boundary.Contains(mouse_pos_prev) && (((mode_val>>b)&1) == click_wav_val)) || lmb_clicked) { 
+                                    if (lmb_clicked) click_wav_val = (mode_val>>b)&1;
+                                    mode_val ^= (1<<b);
+                                    printf("%02x\n",mode_val);
+                                }
+                            }
+                            row++;
+                        }
+                        song->instr[cur_cursor->instr].filter_mode[col] = mode_val;
+        
+                        ImGui::PopID();
+                        ImGui::TableNextColumn();
                     }
-                    song->instr[cur_cursor->instr].filter_mode[col] = mode_val;
-    
-                    ImGui::PopID();
-                    ImGui::TableNextColumn();
+                    ImGui::EndTable();
                 }
-                ImGui::EndTable();
             }
             //ImGui::SetCursorPosY(temp_ypos+io.FontGlobalScale*192.0);
             //ImGui::Separator();
