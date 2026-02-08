@@ -497,6 +497,7 @@ int main(int argc, char *argv[]) {
                     init_routine(&c_song);
                     cur_cursor.latch = 0;
                     cur_cursor.chip_mode = true;
+                    SID_set_chip(cur_cursor.chip_mode);
                     cur_cursor.new_file_popup = false;
                     ImGui::CloseCurrentPopup();
                 }

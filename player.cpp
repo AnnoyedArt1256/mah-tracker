@@ -284,7 +284,7 @@ void advance_frame(song *song, cursor *cur_cursor) {
                             player_vars.glide_note[ch] = note&127;
                             player_vars.bend_delta[ch] = player_vars.cur_note[ch]<player_vars.glide_note[ch]?eff_arg:-eff_arg;
                             player_vars.vib_tim[ch] = 0;
-                        } else if (!(eff_type == 3 && eff_arg == 0)) {
+                        } else {
                             player_vars.cur_note[ch] = note;
                         }
                         if (eff_type != 3) {
