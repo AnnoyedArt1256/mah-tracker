@@ -412,6 +412,25 @@ void advance_frame(song *song, cursor *cur_cursor) {
                 }
             }
         }
+
+        // the pitch bend/glide code
+        player_vars.bend[ch] += player_vars.bend_delta[ch];
+        if (player_vars.last_eff[ch] == 3 && player_vars.last_arg[ch] != 0) {
+            if (((int16_t)player_vars.glide_limit[ch]) > 0) {
+                if (player_vars.bend[ch] >= player_vars.glide_limit[ch]) {
+                    player_vars.bend[ch] = 0; 
+                    player_vars.bend_delta[ch] = 0;
+                    player_vars.cur_note[ch] = player_vars.glide_note[ch];
+                }
+            } else {
+                if (player_vars.bend[ch] <= player_vars.glide_limit[ch]) {
+                    player_vars.bend[ch] = 0; 
+                    player_vars.bend_delta[ch] = 0;
+                    player_vars.cur_note[ch] = player_vars.glide_note[ch];
+                }
+            }
+        }
+    
         if (player_vars.hr_delay[ch] == 0xFF) {
             uint8_t arp_pos = player_vars.cur_arpwave_pos[ch];
             uint8_t arp_val = song->instr[inst].arp[arp_pos];
@@ -445,23 +464,7 @@ void advance_frame(song *song, cursor *cur_cursor) {
             if (player_vars.vib_tim[ch] & 1) player_vars.bend[ch] -= vib_depth;
             else player_vars.bend[ch] += vib_depth;
         }
-        player_vars.bend[ch] += player_vars.bend_delta[ch];
         uint16_t final_freq = player_vars.freq[ch]+player_vars.bend[ch];
-        if (player_vars.last_eff[ch] == 3 && player_vars.last_arg[ch] != 0) {
-            if (((int16_t)player_vars.glide_limit[ch]) > 0) {
-                if (player_vars.bend[ch] >= player_vars.glide_limit[ch]) {
-                    player_vars.bend[ch] = 0; 
-                    player_vars.bend_delta[ch] = 0;
-                    player_vars.cur_note[ch] = player_vars.glide_note[ch];
-                }
-            } else {
-                if (player_vars.bend[ch] <= player_vars.glide_limit[ch]) {
-                    player_vars.bend[ch] = 0; 
-                    player_vars.bend_delta[ch] = 0;
-                    player_vars.cur_note[ch] = player_vars.glide_note[ch];
-                }
-            }
-        }
         write_sid(ch*7+0,final_freq&0xff);
         write_sid(ch*7+1,final_freq>>8);
         write_sid(ch*7+2,player_vars.pw[ch]&0xff);
