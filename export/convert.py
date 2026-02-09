@@ -116,6 +116,7 @@ def convert(filename):
         out += f"pattern{pat}: .byte {str(pattern_data)[1:-1]}\n"
 
     ins_properties = []
+    ins_wave_dict = {}
     for ins in range(max_ins+1):
         ins_prop = []
         a, d, s, r = file.read(4) # get adsr
@@ -187,9 +188,16 @@ def convert(filename):
     out += f"ins_sr: .byte {str([x[1] for x in ins_properties])[1:-1]}\n"
     out += f"ins_wave_len: .byte {str([x[2]+1 for x in ins_properties])[1:-1]}\n"
     for ins in range(max_ins+1):
-        out += f"ins_wav{ins}:\n"
-        out += f".byte {str(ins_properties[ins][3])[1:-1]}\n"
-        out += f".byte {str(ins_properties[ins][4])[1:-1]}\n"
+        # deduplicate the wave/arp tables
+        wavearp_table = str(ins_properties[ins][3])[1:-1]
+        wavearp_table += "\n"+str(ins_properties[ins][4])[1:-1]
+        if wavearp_table in ins_wave_dict:
+            out += f"ins_wav{ins} = {ins_wave_dict[wavearp_table]}\n"
+        else:
+            out += f"ins_wav{ins}:\n"
+            out += f".byte {str(ins_properties[ins][3])[1:-1]}\n"
+            out += f".byte {str(ins_properties[ins][4])[1:-1]}\n"
+            ins_wave_dict[wavearp_table] = f"ins_wav{ins}"
     out += f"ins_duty_start_lo: .lobytes {str([x[5] for x in ins_properties])[1:-1]}\n"
     out += f"ins_duty_start_hi: .hibytes {str([x[5] for x in ins_properties])[1:-1]}\n"
 
