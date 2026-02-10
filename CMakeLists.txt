@@ -5,7 +5,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED)
 
 find_package(OpenGL REQUIRED)
-find_package(SDL2 REQUIRED)
+
+option(SDL2_VENDORED "Use the vendored library in ./SDL" ON)
+
+if (NOT SDL2_VENDORED)
+    find_package(SDL2 REQUIRED)
+endif()
 
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/imgui)
 set(ROOT ${IMGUI_DIR})
@@ -72,7 +77,14 @@ endforeach()
 
 target_sources(imgui_impl_opengl3 PRIVATE ${ROOT}/backends/imgui_impl_opengl3_loader.h)
 target_link_libraries(imgui_impl_opengl3 PRIVATE OpenGL::GL)
-target_link_libraries(imgui_impl_sdl2 PRIVATE SDL2::SDL2-static)
+
+if(SDL2_VENDORED)
+    add_subdirectory(SDL EXCLUDE_FROM_ALL)
+    target_link_libraries(imgui_impl_sdl2 PRIVATE SDL2::SDL2)
+else()
+    target_link_libraries(imgui_impl_sdl2 PRIVATE SDL2::SDL2-static)
+endif()
+
 
 add_compile_definitions(ImTextureID=void*)
 add_compile_options(-O2 -g)
@@ -89,6 +101,12 @@ add_executable(
     file_ops.cpp
 )
 
-target_link_libraries(mah_tracker
-	PRIVATE residfp imgui imgui_impl_sdl2 imgui_impl_opengl3 SDL2::SDL2-static SDL2::SDL2main
-)
+if(SDL2_VENDORED)
+    target_link_libraries(mah_tracker
+        PRIVATE residfp imgui imgui_impl_sdl2 imgui_impl_opengl3 SDL2::SDL2 SDL2::SDL2main
+    )
+else()
+    target_link_libraries(mah_tracker
+        PRIVATE residfp imgui imgui_impl_sdl2 imgui_impl_opengl3 SDL2::SDL2-static SDL2::SDL2main
+    )
+endif()

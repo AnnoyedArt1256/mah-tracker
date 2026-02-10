@@ -2,3 +2,7 @@
 	path = imgui
 	url = https://github.com/ocornut/imgui.git
 	branch = docking
+[submodule "SDL"]
+	path = SDL
+	url = https://github.com/libsdl-org/SDL.git
+	branch = SDL2

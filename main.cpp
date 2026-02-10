@@ -391,7 +391,7 @@ int main(int argc, char *argv[]) {
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.Fonts->AddFontDefault();
-    io.Fonts->AddFontFromFileTTF("res/fontawesome.otf", 12.0f);
+    //io.Fonts->AddFontFromFileTTF("res/fontawesome.otf", 12.0f);
     //io.Fonts->AddFontFromFileTTF("IBMPlexMono-Regular.ttf", 25.0f); // FOINISS FONT OH MAI GAHHHH
 
     io.FontGlobalScale = 1.0f;
