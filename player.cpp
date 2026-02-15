@@ -193,9 +193,10 @@ void advance_audio(song *song, cursor *cur_cursor) {
     } 
 }
 
-int16_t advance_sample(song *song, cursor *cur_cursor) {
+int advance_sample(song *song, cursor *cur_cursor, int16_t *buffer, int buffer_length) {
     const static int sid_rate_inc = ((int)(((double)(985248)/(SAMPLE_RATE))*256));
-    while (1) {
+    int buf_pos = 0;
+    while (buf_pos < buffer_length) {
         SID_advance_clock();
         audio_cycles += 256;
         if (audio_cycles >= sid_rate_inc) {
@@ -204,9 +205,10 @@ int16_t advance_sample(song *song, cursor *cur_cursor) {
                 frame_cnt = 0;
                 advance_frame(song, cur_cursor);
             }
-            return CLAMP(SID_advance_sample()*get_volume(),-32767,32767);
+            buffer[buf_pos++] = CLAMP(SID_advance_sample()*get_volume(),-32767,32767);
         }
-    } 
+    }
+    return buf_pos;
 }
 
 struct pvars {

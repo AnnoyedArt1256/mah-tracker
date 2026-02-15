@@ -304,7 +304,7 @@ void load_settings() {
 
 extern void init_sid(); // player.cpp
 extern void advance_audio(song *song, cursor *cur_cursor); // player.cpp
-extern int16_t advance_sample(song *song, cursor *cur_cursor); // player.cpp
+extern int advance_sample(song *song, cursor *cur_cursor, int16_t *buffer, int buffer_length); // player.cpp
 extern int player_get_loop_cnt(); // player.cpp
 extern void init_routine(song *song); // player.cpp
 extern void register_view(bool *open);
@@ -483,10 +483,11 @@ int main(int argc, char *argv[]) {
         cur_cursor.playing = 1;
         cur_cursor.play_row = 0;
         cur_cursor.latch = 0;
+        int16_t sample_buf[1024];
         while (player_get_loop_cnt() < 1) {
-            int16_t sample_buf[2];
-            sample_buf[0] = advance_sample(&c_song, &cur_cursor);
-            wav_file.write(sample_buf, 1);
+            memset(sample_buf, 0, 1024*sizeof(int16_t));
+            int samp_len = advance_sample(&c_song, &cur_cursor, sample_buf, 1024);
+            wav_file.write(sample_buf, samp_len);
         }
         done = true;
     }
