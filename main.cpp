@@ -27,6 +27,7 @@ along with this program; if not, see
 #include <iostream>
 #include <fstream>
 #include <SDL.h>
+#include <sndfile.hh>
 #include <filesystem>
 #include "portable-file-dialogs.h"
 #include "defines.h"
@@ -303,6 +304,8 @@ void load_settings() {
 
 extern void init_sid(); // player.cpp
 extern void advance_audio(song *song, cursor *cur_cursor); // player.cpp
+extern int16_t advance_sample(song *song, cursor *cur_cursor); // player.cpp
+extern int player_get_loop_cnt(); // player.cpp
 extern void init_routine(song *song); // player.cpp
 extern void register_view(bool *open);
 extern void SID_set_chip(bool mode); // player.cpp
@@ -447,10 +450,47 @@ int main(int argc, char *argv[]) {
     int cur_frame = 0;
     init_default_song(&c_song);
 
+    // process args in argv
+    int argc_pos = 1;
+    bool file_opened_args = false;
+    bool save_wav_args = false;
+    std::string save_wav_str = "";
+    while (argc_pos < argc) {
+        std::string arg_str = std::string(argv[argc_pos]);
+        if (arg_str == "-o") {
+            argc_pos++;
+            save_wav_str = std::string(argv[argc_pos]);
+            fs::path path_check = save_wav_str;
+            if (path_check.extension() == ".wav") {
+                printf("save .wav audio file %s\n",save_wav_str.c_str());
+                save_wav_args = true;
+            }
+        } else if (!file_opened_args) {
+            file_opened_args = true;
+            printf("loaded file %s\n",argv[argc_pos]);
+            load_file(argv[argc_pos], &c_song);
+        }
+        argc_pos++;
+    }
+
     audio_paused = false;
 
     init_sid();
     init_routine(&c_song);
+
+    if (save_wav_args) {
+        SndfileHandle wav_file = SndfileHandle(save_wav_str, SFM_WRITE, SF_FORMAT_WAV | SF_FORMAT_PCM_16, 1, SAMPLE_RATE);
+        cur_cursor.playing = 1;
+        cur_cursor.play_row = 0;
+        cur_cursor.latch = 0;
+        while (player_get_loop_cnt() < 1) {
+            int16_t sample_buf[2];
+            sample_buf[0] = advance_sample(&c_song, &cur_cursor);
+            wav_file.write(sample_buf, 1);
+        }
+        done = true;
+    }
+
 #ifdef __EMSCRIPTEN__
     // For an Emscripten build we are disabling file-system access, so let's not attempt to do a fopen() of the imgui.ini file.
     // You may manually call LoadIniSettingsFromMemory() to load settings from your own storage.

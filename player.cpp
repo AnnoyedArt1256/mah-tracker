@@ -29,8 +29,6 @@ along with this program; if not, see
 #include "SID.h"
 
 SDL_AudioDeviceID dev;
-#define SAMPLE_RATE 48000
-#define BUFFER_SIZE (960) // 44100/60
 reSIDfp::SID* sid_fp;
 
 int16_t audio_buffer[BUFFER_SIZE*4];
@@ -195,6 +193,22 @@ void advance_audio(song *song, cursor *cur_cursor) {
     } 
 }
 
+int16_t advance_sample(song *song, cursor *cur_cursor) {
+    const static int sid_rate_inc = ((int)(((double)(985248)/(SAMPLE_RATE))*256));
+    while (1) {
+        SID_advance_clock();
+        audio_cycles += 256;
+        if (audio_cycles >= sid_rate_inc) {
+            audio_cycles -= sid_rate_inc;
+            if (++frame_cnt == (SAMPLE_RATE/50)) {
+                frame_cnt = 0;
+                advance_frame(song, cur_cursor);
+            }
+            return CLAMP(SID_advance_sample()*get_volume(),-32767,32767);
+        }
+    } 
+}
+
 struct pvars {
     uint8_t tick;
     uint8_t tick_sel;
@@ -223,6 +237,7 @@ struct pvars {
     uint8_t transpose[3];
     uint16_t glide_limit[3];
     uint8_t glide_note[3];
+    uint8_t looped;
 };
 
 pvars player_vars;
@@ -242,6 +257,7 @@ void init_routine(song *song) {
     write_sid(0x18, 0x0F);
     player_vars.vol = 0x0F;
     player_vars.filt_mode = 0x00;
+    player_vars.looped = 0;
     reset_audio_buffer();
 }
 
@@ -258,6 +274,10 @@ void play_note_live(song *song, uint8_t ch, uint8_t note, uint8_t instr) {
     write_sid(ch*7+5, 0x00);
     write_sid(ch*7+6, 0x00);
     write_sid(ch*7+4, 0x08);
+}
+
+int player_get_loop_cnt() {
+    return (int)player_vars.looped;
 }
 
 void advance_frame(song *song, cursor *cur_cursor) {
@@ -366,6 +386,7 @@ void advance_frame(song *song, cursor *cur_cursor) {
                     cur_cursor->order++;
                     if (cur_cursor->order >= song->order_len) {
                         cur_cursor->order = 0;
+                        player_vars.looped++;
                     }
                     did_order_skip = true;
                 }

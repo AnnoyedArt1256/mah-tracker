@@ -11,6 +11,7 @@ option(SDL2_VENDORED "Use the vendored library in ./SDL" ON)
 if (NOT SDL2_VENDORED)
     find_package(SDL2 REQUIRED)
 endif()
+find_package(SndFile)
 
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/imgui)
 set(ROOT ${IMGUI_DIR})
@@ -88,8 +89,8 @@ endif()
 
 add_compile_definitions(ImTextureID=void*)
 add_compile_options(-O2 -g)
-#add_compile_options(-fsanitize=address)
-#add_link_options(-fsanitize=address)
+add_compile_options(-fsanitize=address)
+add_link_options(-fsanitize=address)
 
 add_executable(
     mah_tracker 
@@ -103,10 +104,10 @@ add_executable(
 
 if(SDL2_VENDORED)
     target_link_libraries(mah_tracker
-        PRIVATE residfp imgui imgui_impl_sdl2 imgui_impl_opengl3 SDL2::SDL2 SDL2::SDL2main
+        PRIVATE residfp imgui imgui_impl_sdl2 imgui_impl_opengl3 SDL2::SDL2 SDL2::SDL2main SndFile::sndfile
     )
 else()
     target_link_libraries(mah_tracker
-        PRIVATE residfp imgui imgui_impl_sdl2 imgui_impl_opengl3 SDL2::SDL2-static SDL2::SDL2main
+        PRIVATE residfp imgui imgui_impl_sdl2 imgui_impl_opengl3 SDL2::SDL2-static SDL2::SDL2main SndFile::sndfile
     )
 endif()

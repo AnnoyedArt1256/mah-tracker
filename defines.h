@@ -28,6 +28,10 @@ along with this program; if not, see
 #define INS_NO_LOOP 0xff // Telltale if an instrument "loops"
 #define ORDER_END 0xff // End of order
 
+// audio properties
+#define SAMPLE_RATE 48000
+#define BUFFER_SIZE (960) // 44100/60
+
 // Pattern editor, for the column cursor position
 enum channel_mode {
     nothing = -1,
