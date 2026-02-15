@@ -205,7 +205,7 @@ int advance_sample(song *song, cursor *cur_cursor, int16_t *buffer, int buffer_l
                 frame_cnt = 0;
                 advance_frame(song, cur_cursor);
             }
-            buffer[buf_pos++] = CLAMP(SID_advance_sample()*get_volume(),-32767,32767);
+            buffer[buf_pos++] = CLAMP(SID_advance_sample(),-32767,32767);
         }
     }
     return buf_pos;
