@@ -11,7 +11,6 @@ option(SDL2_VENDORED "Use the vendored library in ./SDL" ON)
 if (NOT SDL2_VENDORED)
     find_package(SDL2 REQUIRED)
 endif()
-find_package(SndFile)
 
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/imgui)
 set(ROOT ${IMGUI_DIR})
@@ -78,6 +77,8 @@ endforeach()
 
 target_sources(imgui_impl_opengl3 PRIVATE ${ROOT}/backends/imgui_impl_opengl3_loader.h)
 target_link_libraries(imgui_impl_opengl3 PRIVATE OpenGL::GL)
+
+add_subdirectory(libsndfile EXCLUDE_FROM_ALL)
 
 if(SDL2_VENDORED)
     add_subdirectory(SDL EXCLUDE_FROM_ALL)
