@@ -5,7 +5,7 @@
 
 ; HR_MODE = 0: use the hard-restart method that the GUI editor uses
 ; HR_MODE = 1: use the hard-restart method that GT2 and other players use
-HR_MODE = 1
+HR_MODE = 0
 HR_FRAME_LENGTH = 1
 
 .zeropage
