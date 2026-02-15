@@ -226,7 +226,7 @@ if len(sys.argv) >= 2:
     # frequency calculation code taken from
     # https://codebase64.org/doku.php?id=base:how_to_calculate_your_own_sid_frequency_table
 
-    tuning = 440
+    tuning = 424*2**(1/12)
     f = open("note_lo.bin","wb")
     for i in range(96):
         hz = tuning * (2**(float(i-57)/12.0))

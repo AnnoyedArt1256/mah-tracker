@@ -5,7 +5,7 @@
 
 ; HR_MODE = 0: use the hard-restart method that the GUI editor uses
 ; HR_MODE = 1: use the hard-restart method that GT2 and other players use
-HR_MODE = 1
+HR_MODE = 0
 HR_FRAME_LENGTH = 1
 
 .zeropage
@@ -45,7 +45,7 @@ main:
  sta $d01a
 
  lda #0
- jsr $1000
+ jsr $0d00
 
     cli
 	jmp *
@@ -58,7 +58,7 @@ irq:
     pha
 
     inc $d020
-	jsr $1003
+	jsr $0d03
     dec $d020
     asl $d019
 
@@ -69,7 +69,7 @@ irq:
     pla
     rti
 
-.res $1000-*
+.res $0d00-*
     jmp init
 play:
     dec tick
@@ -104,14 +104,16 @@ skipseq:
 
     ldx #2
 :
+    jsr do_wav
     jsr do_pulse_sweep
     jsr do_eff
-    jsr do_wav
     .if HR_MODE = 1
         lda hr_delay, x
         cmp #$ff
         bne @skip_freq
     .endif
+    cpx #2
+    beq @skip_ch
     ldy sid_mul, x
     lda final_freq
     clc
@@ -127,6 +129,7 @@ skipseq:
     .if HR_MODE = 1
 @skip_freq:
     .endif
+@skip_ch:
     dex
     bpl :-
 
@@ -227,6 +230,8 @@ flip_duty_speed:
     rts
 
 set_adsr_note:
+    cpx #2
+    beq @skip
     ldy ins, x
     lda ins_ad, y
     sta temp
@@ -250,6 +255,7 @@ set_adsr_note:
     sta $d405, y
     lda temp+1
     sta $d406, y
+@skip:
     rts
 
 init_note_macros:
@@ -367,10 +373,13 @@ do_wav:
     lda (temp), y
     and gate_mask, x
     ldy sid_mul, x
+    cpx #2
+    beq :+
     sta $d404, y
     .if HR_MODE = 1
         sta wave_temp, x
     .endif
+:
 
     inc arp_pos, x
     rts
@@ -421,13 +430,6 @@ do_ch:
     cmp #$e0
     bcs :+
     and #$7f
-    ldy eff_type, x
-    cpy #3
-    bne @goto_set_note
-    ldy eff_arg, x
-    beq @goto_set_note
-    jmp @do_glide_eff
-@goto_set_note:
     sta cur_note, x
     jsr inc_pat
     lda eff_type, x
@@ -509,43 +511,8 @@ do_ch:
     sta pat_ptr_lo, x
     lda temp+1
     sta pat_ptr_hi, x
-;ch_skip_parse:
+ch_skip_parse:
     rts
-
-@do_glide_eff:
-    sta glide_note, x
-    pha
-    tya
-    sta glide_speed, x
-    pla
-    tay
-
-    lda #0
-    sta vib_tim, x
-
-    txa
-    pha
-
-    lda cur_note, x
-    tax
-
-    lda freq_lo, y
-    sec
-    sbc freq_lo, x
-    sta glide_temp
-    lda freq_hi, y
-    sbc freq_hi, x
-    sta glide_temp+1
-
-    pla
-    tax
-    lda glide_temp
-    sta glide_limit_lo, x
-    lda glide_temp+1
-    sta glide_limit_hi, x
-    ldy #0
-    jsr inc_pat
-    jmp @parse_rept
 
 inc_pat:
     inc temp
@@ -563,6 +530,8 @@ reinit_note_inst:
     sta bend_hi, x
     lda #$ff
     sta gate_mask, x
+    cpx #2
+    beq :+
     .if HR_MODE = 1
         ldy sid_mul, x
         lda #$00
@@ -573,13 +542,14 @@ reinit_note_inst:
         and #$fe
         sta $d404, y
     .else
-        lda #$00
+        lda #0
         ldy sid_mul, x
         sta $d405, y
         sta $d406, y
         lda #$08
         sta $d404, y
     .endif
+:
     rts
 
 sid_mul: .byte 0, 7, 14
@@ -648,7 +618,7 @@ set_pat:
 do_eff:
     lda eff_type, x
     cmp #4
-    beq @jump_to_vib
+    beq :+
     cmp #1
     bne @skip1
     lda eff_arg, x
@@ -661,51 +631,8 @@ do_eff:
     sta temp
     jmp vib_sub
 @skip2:
-    cmp #3
-    bne @skip3
-    lda eff_arg, x
-    beq @skip3
-
-    lda glide_speed, x
-    sta temp
-
-    lda glide_limit_hi, x
-    bmi @skip_to_dec_glide
-    ; +
-    jsr vib_add
-    lda glide_limit_lo, x
-    sec
-    sbc bend_lo, x
-    lda glide_limit_hi, x
-    sbc bend_hi, x
-    bcs :+
-    lda #0
-    sta bend_lo, x
-    sta bend_hi, x
-    sta glide_speed, x
-    lda glide_note, x
-    sta cur_note, x
+    rts
 :
-    rts
-@skip_to_dec_glide:
-    jsr vib_sub
-    lda bend_lo, x
-    sec
-    sbc glide_limit_lo, x
-    lda bend_hi, x
-    sbc glide_limit_hi, x
-    bcs :+
-    lda #0
-    sta bend_lo, x
-    sta bend_hi, x
-    sta glide_speed, x
-    lda glide_note, x
-    sta cur_note, x
-:
-    rts
-@skip3:
-    rts
-@jump_to_vib:
 
     lda eff_arg, x
     asl
@@ -792,11 +719,6 @@ transpose: .res 3, 0
 .if HR_MODE = 1
     wave_temp: .res 3, 0
 .endif
-glide_limit_lo: .res 3, 0
-glide_limit_hi: .res 3, 0
-glide_note: .res 3, 0
-glide_speed: .res 3, 0
-glide_temp: .word 0
 vars_end:
 
 freq_lo:
