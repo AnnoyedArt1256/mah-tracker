@@ -60,6 +60,7 @@ struct window_bool {
     bool orders;
     bool instr;
     bool reg_view;
+    bool filter_view;
 };
 
 struct window_bool visible_windows;
@@ -265,6 +266,7 @@ void ShowExampleAppDockSpace(bool* p_open) {
             ImGui::MenuItem("Orders", NULL, (bool *)&visible_windows.orders);
             ImGui::MenuItem("Instrument Editor", NULL, (bool *)&visible_windows.instr);
             ImGui::MenuItem("Register View", NULL, (bool *)&visible_windows.reg_view);
+            ImGui::MenuItem("Filter Info", NULL, (bool *)&visible_windows.filter_view);
             ImGui::EndMenu();
         }
 
@@ -308,6 +310,7 @@ extern int advance_sample(song *song, cursor *cur_cursor, int16_t *buffer, int b
 extern int player_get_loop_cnt(); // player.cpp
 extern void init_routine(song *song); // player.cpp
 extern void register_view(bool *open);
+extern void display_filter_info(bool *open);
 extern void SID_set_chip(bool mode); // player.cpp
 
 float get_volume() { // for player.cpp
@@ -624,6 +627,10 @@ int main(int argc, char *argv[]) {
 
         if (visible_windows.reg_view) {
             register_view(&visible_windows.reg_view);
+        }
+
+        if (visible_windows.filter_view) {
+            display_filter_info(&visible_windows.filter_view);
         }
 
         if (visible_windows.imgui_debugger) {

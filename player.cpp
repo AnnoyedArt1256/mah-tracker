@@ -519,3 +519,18 @@ void register_view(bool *open) {
     }
     ImGui::End();
 }
+
+void display_filter_info(bool *open) {
+    const char *filt_modes[8] = {
+        "", "LP", "BP", "LP+BP",
+        "HP", "LP+HP", "BP+HP", "LP+BP+HP",        
+    };
+
+    ImGui::Begin("Filter Info", open);
+    for (int i = 0; i < 3; i++) {
+        ImGui::Text("Channel %d: %s ",i,player_vars.resonance_ch_enable&(1<<i)?"FILTER":"      ");
+        ImGui::SameLine();
+    }
+    ImGui::Text("Filter: %s",filt_modes[player_vars.filt_mode>>4&7]);
+    ImGui::End();
+}
