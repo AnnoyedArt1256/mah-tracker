@@ -265,6 +265,8 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
             ImGui::SliderInt("Duty End",&song->instr[cur_cursor->instr].duty_end,0,4095); rightClickable
             ImGui::Separator();
             ImGui::SliderInt("Duty Speed",&song->instr[cur_cursor->instr].duty_speed,-2048,2047); rightClickable
+            ImGui::Separator();
+            ImGui::Checkbox("Reset duty per note", &song->instr[cur_cursor->instr].duty_reset);
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Filter Macro")) {

@@ -97,6 +97,14 @@ void load_file(char *filename, song *song) {
         instr->duty_speed = fgetc(f);
         instr->duty_speed |= fgetc(f)<<8;
 
+        if (version >= 2) {
+            // add duty reset toggle to file format since VERSION 2
+            instr->duty_reset = fgetc(f)?true:false;
+        } else {
+            // stub it to "true" for earlier modules
+            instr->duty_reset = true;
+        }
+
         uint8_t filter_res_enable = fgetc(f);
         instr->filter_res = filter_res_enable&0xf;
         instr->filter_enable = filter_res_enable&0x10;
@@ -180,6 +188,8 @@ void save_file(char *filename, song *song) {
 
         fputc(instr->duty_speed&0xff, f);
         fputc(instr->duty_speed>>8&0xff, f);
+
+        fputc(instr->duty_reset?1:0, f);
 
         fputc((instr->filter_res&0xf)|(instr->filter_enable?0x10:0), f);
         fputc(instr->filter_len, f);

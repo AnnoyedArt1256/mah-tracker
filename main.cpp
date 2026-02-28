@@ -124,6 +124,7 @@ void init_default_song(song *song) {
         song->instr[ins].duty_start = 0x800;
         song->instr[ins].duty_end   = 0x800;
         song->instr[ins].duty_speed = 0;
+        song->instr[ins].duty_reset = true;
     }
 
     //                      00 01

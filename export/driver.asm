@@ -256,6 +256,8 @@ init_note_macros:
     jsr set_adsr_note
 
     ldy ins, x
+    lda ins_duty_reset, y
+    beq :+
     lda ins_duty_start_lo, y 
     sta duty_lo, x
     lda ins_duty_start_hi, y 
@@ -264,6 +266,7 @@ init_note_macros:
     sta duty_speed_lo, x
     lda ins_duty_speed_hi, y 
     sta duty_speed_hi, x
+:
 
     lda filt_resonance_temp
     and bit_mask_inv, x

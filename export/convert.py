@@ -143,6 +143,13 @@ def convert(filename):
         ins_prop.append((file.read(1)[0])|(file.read(1)[0]<<8))
         ins_prop.append((file.read(1)[0])|(file.read(1)[0]<<8))
 
+        # duty reset (VERSION >= 2)
+        if version >= 2:
+            ins_prop.append(file.read(1)[0])        
+        else:
+            # stub to always reset on older modules
+            ins_prop.append(1)
+
         filter_res_enable = file.read(1)[0]
         ins_prop.append(filter_res_enable)
 
@@ -207,13 +214,15 @@ def convert(filename):
     out += f"ins_duty_speed_lo: .lobytes {str([x[7] for x in ins_properties])[1:-1]}\n"
     out += f"ins_duty_speed_hi: .hibytes {str([x[7] for x in ins_properties])[1:-1]}\n"
 
-    out += f"ins_filter_enable: .byte {str([x[8] for x in ins_properties])[1:-1]}\n\n"
-    out += f"ins_filter_len: .byte {str([0 if x[9] == 0 else x[9]+1 for x in ins_properties])[1:-1]}\n"
+    out += f"ins_duty_reset: .lobytes {str([x[8] for x in ins_properties])[1:-1]}\n"
+
+    out += f"ins_filter_enable: .byte {str([x[9] for x in ins_properties])[1:-1]}\n\n"
+    out += f"ins_filter_len: .byte {str([0 if x[10] == 0 else x[10]+1 for x in ins_properties])[1:-1]}\n"
     for ins in range(max_ins+1):
         out += f"ins_filt{ins}:\n"
-        if ins_properties[ins][9] > 0:
-            out += f".byte {str(ins_properties[ins][10])[1:-1]}\n"
+        if ins_properties[ins][10] > 0:
             out += f".byte {str(ins_properties[ins][11])[1:-1]}\n"
+            out += f".byte {str(ins_properties[ins][12])[1:-1]}\n"
 
     file.close()
     file = open("music.asm","w")

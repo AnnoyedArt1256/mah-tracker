@@ -6,7 +6,7 @@ unless noted otherwise, each byte/word is treated as an **unsigned** value and i
 ## Header (128 bytes)
 - 8 byte magic string: `MAHTRACK` (\0 is null terminator or $00 in hex)
 - 1 byte: initial tick speed
-- 2 bytes: version (0-1 for now)
+- 2 bytes: version (0-2 for now)
 - 5 bytes reserved (currently only zeros)
 - 32 bytes reserved for title (in the future)
 - 32 bytes reserved for author (in the future)
@@ -58,6 +58,9 @@ unless noted otherwise, each byte/word is treated as an **unsigned** value and i
     - 2 bytes: duty sweep start
     - 2 bytes: duty sweep end
     - 2 bytes: duty sweep speed (signed 16-bit!!)
+
+    - IF VERSION >= 2:
+        - 1 byte: duty reset
 
     - 1 byte: filter enable and resonance
     ```
