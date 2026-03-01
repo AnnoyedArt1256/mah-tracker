@@ -271,10 +271,6 @@ void play_note_live(song *song, uint8_t ch, uint8_t note, uint8_t instr) {
     player_vars.cur_note[ch] = note;
     player_vars.cur_arpwave_pos[ch] = 0;
     player_vars.hr_delay[ch] = 0;
-    if (song->instr[player_vars.inst[ch]].duty_reset) {
-        player_vars.pw[ch] = song->instr[player_vars.inst[ch]].duty_start;
-        player_vars.pw_speed[ch] = song->instr[player_vars.inst[ch]].duty_speed;
-    }
     write_sid(ch*7+5, 0x00);
     write_sid(ch*7+6, 0x00);
     write_sid(ch*7+4, 0x08);
@@ -314,10 +310,6 @@ void advance_frame(song *song, cursor *cur_cursor) {
                         if (eff_type != 3) {
                             player_vars.cur_arpwave_pos[ch] = 0;
                             player_vars.hr_delay[ch] = 0;
-                            if (song->instr[player_vars.inst[ch]].duty_reset) {
-                                player_vars.pw[ch] = song->instr[player_vars.inst[ch]].duty_start;
-                                player_vars.pw_speed[ch] = song->instr[player_vars.inst[ch]].duty_speed;
-                            }
                             player_vars.bend[ch] = 0;
                             player_vars.vib_tim[ch] = 0;
                             write_sid(ch*7+5, 0x00);
@@ -331,10 +323,6 @@ void advance_frame(song *song, cursor *cur_cursor) {
                     if (eff_type != 3) {
                         player_vars.cur_arpwave_pos[ch] = 0;
                         player_vars.hr_delay[ch] = 0;
-                        if (song->instr[player_vars.inst[ch]].duty_reset) {
-                            player_vars.pw[ch] = song->instr[player_vars.inst[ch]].duty_start;
-                            player_vars.pw_speed[ch] = song->instr[player_vars.inst[ch]].duty_speed;
-                        }
                         write_sid(ch*7+5, 0x00);
                         write_sid(ch*7+6, 0x00);
                         write_sid(ch*7+4, 0x08);
@@ -427,6 +415,11 @@ void advance_frame(song *song, cursor *cur_cursor) {
                     write_sid(ch*7+6, player_vars.last_arg[ch]);
                 else
                     write_sid(ch*7+6, (song->instr[inst].s<<4)|song->instr[inst].r);
+
+                if (song->instr[player_vars.inst[ch]].duty_reset) {
+                    player_vars.pw[ch] = song->instr[player_vars.inst[ch]].duty_start;
+                    player_vars.pw_speed[ch] = song->instr[player_vars.inst[ch]].duty_speed;
+                }
 
                 if (song->instr[inst].filter_enable) {
                     uint8_t resonance = song->instr[inst].filter_res;
