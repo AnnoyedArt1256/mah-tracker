@@ -348,6 +348,18 @@ void advance_frame(song *song, cursor *cur_cursor) {
                             player_vars.vib_arg[ch] = eff_arg;
                             break;
                         }
+                        case 0x5: {
+                            if (player_vars.hr_delay[ch] == 0xFF) {
+                                write_sid(ch*7+5, eff_arg);
+                            }
+                            break;
+                        }
+                        case 0x6: {
+                            if (player_vars.hr_delay[ch] == 0xFF) {
+                                write_sid(ch*7+6, eff_arg);
+                            }
+                            break;
+                        }
                         case 0xC: {
                             player_vars.transpose[ch] = eff_arg&0x7f;
                             break;

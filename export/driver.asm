@@ -648,8 +648,21 @@ set_pat:
     sta dur+2
     rts
 
+do_eff_adsr:
+    ; 5xx and 6xx ADSR commands
+    clc 
+    adc sid_mul, x
+    tay
+    lda eff_arg, x
+    sta $d400, y
+    rts
+
 do_eff:
     lda eff_type, x
+    cmp #5
+    beq do_eff_adsr
+    cmp #6
+    beq do_eff_adsr
     cmp #4
     beq @jump_to_vib
     cmp #1
