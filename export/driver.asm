@@ -650,11 +650,18 @@ set_pat:
 
 do_eff_adsr:
     ; 5xx and 6xx ADSR commands
+    lda hr_delay, x
+    cmp #$ff
+    beq :+
+    rts
+:
+    sty temp
     clc 
     adc sid_mul, x
     tay
     lda eff_arg, x
     sta $d400, y
+    ldy temp
     rts
 
 do_eff:
