@@ -94,8 +94,9 @@ void load_file(char *filename, song *song) {
         instr->duty_end = fgetc(f);
         instr->duty_end |= fgetc(f)<<8;
 
-        instr->duty_speed = fgetc(f);
-        instr->duty_speed |= fgetc(f)<<8;
+        int16_t duty_speed = fgetc(f);
+        duty_speed |= fgetc(f)<<8;
+        instr->duty_speed = duty_speed;
 
         if (version >= 2) {
             // add duty reset toggle to file format since VERSION 2
