@@ -109,9 +109,18 @@ void load_file(char *filename, song *song) {
         uint8_t filter_res_enable = fgetc(f);
         instr->filter_res = filter_res_enable&0xf;
         instr->filter_enable = filter_res_enable&0x10;
+        if (version >= 3) {
+            instr->filter_sweep_mode = filter_res_enable&0x20;
+        } else {
+            instr->filter_sweep_mode = false;
+        }
 
         instr->filter_len = fgetc(f);
         instr->filter_loop = fgetc(f);
+
+        if (version >= 3 && instr->filter_sweep_mode) {
+            instr->filter_init_cutoff = fgetc(f);
+        }
 
         for (int col = 0; col < instr->filter_len; col++) instr->filter[col] = fgetc(f);
         for (int col = 0; col < instr->filter_len; col++) instr->filter_mode[col] = fgetc(f);
@@ -192,9 +201,13 @@ void save_file(char *filename, song *song) {
 
         fputc(instr->duty_reset?1:0, f);
 
-        fputc((instr->filter_res&0xf)|(instr->filter_enable?0x10:0), f);
+        fputc((instr->filter_res&0xf)|(instr->filter_enable?0x10:0)|(instr->filter_sweep_mode?0x20:0), f);
         fputc(instr->filter_len, f);
         fputc(instr->filter_loop, f);
+
+        if (instr->filter_sweep_mode) {
+            fputc(instr->filter_init_cutoff, f);
+        }
 
         for (int col = 0; col < instr->filter_len; col++) fputc(instr->filter[col], f);
         for (int col = 0; col < instr->filter_len; col++) fputc(instr->filter_mode[col], f);

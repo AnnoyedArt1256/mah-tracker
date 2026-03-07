@@ -442,6 +442,11 @@ void advance_frame(song *song, cursor *cur_cursor) {
                         player_vars.cur_filter_pos = 0;
                         player_vars.filter_advance = true;
                     }
+                    // relative filter sweeps should set the cutoff 
+                    // to the inital cutoff during note initialization
+                    if (song->instr[inst].filter_sweep_mode) {
+                        player_vars.cutoff = song->instr[inst].filter_init_cutoff;
+                    }
                 } else {
                     player_vars.resonance_ch_enable &= ~(1<<ch);
                 }
@@ -508,7 +513,11 @@ void advance_frame(song *song, cursor *cur_cursor) {
     if (player_vars.filter_advance) {
         // advance filter table
         uint8_t inst = player_vars.filter_inst;
-        player_vars.cutoff = song->instr[inst].filter[player_vars.cur_filter_pos];
+        if (song->instr[inst].filter_sweep_mode) {
+            player_vars.cutoff += song->instr[inst].filter[player_vars.cur_filter_pos];
+        } else {
+            player_vars.cutoff = song->instr[inst].filter[player_vars.cur_filter_pos];
+        }
         player_vars.filt_mode = song->instr[inst].filter_mode[player_vars.cur_filter_pos]&0x70;
         player_vars.cur_filter_pos++;
         if (player_vars.cur_filter_pos >= song->instr[inst].filter_len) {

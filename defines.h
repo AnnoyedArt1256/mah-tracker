@@ -20,7 +20,7 @@ along with this program; if not, see
 #include <cstdint>
 
 // the current .mah module file format version
-#define MAH_CURRENT_VERSION 2
+#define MAH_CURRENT_VERSION 3
 
 // Magic numbers for file format
 #define NOTE_OFF 0xfe // Note off in pattern
@@ -103,6 +103,8 @@ struct instrument {
     uint8_t filter_mode[128]; // Low-pass, band-pass, high-pass
     uint8_t filter_res; // Filter resonance
     bool filter_enable; // Filter enable
+    bool filter_sweep_mode; // Relative/absolute filter sweep selection
+    uint8_t filter_init_cutoff;
     bool duty_reset;
     int duty_start; // Pulse duty start position
     int duty_end; // Pulse duty end position

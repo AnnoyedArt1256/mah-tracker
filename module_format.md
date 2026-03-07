@@ -64,13 +64,23 @@ unless noted otherwise, each byte/word is treated as an **unsigned** value and i
 
     - 1 byte: filter enable and resonance
     ```
-        xxxERRRR
-           |++++- Resonance
-           +----- Filter enable  
+        xxrERRRR
+          ||++++- Resonance
+          |+----- Filter enable  
+          +------ Relative/Absolute sweep? (if VERSION >= 3)
+                  0: Absolute sweep
+                  1: Relative sweep
     ```
 
     - 1 byte: filter/arp table length (0 = there's no arp/wav table)
     - 1 byte: filter/arp table loop position
         - if the loop position is 0xFF (255), then the wavetable/arp table DOES NOT LOOP!
+
+    - IF VERSION >= 3 **and** relative sweep is enabled:
+        - 1 byte: initial $d416 filter cutoff
+
     - N bytes: the filter table
-        - each byte is just a raw SID high-byte cutoff value (for $d416), no conversion is needed
+        - if relative sweep is enabled:
+            - each byte is added on top of the current cutoff value at $d416
+        - else (absolute filter cutoff mode):
+            - each byte is just a raw SID high-byte cutoff value (for $d416), no conversion is needed

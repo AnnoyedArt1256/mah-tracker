@@ -116,7 +116,9 @@ void init_default_song(song *song) {
         song->instr[ins].filter_enable = 0;
         song->instr[ins].filter_res = 0;
         song->instr[ins].filter_len = 0;
+        song->instr[ins].filter_sweep_mode = false; // absolute sweep
         song->instr[ins].filter_loop = INS_NO_LOOP;
+        song->instr[ins].filter_init_cutoff = 0;
         memset(song->instr[ins].filter,0,128);
         memset(song->instr[ins].filter_mode,0,128);
 

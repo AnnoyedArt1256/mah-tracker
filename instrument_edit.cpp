@@ -273,6 +273,7 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
             uint8_t zero = 0; // WHY
             uint8_t one = 1; // ONE!!11!
             uint8_t fifteen = 15; // WHY
+            uint8_t two_five_five = 255; // fuck this shit
             ImGui::SliderScalar("Resonance",ImGuiDataType_U8,&song->instr[cur_cursor->instr].filter_res,&zero,&fifteen); rightClickable
             ImGui::SetNextItemWidth(ImGui::GetWindowSize().x * 0.25f);
             if (ImGui::InputScalar("Length",ImGuiDataType_U8,&song->instr[cur_cursor->instr].filter_len, &one, NULL, "%d", 0)) {
@@ -281,6 +282,11 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
             }
             ImGui::SameLine();
             ImGui::Checkbox("Enable Filter",&song->instr[cur_cursor->instr].filter_enable);
+            ImGui::SameLine();
+            ImGui::Checkbox("Rel. Sweep",&song->instr[cur_cursor->instr].filter_sweep_mode);
+            if (song->instr[cur_cursor->instr].filter_sweep_mode) {
+                ImGui::SliderScalar("Initial Cutoff",ImGuiDataType_U8,&song->instr[cur_cursor->instr].filter_init_cutoff,&zero,&two_five_five); rightClickable
+            }
 
             bool is_loop = song->instr[cur_cursor->instr].filter_loop != INS_NO_LOOP;
             if (ImGui::Checkbox("Loop",&is_loop)) {
@@ -318,6 +324,10 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
                     ImDrawList* draw_list = ImGui::GetWindowDrawList();
                     for (int col = 0; col < song->instr[cur_cursor->instr].filter_len; col++) {
                         int filt_val = song->instr[cur_cursor->instr].filter[col];
+                        // get signed value if relative sweep mode is enabled
+                        if (song->instr[cur_cursor->instr].filter_sweep_mode)
+                            filt_val = (int8_t)filt_val;
+
                         ImGui::PushID(col+512);
                         ImVec2 slider_res = ImVec2(24.0f*io.FontGlobalScale,160.0f*io.FontGlobalScale);
                         ImVec2 slider_drag_res = ImVec2(18.0f*io.FontGlobalScale,8.0f*io.FontGlobalScale);
@@ -329,15 +339,21 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
 
                         int v_min = 255;
                         int v_max = 0;
+                        if (song->instr[cur_cursor->instr].filter_sweep_mode) {
+                            v_min = 127;
+                            v_max = -127;
+                        }
 
                         float padding = slider_res.y/64.0;
                         float filt_norm = (((float)filt_val)-v_min)/(v_max-v_min);
                         ImVec2 filt_off = ImVec2(0.0f,filt_norm*(slider_res.y-slider_drag_res.y+padding));
+                        float filt_norm_zero = (((float)0.0)-v_min)/(v_max-v_min);
+                        ImVec2 filt_off_zero = ImVec2(0.0f,filt_norm_zero*(slider_res.y-padding));
                         ImVec2 slider_bb_a = ImGui::GetCursorScreenPos();
                         ImVec2 slider_bb_b = ImGui::GetCursorScreenPos()+slider_res;
                         ImRect slider_bb = ImRect(slider_bb_a.x,slider_bb_a.y,slider_bb_b.x,slider_bb_b.y);
                         ImVec2 slider_a = ImGui::GetCursorScreenPos()+filt_off+ImVec2((slider_res.x-slider_drag_res.x)/2,padding);
-                        ImVec2 slider_b = ImGui::GetCursorScreenPos()+ImVec2(slider_res.x-(slider_res.x-slider_drag_res.x)/2,slider_res.y-padding);
+                        ImVec2 slider_b = ImGui::GetCursorScreenPos()+filt_off_zero+ImVec2(slider_res.x-(slider_res.x-slider_drag_res.x)/2,0.0f);
                         ImRect slider_rect = ImRect(ImVec4(slider_a.x,slider_a.y,slider_b.x,slider_b.y));
 
                         int x_rel = mouse_pos.x-slider_bb_a.x;
@@ -368,7 +384,12 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
                             draw_list->AddRectFilled(slider_a,slider_b,
                                                     IM_COL32(0x78,0xac,0xcc,0xff));
                         }
-                        song->instr[cur_cursor->instr].filter[col] = CLAMP(filt_val,0,255);
+
+                        if (song->instr[cur_cursor->instr].filter_sweep_mode) {
+                            song->instr[cur_cursor->instr].filter[col] = (int8_t)CLAMP(filt_val,-127,127);
+                        } else {
+                            song->instr[cur_cursor->instr].filter[col] = CLAMP(filt_val,0,255);
+                        }
 
                         // draw the filter mode bitfields
                         ImGui::SetCursorPosY(slider_res.y+io.FontGlobalScale*32.0);

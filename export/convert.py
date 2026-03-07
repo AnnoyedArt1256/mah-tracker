@@ -116,6 +116,7 @@ def convert(filename):
         out += f"pattern{pat}: .byte {str(pattern_data)[1:-1]}\n"
 
     ins_properties = []
+    init_cutoffs_rel = []
     ins_wave_dict = {}
     for ins in range(max_ins+1):
         ins_prop = []
@@ -157,6 +158,13 @@ def convert(filename):
         ins_prop.append(filter_len)
 
         filter_loop = file.read(1)[0]
+
+        if version >= 3 and (filter_res_enable & 0x20) == 0x20:
+            # relative cutoffs always have an init cutoff value!
+            init_cutoffs_rel.append(file.read(1)[0])
+        else:
+            # stub it to 0 :P
+            init_cutoffs_rel.append(0)
 
         cutoff = []
         filt_mode = []
@@ -216,6 +224,7 @@ def convert(filename):
 
     out += f"ins_duty_reset: .lobytes {str([x[8] for x in ins_properties])[1:-1]}\n"
 
+    out += f"ins_filter_init_cut: .byte {str(init_cutoffs_rel)[1:-1]}\n\n"
     out += f"ins_filter_enable: .byte {str([x[9] for x in ins_properties])[1:-1]}\n\n"
     out += f"ins_filter_len: .byte {str([0 if x[10] == 0 else x[10]+1 for x in ins_properties])[1:-1]}\n"
     for ins in range(max_ins+1):

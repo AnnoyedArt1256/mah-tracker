@@ -154,12 +154,26 @@ do_filt:
     clc
     adc ins_filter_len, x
     tay
+
+    lda ins_filter_enable, x
+    and #$20
+    beq :+
     lda (temp), y ; filter cutoff
-    sta $d416
+    clc
+    adc cur_cutoff
+    jmp :++
+:
+    lda (temp), y ; filter cutoff
+:
+
+    sta cur_cutoff
    
 
     inc filter_pos
 :
+
+    lda cur_cutoff
+    sta $d416
     rts
 
 @do_jump:
@@ -266,6 +280,13 @@ init_note_macros:
     sta duty_speed_lo, x
     lda ins_duty_speed_hi, y 
     sta duty_speed_hi, x
+:
+
+    lda ins_filter_enable, y
+    and #$20
+    beq :+
+    lda ins_filter_init_cut, y
+    sta cur_cutoff
 :
 
     lda filt_resonance_temp
@@ -806,6 +827,7 @@ duty_speed_hi: .res 3, 0
 filt_resonance_temp: .byte 0
 filt_inst: .byte 0
 filter_pos: .byte 0
+cur_cutoff: .byte 0
 vib_tim: .res 3, 0
 bend_lo: .res 3, 0
 bend_hi: .res 3, 0
