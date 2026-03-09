@@ -449,7 +449,11 @@ void render_pat(song *song, cursor *cur_cursor, bool *enable) {
         c = ImGui::GetCursorScreenPos();
         c.x += char_size_xy.x*4.0;
         c.y += char_size_xy.y*dummy_row_cnt;
-        c.y += char_size_xy.y*cur_cursor->play_row;
+        if (cur_cursor->do_follow && cur_cursor->playing) {
+            c.y += char_size_xy.y*cur_cursor->row;
+        } else {
+            c.y += char_size_xy.y*cur_cursor->play_row;
+        }
 
         draw_list->AddRectFilled(ImVec2(c.x, c.y), 
                                  ImVec2(c.x+char_size_xy.x*(ch_row_len*3.0),c.y+char_size_xy.y),
@@ -661,6 +665,12 @@ void render_pat(song *song, cursor *cur_cursor, bool *enable) {
             ImGui::TableNextColumn();
         }
         ImGui::TableNextRow(0,char_size_xy.y);
+    }
+
+    // do follow-play (cursor follows currently playing row) when enabled
+    if (cur_cursor->do_follow && cur_cursor->playing) {
+        cur_cursor->row = cur_cursor->play_row;
+        ImGui::SetScrollY(cur_cursor->row*char_size_xy.y); 
     }
 
     ImGui::EndTable();

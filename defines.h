@@ -72,6 +72,7 @@ struct cursor {
     int playing;
     int play_row;
     bool loop;
+    bool do_follow;
     bool do_record;
     bool new_file_popup;
     bool chip_mode;

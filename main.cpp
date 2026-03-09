@@ -434,6 +434,7 @@ int main(int argc, char *argv[]) {
     cur_cursor.play_row = 0;
     cur_cursor.loop = false;
     cur_cursor.do_record = false; // jam
+    cur_cursor.do_follow = true; // enable follow-play
     cur_cursor.new_file_popup = false;
     cur_cursor.chip_mode = true; // 8580 SID
     cur_cursor.dragging = false;
@@ -589,6 +590,7 @@ int main(int argc, char *argv[]) {
                 if (c_song.init_speed < 1) c_song.init_speed = 1; // No speedcore for you
                 else if (c_song.init_speed > 127) c_song.init_speed = 127; // If you need more than 127 speed there's something wrong
             }
+            ImGui::Checkbox("Follow Pattern",&cur_cursor.do_follow);
             ImGui::Checkbox("Loop Pattern",&cur_cursor.loop);
 
             //ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x/20.0,0.0f));
