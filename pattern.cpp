@@ -201,6 +201,10 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
     if (ctrl_pressed) {
         if (ImGui::IsKeyPressed(ImGuiKey_C)) copy_pat(song, cur_cursor);
         if (ImGui::IsKeyPressed(ImGuiKey_V)) paste_pat(song, cur_cursor);
+        if (ImGui::IsKeyPressed(ImGuiKey_X) && cur_cursor->already_dragged) {
+            copy_pat(song, cur_cursor);
+            clear_pat_selection(song, cur_cursor);
+        }
     }
 
     // Down one row
