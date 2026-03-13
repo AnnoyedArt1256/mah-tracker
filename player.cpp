@@ -217,6 +217,8 @@ struct pvars {
     uint8_t speed[2];
     uint8_t hr_delay[3];
     uint8_t cur_note[3];
+    uint8_t incoming_note[3];
+    uint8_t incoming_note_delay[3];
     uint8_t inst[3];
     uint8_t cur_arpwave_pos[3];
     uint16_t freq[3];
@@ -255,6 +257,7 @@ void init_routine(song *song) {
     memset(&player_vars.inst,0,3);
     memset(&player_vars.transpose,0,3);
     memset(&player_vars.gate_mask,0xFF,3);
+    memset(&player_vars.incoming_note_delay,0xFF,3);
     for (int i = 0; i <= 0x18; i++) write_sid(i,0);
     write_sid(0x18, 0x0F);
     player_vars.vol = 0x0F;
@@ -305,7 +308,8 @@ void advance_frame(song *song, cursor *cur_cursor) {
                             player_vars.bend_delta[ch] = player_vars.cur_note[ch]<player_vars.glide_note[ch]?eff_arg:-eff_arg;
                             player_vars.vib_tim[ch] = 0;
                         } else {
-                            player_vars.cur_note[ch] = note;
+                            player_vars.incoming_note[ch] = note;
+                            player_vars.incoming_note_delay[ch] = 0;
                         }
                         if (eff_type != 3) {
                             player_vars.cur_arpwave_pos[ch] = 0;
@@ -414,6 +418,12 @@ void advance_frame(song *song, cursor *cur_cursor) {
     for (int ch = 0; ch < 3; ch++) {
         uint8_t inst = player_vars.inst[ch];
         if (inst == 0) continue;
+        if (player_vars.incoming_note_delay[ch] != 0xFF) {
+            if (player_vars.incoming_note_delay[ch]++ == 1) {
+                player_vars.incoming_note_delay[ch] = 0xFF;
+                player_vars.cur_note[ch] = player_vars.incoming_note[ch];
+            }
+        }
         if (player_vars.hr_delay[ch] != 0xFF) {
             if (player_vars.hr_delay[ch]++ == 1) {
                 player_vars.hr_delay[ch] = 0xFF;

@@ -324,6 +324,20 @@ do_wav:
     bne :+
     rts
 :
+
+    lda incoming_note_delay, x
+    cmp #$ff
+    beq @skip_note_delay
+    inc incoming_note_delay, x
+    lda incoming_note_delay, x 
+    cmp #HR_FRAME_LENGTH+1
+    bne @skip_note_delay
+    lda #$ff
+    sta incoming_note_delay, x
+    lda incoming_note, x
+    sta cur_note, x
+@skip_note_delay:
+
     lda hr_delay, x
     cmp #$ff
     beq @skip_to_wav
@@ -449,10 +463,16 @@ do_ch:
     cpy #3
     bne @goto_set_note
     ldy eff_arg, x
-    beq @goto_set_note
+    bne @skip_tie_note
+    sta incoming_note, x
+    lda #0
+    sta incoming_note_delay, x
+    jmp @goto_set_note_tie
+@skip_tie_note:
     jmp @do_glide_eff
 @goto_set_note:
     sta cur_note, x
+@goto_set_note_tie:
     jsr inc_pat
     lda eff_type, x
     cmp #3
@@ -620,6 +640,14 @@ init:
     ldx #(vars_end-vars_start)-1
 :
     sta vars_start, x
+    dex
+    bpl :-
+    lda #$ff
+    ldx #2
+:
+    sta hr_delay, x
+    sta gate_mask, x
+    sta incoming_note_delay, x
     dex
     bpl :-
     lda #$0f
@@ -813,6 +841,8 @@ pat_ptr_hi: .res 3, 0
 eff_type: .res 3, 0
 eff_arg: .res 3, 0
 cur_note: .res 3, 0
+incoming_note: .res 3, 0
+incoming_note_delay: .res 3, 0
 arp_pos: .res 3, 0
 arp_addr_lo: .res 3, 0
 arp_addr_hi: .res 3, 0
