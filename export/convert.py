@@ -155,12 +155,13 @@ def convert(filename):
         ins_prop.append(filter_res_enable)
 
         filter_len = file.read(1)[0]
+
+        filter_loop = file.read(1)[0]
+
         if version >= 3 and (filter_res_enable & 0x20) == 0x20 and filter_loop == 0xFF:
             ins_prop.append(filter_len+1)
         else:
             ins_prop.append(filter_len)
-        
-        filter_loop = file.read(1)[0]
 
         if version >= 3 and (filter_res_enable & 0x20) == 0x20:
             # relative cutoffs always have an init cutoff value!
