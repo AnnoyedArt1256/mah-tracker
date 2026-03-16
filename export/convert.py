@@ -155,8 +155,11 @@ def convert(filename):
         ins_prop.append(filter_res_enable)
 
         filter_len = file.read(1)[0]
-        ins_prop.append(filter_len)
-
+        if version >= 3 and (filter_res_enable & 0x20) == 0x20 and filter_loop == 0xFF:
+            ins_prop.append(filter_len+1)
+        else:
+            ins_prop.append(filter_len)
+        
         filter_loop = file.read(1)[0]
 
         if version >= 3 and (filter_res_enable & 0x20) == 0x20:
@@ -170,6 +173,13 @@ def convert(filename):
         filt_mode = []
         for _ in range(filter_len): cutoff.append(file.read(1)[0])
         for _ in range(filter_len): filt_mode.append(file.read(1)[0])
+
+        # if relative mode is enabled and there's no loop, set the last row to have no delta
+        if version >= 3 and (filter_res_enable & 0x20) == 0x20 and filter_loop == 0xFF:
+            cutoff.append(0)
+            filt_mode.append(filt_mode[-1])
+            filter_len += 1
+    
         if filter_len > 0:
             filt_mode.append(0xFF)
             cutoff.append(max(filter_len-1,0) if filter_loop == 0xFF else filter_loop)
