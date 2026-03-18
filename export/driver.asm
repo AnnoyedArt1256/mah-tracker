@@ -607,13 +607,13 @@ reinit_note_inst:
     sta gate_mask, x
     .if HR_MODE = 1
         ldy sid_mul, x
-        lda wave_temp, x
-        and #$fe
-        sta $d404, y
         lda #$00
         sta $d405, y
         lda #$00
         sta $d406, y
+        lda wave_temp, x
+        and #$fe
+        sta $d404, y
     .else
         lda #$00
         ldy sid_mul, x
