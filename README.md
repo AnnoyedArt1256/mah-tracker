@@ -9,6 +9,7 @@ AArt1256's custom SID chiptune tracker meant to be easy to use for newcomers and
 - 4xy: vibrato (x: speed, y: depth)
 - 5xy: set attack and decay to XY
 - 6xy: set sustain and release to XY
+- 9xx: set filter cutoff to XX
 - Cxx: set transpose for channel to XX
 - Dxx: jump to next pattern
 - Exy: set funk tempo (aka two alternating speeds) to be x and y for each speed value

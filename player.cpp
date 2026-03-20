@@ -364,6 +364,10 @@ void advance_frame(song *song, cursor *cur_cursor) {
                             }
                             break;
                         }
+                        case 0x9: {
+                            player_vars.cutoff = eff_arg;
+                            break;
+                        }
                         case 0xC: {
                             player_vars.transpose[ch] = eff_arg&0x7f;
                             break;
@@ -455,7 +459,8 @@ void advance_frame(song *song, cursor *cur_cursor) {
                     // relative filter sweeps should set the cutoff 
                     // to the inital cutoff during note initialization
                     if (song->instr[inst].filter_sweep_mode) {
-                        player_vars.cutoff = song->instr[inst].filter_init_cutoff;
+                        if (player_vars.last_eff[ch] != 0x09)
+                            player_vars.cutoff = song->instr[inst].filter_init_cutoff;
                     }
                 } else {
                     player_vars.resonance_ch_enable &= ~(1<<ch);

@@ -98,6 +98,7 @@ ch_loop:
     ldx tick_sel
     lda speed, x
     sta tick
+    sta tick_cur
     lda tick_sel
     eor #1
     sta tick_sel
@@ -284,6 +285,9 @@ init_note_macros:
 
     lda ins_filter_enable, y
     and #$20
+    beq :+
+    lda eff_type, x
+    cmp #9
     beq :+
     lda ins_filter_init_cut, y
     sta cur_cutoff
@@ -697,6 +701,18 @@ set_pat:
     sta dur+2
     rts
 
+do_eff_cut:
+    ; 9xx: set cutoff command
+    sty temp
+    lda tick
+    cmp tick_cur
+    bne :+
+    lda eff_arg, x
+    sta cur_cutoff
+:
+    ldy temp
+    rts
+
 do_eff_adsr:
     ; 5xx and 6xx ADSR commands
     sty temp
@@ -718,6 +734,8 @@ do_eff:
     beq do_eff_adsr
     cmp #6
     beq do_eff_adsr
+    cmp #9
+    beq do_eff_cut
     cmp #4
     beq @jump_to_vib
     cmp #1
@@ -832,6 +850,7 @@ order_hi:
 vars_start:
 speed: .byte 0, 0
 tick: .byte 0
+tick_cur: .byte 0
 tick_sel: .byte 0
 dur: .res 3, 0
 ins: .res 3, 0
