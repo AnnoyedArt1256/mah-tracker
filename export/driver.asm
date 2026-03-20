@@ -138,7 +138,9 @@ skipseq:
 
 do_filt:
     ldx filt_inst
-    beq :+
+    bne :+
+    rts
+:
     lda ins_filt_lo, x
     sta temp
     lda ins_filt_hi, x
