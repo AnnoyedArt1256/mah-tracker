@@ -81,11 +81,12 @@ play:
     lda #0
     sta do_patend
 
-    ldx #2
+    ldx #0
 ch_loop:
     jsr do_ch
-    dex
-    bpl ch_loop
+    inx
+    cpx #3
+    bne ch_loop
 
     lda do_patend
     beq :+
@@ -102,7 +103,7 @@ ch_loop:
     sta tick_sel
 skipseq:
 
-    ldx #2
+    ldx #0
 :
     jsr do_pulse_sweep
     jsr do_eff
@@ -127,8 +128,9 @@ skipseq:
     .if HR_MODE = 1
 @skip_freq:
     .endif
-    dex
-    bpl :-
+    inx
+    cpx #3
+    bne :-
 
     ;jsr do_filt
     ;rts
