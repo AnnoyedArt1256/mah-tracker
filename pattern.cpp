@@ -130,6 +130,7 @@ void paste_pat(song *song, cursor *cur_cursor) {
         for (int col = copy_buffer->col_start; col < copy_buffer->col_start+copy_buffer->col_len; col++) {
             // i could use memcpy, but just in case someone's using big-endian or smth...
             int rel_col = col-copy_buffer->col_start;
+            if ((cur_cursor->ch+(rel_col>>2)) >= 3) continue;
             pat_row *cur_pat_rows = song->pattern[song->order_table[cur_cursor->ch+(rel_col>>2)][cur_cursor->order]].rows;
             switch (col&3) {
                 case 0: cur_pat_rows[row+cursor_row].note = copy_buffer->ch_rows[col>>2].rows[row].note; break;
@@ -167,13 +168,14 @@ void clear_pat_selection(song *song, cursor *cur_cursor) {
     }
     int col_len = (col_end-col_start)+1;
     
+    int start_ch = col_start>>2;
     int cursor_row = row_start;
     for (int row = 0; row < row_len; row++) {
         if ((row+cursor_row) >= 64) break;
         for (int col = col_start; col < col_start+col_len; col++) {
             // i could use memcpy, but just in case someone's using big-endian or smth...
             int rel_col = col-col_start;
-            pat_row *cur_pat_rows = song->pattern[song->order_table[cur_cursor->ch+(rel_col>>2)][cur_cursor->order]].rows;
+            pat_row *cur_pat_rows = song->pattern[song->order_table[start_ch+(rel_col>>2)][cur_cursor->order]].rows;
             switch (col&3) {
                 case 0: cur_pat_rows[row+cursor_row].note = NOTE_EMPTY; break;
                 case 1: cur_pat_rows[row+cursor_row].instr = 0; break;
