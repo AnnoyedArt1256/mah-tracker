@@ -22,4 +22,5 @@ mah-tracker.cfg
 *.lst
 *.prg
 music.asm
+music_props.asm
 mah_tracker

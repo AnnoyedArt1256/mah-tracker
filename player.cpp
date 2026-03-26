@@ -469,7 +469,7 @@ void advance_frame(song *song, cursor *cur_cursor) {
         }
 
         // the pitch bend/glide code
-        player_vars.bend[ch] += player_vars.bend_delta[ch];
+        player_vars.bend[ch] += player_vars.bend_delta[ch]*(1<<song->pitch_bend_shift);
         if (player_vars.last_eff[ch] == 3 && player_vars.last_arg[ch] != 0) {
             if (((int16_t)player_vars.glide_limit[ch]) > 0) {
                 if (player_vars.bend[ch] >= player_vars.glide_limit[ch]) {

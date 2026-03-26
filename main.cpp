@@ -137,14 +137,12 @@ void init_default_song(song *song) {
     song->order_len = 1;
 
     song->init_speed = 6;
+    song->pitch_bend_shift = 0;
 }
 
 void ShowExampleAppDockSpace(bool* p_open) {
 
     ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true; // Don't know if there's a better way to do this right now
-
-    
-
 
     // Variables to configure the Dockspace example.
     static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None; // Config flags for the Dockspace
@@ -589,6 +587,10 @@ int main(int argc, char *argv[]) {
             if (ImGui::InputScalar("Speed",ImGuiDataType_U8,&c_song.init_speed,&one)) {
                 if (c_song.init_speed < 1) c_song.init_speed = 1; // No speedcore for you
                 else if (c_song.init_speed > 127) c_song.init_speed = 127; // If you need more than 127 speed there's something wrong
+            }
+            if (ImGui::InputScalar("Pitch Bend Shift",ImGuiDataType_U8,&c_song.pitch_bend_shift,&one)) {
+                if (c_song.pitch_bend_shift < 0) c_song.pitch_bend_shift = 0;
+                else if (c_song.pitch_bend_shift > 3) c_song.pitch_bend_shift = 3;
             }
             ImGui::Checkbox("Follow Pattern",&cur_cursor.do_follow);
             ImGui::Checkbox("Loop Pattern",&cur_cursor.loop);

@@ -21,7 +21,17 @@ def convert(filename):
     # reserved bytes
     version = file.read(1)[0]
     version |= file.read(1)[0]<<8
-    file.read(5)
+
+    # pitch bend shift amount
+    pitch_bend_shift = file.read(1)[0]
+    if not version >= 4:
+        pitch_bend_shift = 0
+
+    out_file_props = open("music_props.asm","w")
+    out_file_props.write(f"pitch_shift_amt .set {pitch_bend_shift}\n")
+    out_file_props.close()
+
+    file.read(4)
 
     file.read(32)
     file.read(32)

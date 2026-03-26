@@ -20,7 +20,7 @@ along with this program; if not, see
 #include <cstdint>
 
 // the current .mah module file format version
-#define MAH_CURRENT_VERSION 3
+#define MAH_CURRENT_VERSION 4
 
 // Magic numbers for file format
 #define NOTE_OFF 0xfe // Note off in pattern
@@ -121,6 +121,7 @@ struct song {
     uint8_t order_len;
     instrument instr[128];
     uint8_t init_speed;
+    uint8_t pitch_bend_shift;
 };
 
 extern void render_pat(song *song, cursor *cur_cursor, bool *enable);

@@ -7,7 +7,11 @@ unless noted otherwise, each byte/word is treated as an **unsigned** value and i
 - 8 byte magic string: `MAHTRACK` (\0 is null terminator or $00 in hex)
 - 1 byte: initial tick speed
 - 2 bytes: version (0-2 for now)
-- 5 bytes reserved (currently only zeros)
+- IF VERSION >= 4:
+    - 1 byte: pitch bend shift amount
+- ELSE:
+    - 1 byte reserved (currently only zeros)
+- 4 bytes reserved (currently only zeros)
 - 32 bytes reserved for title (in the future)
 - 32 bytes reserved for author (in the future)
 - 32 bytes reserved for copyright/year (in the future)

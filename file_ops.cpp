@@ -42,7 +42,13 @@ void load_file(char *filename, song *song) {
     uint16_t version = fgetc(f);
     version |= fgetc(f)<<8;
 
-    fseek(f, 5L, SEEK_CUR);
+    if (version >= 4) {
+        song->pitch_bend_shift = fgetc(f);
+        fseek(f, 4L, SEEK_CUR);
+    } else {
+        song->pitch_bend_shift = 0;
+        fseek(f, 5L, SEEK_CUR);
+    }
 
     fseek(f, 32L, SEEK_CUR);
     fseek(f, 32L, SEEK_CUR);
@@ -140,7 +146,8 @@ void save_file(char *filename, song *song) {
     fputc(version&0xff, f);
     fputc((version>>8)&0xff, f);
 
-    for (int i = 0; i < 5; i++) fputc(0,f); // reserved
+    fputc(song->pitch_bend_shift, f);
+    for (int i = 0; i < 4; i++) fputc(0,f); // reserved
 
     for (int i = 0; i < 32; i++) fputc(0,f); // reserved
     for (int i = 0; i < 32; i++) fputc(0,f); // reserved

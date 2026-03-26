@@ -8,6 +8,8 @@
 HR_MODE = 1
 HR_FRAME_LENGTH = 1
 
+.include "music_props.asm"
+
 .zeropage
 .org $fe
 temp: .res 2
@@ -824,23 +826,55 @@ do_eff:
     beq vib_add
     ;bne vib_sub
 vib_sub:
-    lda bend_lo, x
-    sec
-    sbc temp
-    sta bend_lo, x
-    lda bend_hi, x
-    sbc #0
-    sta bend_hi, x
+    .if pitch_shift_amt = 0
+        lda bend_lo, x
+        sec
+        sbc temp
+        sta bend_lo, x
+        lda bend_hi, x
+        sbc #0
+        sta bend_hi, x
+    .elseif pitch_shift_amt > 0
+        lda #0
+        sta temp+1
+        .repeat pitch_shift_amt
+            asl temp
+            rol temp+1
+        .endrepeat
+        lda bend_lo, x
+        sec
+        sbc temp
+        sta bend_lo, x
+        lda bend_hi, x
+        sbc temp+1
+        sta bend_hi, x
+    .endif
     rts
 
 vib_add:
-    lda bend_lo, x
-    clc
-    adc temp
-    sta bend_lo, x
-    lda bend_hi, x
-    adc #0
-    sta bend_hi, x
+    .if pitch_shift_amt = 0
+        lda bend_lo, x
+        clc
+        adc temp
+        sta bend_lo, x
+        lda bend_hi, x
+        adc #0
+        sta bend_hi, x
+    .elseif pitch_shift_amt > 0
+        lda #0
+        sta temp+1
+        .repeat pitch_shift_amt
+            asl temp
+            rol temp+1
+        .endrepeat
+        lda bend_lo, x
+        clc
+        adc temp
+        sta bend_lo, x
+        lda bend_hi, x
+        adc temp+1
+        sta bend_hi, x
+    .endif
     rts
 
 order_lo:
