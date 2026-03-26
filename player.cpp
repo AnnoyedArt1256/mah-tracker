@@ -242,6 +242,7 @@ struct pvars {
     uint16_t glide_limit[3];
     uint8_t glide_note[3];
     uint8_t looped;
+    bool row_has_9xx;
 };
 
 pvars player_vars;
@@ -253,6 +254,7 @@ void init_routine(song *song) {
     player_vars.speed[1] = song->init_speed;
     player_vars.tick = 1;
     player_vars.tick_sel = 0;
+    player_vars.row_has_9xx = false;
     memset(&player_vars.hr_delay,0xFF,3);
     memset(&player_vars.inst,0,3);
     memset(&player_vars.transpose,0,3);
@@ -366,6 +368,7 @@ void advance_frame(song *song, cursor *cur_cursor) {
                         }
                         case 0x9: {
                             player_vars.cutoff = eff_arg;
+                            player_vars.row_has_9xx = true;
                             break;
                         }
                         case 0xC: {
@@ -459,7 +462,7 @@ void advance_frame(song *song, cursor *cur_cursor) {
                     // relative filter sweeps should set the cutoff 
                     // to the inital cutoff during note initialization
                     if (song->instr[inst].filter_sweep_mode) {
-                        if (player_vars.last_eff[ch] != 0x09)
+                        if (!player_vars.row_has_9xx)
                             player_vars.cutoff = song->instr[inst].filter_init_cutoff;
                     }
                 } else {

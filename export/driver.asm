@@ -82,6 +82,7 @@ play:
 
     lda #0
     sta do_patend
+    sta row_has_9xx
 
     ldx #0
 ch_loop:
@@ -290,9 +291,8 @@ init_note_macros:
     lda ins_filter_enable, y
     and #$20
     beq :+
-    lda eff_type, x
-    cmp #9
-    beq :+
+    lda row_has_9xx
+    bne :+
     lda ins_filter_init_cut, y
     sta cur_cutoff
 :
@@ -497,7 +497,7 @@ do_ch:
     jmp @parse_rept
 :
     cmp #$f0
-    bcs :+
+    bcs @skip_eff
     and #$0f
     ldy eff_type, x
     sta eff_type, x
@@ -505,10 +505,15 @@ do_ch:
     ldy #1
     lda (temp), y
     sta eff_arg, x
+    lda eff_type, x
+    cmp #$09
+    bne :+
+    sta row_has_9xx
+:
     jsr inc_pat
     jsr inc_pat
     jmp @parse_rept
-:
+@skip_eff:
     cmp #$fe
     bne :+
     sta gate_mask, x
@@ -926,6 +931,7 @@ glide_limit_hi: .res 3, 0
 glide_note: .res 3, 0
 glide_speed: .res 3, 0
 glide_temp: .word 0
+row_has_9xx: .byte 0
 vars_end:
 
 freq_lo:
