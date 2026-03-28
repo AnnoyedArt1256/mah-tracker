@@ -130,7 +130,31 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
             }
         }
     }
+    ImGui::SameLine();
 
+
+    if (ImGui::Button("^")) {
+        if (cur_cursor->order > 0) {
+            for (int ch = 0; ch < 3; ch++) {
+                uint16_t temp = song->order_table[ch][cur_cursor->order-1];
+                song->order_table[ch][cur_cursor->order-1] = song->order_table[ch][cur_cursor->order];
+                song->order_table[ch][cur_cursor->order] = temp;
+            }
+            cur_cursor->order--;
+        }
+    }
+    ImGui::SameLine();
+
+    if (ImGui::Button("v")) {
+        if (cur_cursor->order < (song->order_len-1)) {
+            for (int ch = 0; ch < 3; ch++) {
+                uint16_t temp = song->order_table[ch][cur_cursor->order+1];
+                song->order_table[ch][cur_cursor->order+1] = song->order_table[ch][cur_cursor->order];
+                song->order_table[ch][cur_cursor->order] = temp;
+            }
+            cur_cursor->order++;
+        }
+    }
 
     // Disable cell padding
     ImGui::PushStyleVar(ImGuiStyleVar_CellPadding,ImVec2(0.0f,0.0f));
