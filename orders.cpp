@@ -132,7 +132,6 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
     }
     ImGui::SameLine();
 
-
     if (ImGui::Button("^")) {
         if (cur_cursor->order > 0) {
             for (int ch = 0; ch < 3; ch++) {

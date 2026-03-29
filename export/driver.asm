@@ -718,6 +718,8 @@ do_eff_cut:
     bne :+
     lda eff_arg, x
     sta cur_cutoff
+    lda #$09
+    sta row_has_9xx
 :
     ldy temp
     rts
