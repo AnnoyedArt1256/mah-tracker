@@ -844,10 +844,14 @@ vib_sub:
     .elseif pitch_shift_amt > 0
         lda #0
         sta temp+1
+        lda eff_type, x
+        cmp #4
+        beq :+
         .repeat pitch_shift_amt
             asl temp
             rol temp+1
         .endrepeat
+    :
         lda bend_lo, x
         sec
         sbc temp
@@ -870,10 +874,14 @@ vib_add:
     .elseif pitch_shift_amt > 0
         lda #0
         sta temp+1
+        lda eff_type, x
+        cmp #4
+        beq :+
         .repeat pitch_shift_amt
             asl temp
             rol temp+1
         .endrepeat
+    :
         lda bend_lo, x
         clc
         adc temp
