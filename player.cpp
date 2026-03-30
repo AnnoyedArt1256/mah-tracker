@@ -502,13 +502,24 @@ void advance_frame(song *song, cursor *cur_cursor) {
                 player_vars.cur_arpwave_pos[ch] = loop == INS_NO_LOOP ? song->instr[inst].wav_len-1 : loop;
             }
             player_vars.pw[ch] += player_vars.pw_speed[ch];
-            if (player_vars.pw[ch] >= song->instr[inst].duty_end) {
-                player_vars.pw[ch] = song->instr[inst].duty_end;
-                player_vars.pw_speed[ch] *= -1;
-            }
-            if (player_vars.pw[ch] <= song->instr[inst].duty_start) {
-                player_vars.pw[ch] = song->instr[inst].duty_start;
-                player_vars.pw_speed[ch] *= -1;
+            if (song->instr[inst].duty_start > song->instr[inst].duty_end) {
+                if (player_vars.pw[ch] <= song->instr[inst].duty_end) {
+                    player_vars.pw[ch] = song->instr[inst].duty_end;
+                    player_vars.pw_speed[ch] *= -1;
+                }
+                if (player_vars.pw[ch] >= song->instr[inst].duty_start) {
+                    player_vars.pw[ch] = song->instr[inst].duty_start;
+                    player_vars.pw_speed[ch] *= -1;
+                }
+            } else {
+                if (player_vars.pw[ch] >= song->instr[inst].duty_end) {
+                    player_vars.pw[ch] = song->instr[inst].duty_end;
+                    player_vars.pw_speed[ch] *= -1;
+                }
+                if (player_vars.pw[ch] <= song->instr[inst].duty_start) {
+                    player_vars.pw[ch] = song->instr[inst].duty_start;
+                    player_vars.pw_speed[ch] *= -1;
+                }
             }
         }
         if (player_vars.vib_arg[ch]) {

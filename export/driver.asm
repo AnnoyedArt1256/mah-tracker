@@ -213,8 +213,7 @@ do_pulse_sweep:
     sta duty_lo, x
     lda ins_duty_end_hi, y
     sta duty_hi, x
-    jsr flip_duty_speed
-    rts
+    jmp flip_duty_speed
 :
 
     lda duty_lo, x
@@ -228,7 +227,7 @@ do_pulse_sweep:
     sta duty_lo, x
     lda ins_duty_start_hi, y
     sta duty_hi, x
-    jsr flip_duty_speed
+    jmp flip_duty_speed
 :
     rts
 
@@ -277,15 +276,24 @@ init_note_macros:
 
     ldy ins, x
     lda ins_duty_reset, y
-    beq :+
-    lda ins_duty_start_lo, y 
-    sta duty_lo, x
-    lda ins_duty_start_hi, y 
-    sta duty_hi, x
+    beq :++
     lda ins_duty_speed_lo, y 
     sta duty_speed_lo, x
     lda ins_duty_speed_hi, y 
     sta duty_speed_hi, x
+    lda ins_duty_start_hi, x
+    and #$80
+    beq :+
+    lda ins_duty_end_lo, y 
+    sta duty_lo, x
+    lda ins_duty_end_hi, y 
+    sta duty_hi, x
+    jmp :++
+:
+    lda ins_duty_start_lo, y 
+    sta duty_lo, x
+    lda ins_duty_start_hi, y 
+    sta duty_hi, x
 :
 
     lda ins_filter_enable, y

@@ -150,8 +150,10 @@ def convert(filename):
         ins_prop.append(wav)
 
         # duty sweep properties
-        ins_prop.append((file.read(1)[0])|(file.read(1)[0]<<8))
-        ins_prop.append((file.read(1)[0])|(file.read(1)[0]<<8))
+        duty_start = (file.read(1)[0])|(file.read(1)[0]<<8)
+        duty_end = (file.read(1)[0])|(file.read(1)[0]<<8)
+        ins_prop.append(duty_start if duty_start < duty_end else duty_end|0x8000)
+        ins_prop.append(duty_end if duty_start < duty_end else duty_start|0x8000)
         ins_prop.append((file.read(1)[0])|(file.read(1)[0]<<8))
 
         # duty reset (VERSION >= 2)
