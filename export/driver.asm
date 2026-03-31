@@ -281,7 +281,7 @@ init_note_macros:
     sta duty_speed_lo, x
     lda ins_duty_speed_hi, y 
     sta duty_speed_hi, x
-    lda ins_duty_start_hi, x
+    lda ins_duty_start_hi, y
     and #$80
     beq :+
     lda ins_duty_end_lo, y 
