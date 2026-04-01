@@ -326,6 +326,9 @@ init_note_macros:
 
     lda ins_filter_len, y
     beq :+
+    lda ins_filter_enable, y
+    and #$10
+    beq :+
     lda #0
     sta filter_pos
     sty filt_inst
