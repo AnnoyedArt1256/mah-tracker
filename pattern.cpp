@@ -58,6 +58,7 @@ const ImGuiKey hex_keys[16] = {
 
 extern void init_routine(song *song); // player.cpp
 extern void play_note_live(song *song, uint8_t ch, uint8_t note, uint8_t instr);
+extern void note_off_live(uint8_t ch);
 
 // get render offset for channel select mode
 int get_select_offset(enum channel_mode ch_select) {
@@ -306,6 +307,9 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
                 cur_cursor->already_dragged = false;
                 cur_cursor->dragging = false;
                 play_note_live(song,0,cur_cursor->octave*12+key_ind,cur_cursor->instr);
+            }
+            if (ImGui::IsKeyReleased(piano_keys[key_ind])) {
+                note_off_live(0);
             }
         }
         if (ImGui::IsKeyPressed(ImGuiKey_1)) {

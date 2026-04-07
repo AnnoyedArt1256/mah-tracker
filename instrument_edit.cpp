@@ -39,6 +39,7 @@ const char* filt_names[3] = {
 };
 
 extern void play_note_live(song *song, uint8_t ch, uint8_t note, uint8_t instr);
+extern void note_off_live(uint8_t ch);
 extern ImGuiKey piano_keys[29];
 
 // Render instrument editor
@@ -60,8 +61,11 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
     if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) {
         // live playing
         for (int key_ind = 0; key_ind < sizeof(piano_keys)/sizeof(ImGuiKey); key_ind++) {
-            if (ImGui::IsKeyPressed(piano_keys[key_ind], cur_cursor->do_record)) {
+            if (ImGui::IsKeyPressed(piano_keys[key_ind], false)) {
                 play_note_live(song,0,cur_cursor->octave*12+key_ind,cur_cursor->instr);
+            }
+            if (ImGui::IsKeyReleased(piano_keys[key_ind])) {
+                note_off_live(0);
             }
         }
     }

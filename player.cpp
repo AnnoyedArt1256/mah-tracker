@@ -281,6 +281,10 @@ void play_note_live(song *song, uint8_t ch, uint8_t note, uint8_t instr) {
     write_sid(ch*7+4, 0x08);
 }
 
+void note_off_live(uint8_t ch) {
+    player_vars.gate_mask[ch] = 0xFE;
+}
+
 int player_get_loop_cnt() {
     return (int)player_vars.looped;
 }
