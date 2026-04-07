@@ -293,7 +293,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
 
     if (cur_cursor->selection == note) {
         for (int key_ind = 0; key_ind < sizeof(piano_keys)/sizeof(ImGuiKey); key_ind++) {
-            if (ImGui::IsKeyPressed(piano_keys[key_ind]) && !ctrl_pressed) {
+            if (ImGui::IsKeyPressed(piano_keys[key_ind], cur_cursor->do_record) && !ctrl_pressed) {
                 if (cur_cursor->do_record) {
                     cur_pattern_rows[cur_cursor->row].note = 
                         cur_cursor->octave*12+key_ind;
