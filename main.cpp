@@ -564,8 +564,8 @@ int main(int argc, char *argv[]) {
             ImGui::Separator();
             ImGui::MenuItem("Padding", NULL, &opt_padding);
             ImGui::Separator();
-            if (ImGui::MenuItem("Save Settings")) save_settings();
-            if (ImGui::MenuItem("Load Settings")) load_settings();
+            if (ImGui::MenuItem("Save Settings Manually")) save_settings();
+            if (ImGui::MenuItem("Load Settings Manually")) load_settings();
             ImGui::Separator();
             ImGui::End();
         }
