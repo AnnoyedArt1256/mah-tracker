@@ -75,6 +75,10 @@ void reset_audio_buffer() {
     time_cur = SDL_GetTicks();
 }
 
+void set_mute_sid(int ch, bool muted) {
+    if (sid_fp!=NULL) sid_fp->mute(ch, muted);
+}
+
 bool audio_paused;
 
 void callback(void *udata, uint8_t *stream, int len) {
@@ -573,15 +577,33 @@ void register_view(bool *open) {
     ImGui::End();
 }
 
-void display_filter_info(bool *open) {
+void display_filter_info(cursor *cur_cursor, bool *open) {
     const char *filt_modes[8] = {
         "", "LP", "BP", "LP+BP",
         "HP", "LP+HP", "BP+HP", "LP+BP+HP",        
     };
 
-    ImGui::Begin("Filter Info", open);
+    ImGui::Begin("Filter Info", open, ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoScrollWithMouse);
     for (int i = 0; i < 3; i++) {
-        ImGui::Text("Channel %d: %s ",i,player_vars.resonance_ch_enable&(1<<i)?"FILTER":"      ");
+        char ch_id[32];
+        snprintf(ch_id,32,"Channel %d",i+1);
+        bool mute_temp = cur_cursor->is_muted[i];
+        if (mute_temp) {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.35f, 0.35f, 0.35f, 1.0f});
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.6f, 0.6f, 0.6f, 1.0f});
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.67f, 0.67f, 0.67f, 1.0f});
+        }
+        if (ImGui::Button(ch_id)) {
+            cur_cursor->is_muted[i] = !cur_cursor->is_muted[i];
+            set_mute_sid(i, cur_cursor->is_muted[i]);
+        }
+        if (mute_temp) {
+            ImGui::PopStyleColor();
+            ImGui::PopStyleColor();
+            ImGui::PopStyleColor();
+        }
+        ImGui::SameLine();
+        ImGui::Text("%s ",player_vars.resonance_ch_enable&(1<<i)?"FILTER":"      ");
         ImGui::SameLine();
     }
     ImGui::Text("Filter: %s",filt_modes[player_vars.filt_mode>>4&7]);

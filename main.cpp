@@ -311,7 +311,7 @@ extern int advance_sample(song *song, cursor *cur_cursor, int16_t *buffer, int b
 extern int player_get_loop_cnt(); // player.cpp
 extern void init_routine(song *song); // player.cpp
 extern void register_view(bool *open);
-extern void display_filter_info(bool *open);
+extern void display_filter_info(cursor *cur_cursor, bool *open);
 extern void SID_set_chip(bool mode); // player.cpp
 
 float get_volume() { // for player.cpp
@@ -437,6 +437,9 @@ int main(int argc, char *argv[]) {
     cur_cursor.chip_mode = true; // 8580 SID
     cur_cursor.dragging = false;
     cur_cursor.already_dragged = false;
+    cur_cursor.is_muted[0] = false;
+    cur_cursor.is_muted[1] = false;
+    cur_cursor.is_muted[2] = false;
 
     cur_cursor.pattern_copy_buffer.row_len = 0;
     cur_cursor.pattern_copy_buffer.col_start = 0;
@@ -637,7 +640,7 @@ int main(int argc, char *argv[]) {
         }
 
         if (visible_windows.filter_view) {
-            display_filter_info(&visible_windows.filter_view);
+            display_filter_info(&cur_cursor,&visible_windows.filter_view);
         }
 
         if (visible_windows.imgui_debugger) {

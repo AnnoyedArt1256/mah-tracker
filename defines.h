@@ -87,6 +87,7 @@ struct cursor {
     bool already_dragged;
     // TODO: make this less memory-intensive :P
     pattern_chunk_copy pattern_copy_buffer;
+    bool is_muted[3];
 };
 
 
