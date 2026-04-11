@@ -25,6 +25,7 @@ along with this program; if not, see
 const char magic_string[] = "MAHTRACK";
 
 extern void init_default_song(song *song);
+extern void init_player_freq_table(uint16_t a_freq);
 
 void load_file(char *filename, song *song) {
     FILE *f = fopen(filename, "rb");
@@ -37,6 +38,7 @@ void load_file(char *filename, song *song) {
     }
 
     init_default_song(song);
+    init_player_freq_table(song->a_frequency);
 
     song->init_speed = fgetc(f);
     uint16_t version = fgetc(f);
@@ -44,11 +46,21 @@ void load_file(char *filename, song *song) {
 
     if (version >= 4) {
         song->pitch_bend_shift = fgetc(f);
-        fseek(f, 4L, SEEK_CUR);
+        if (version >= 5) {
+            song->a_frequency = fgetc(f);
+            song->a_frequency |= fgetc(f)<<8;
+            fseek(f, 2L, SEEK_CUR);
+        } else {
+            song->a_frequency = 440;
+            fseek(f, 4L, SEEK_CUR);
+        }
     } else {
+        song->a_frequency = 440;
         song->pitch_bend_shift = 0;
         fseek(f, 5L, SEEK_CUR);
     }
+
+    init_player_freq_table(song->a_frequency);
 
     fseek(f, 32L, SEEK_CUR);
     fseek(f, 32L, SEEK_CUR);
@@ -147,7 +159,11 @@ void save_file(char *filename, song *song) {
     fputc((version>>8)&0xff, f);
 
     fputc(song->pitch_bend_shift, f);
-    for (int i = 0; i < 4; i++) fputc(0,f); // reserved
+    
+    fputc(song->a_frequency&0xff, f);
+    fputc((song->a_frequency>>8)&0xff, f);
+
+    for (int i = 0; i < 2; i++) fputc(0,f); // reserved
 
     for (int i = 0; i < 32; i++) fputc(0,f); // reserved
     for (int i = 0; i < 32; i++) fputc(0,f); // reserved

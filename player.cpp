@@ -68,6 +68,20 @@ unsigned char freqtblhi[] = {
   0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
   0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00 };
 
+void init_player_freq_table(uint16_t a_freq) {
+    memset(freqtbllo,0,128);
+    memset(freqtblhi,0,128);
+    for (int i = 0; i < 96; i++) {
+        float hz = ((float)a_freq) * powf(2.0f, ((float)(i-57))/12.0f);
+        hz *= ((float)(1<<24))/985248.0f;
+        if (hz < 0.0f) hz = 0.0f;
+        if (hz > 65535.0f) hz = 65535.0f;
+        uint16_t hz_int = (uint16_t)hz;
+        freqtbllo[i] = hz_int&0xff;
+        freqtblhi[i] = hz_int>>8&0xff;
+    }
+}
+
 // Reset audio buffer
 void reset_audio_buffer() {
     audio_buffer_read = 0;

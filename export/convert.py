@@ -13,8 +13,9 @@ def convert(filename):
 
     magic = file.read(8).decode("utf-8")
     if magic != 'MAHTRACK':
-        return
+        return 440
 
+    tuning_hz = 440
     init_speed = file.read(1)[0]
     out += f"init_speed: .byte {init_speed}\n"
 
@@ -31,7 +32,12 @@ def convert(filename):
     out_file_props.write(f"pitch_shift_amt .set {pitch_bend_shift}\n")
     out_file_props.close()
 
-    file.read(4)
+    # tuning for A-4 (in hz)
+    tuning_hz = file.read(1)[0]
+    tuning_hz |= file.read(1)[0]<<8
+    if not version >= 5:
+        tuning_hz = 440
+    file.read(2)
 
     file.read(32)
     file.read(32)
@@ -260,14 +266,15 @@ def convert(filename):
     file = open("music.asm","w")
     file.write(out)
     file.close()
+    return tuning_hz
 
 if len(sys.argv) >= 2:
-    convert(sys.argv[1])
+    tuning = convert(sys.argv[1])
 
     # frequency calculation code taken from
     # https://codebase64.org/doku.php?id=base:how_to_calculate_your_own_sid_frequency_table
 
-    tuning = 440
+    #tuning = 440
     f = open("note_lo.bin","wb")
     for i in range(96):
         hz = tuning * (2**(float(i-57)/12.0))

@@ -67,10 +67,10 @@ struct window_bool visible_windows;
 
 static bool opt_padding = false; // Is there padding (a blank space) between the window edge and the Dockspace?
 
+extern void init_player_freq_table(uint16_t a_freq);
 extern void load_file(char *filename, song *song);
 extern void save_file(char *filename, song *song);
 extern void reset_audio_buffer();
-extern void shut_Up();
 
 cursor cur_cursor;
 song c_song; // current song
@@ -138,6 +138,7 @@ void init_default_song(song *song) {
 
     song->init_speed = 6;
     song->pitch_bend_shift = 0;
+    song->a_frequency = 440;
 }
 
 void ShowExampleAppDockSpace(bool* p_open) {
@@ -581,6 +582,7 @@ int main(int argc, char *argv[]) {
             ImGui::Begin("Controls", (bool *)&visible_windows.controls);
             //ImGui::SetNextItemWidth(ImGui::GetWindowSize().x * 0.2f);
             uint8_t one = 1;
+            uint16_t one_16 = 1;
 
             // Out-of-bounds protection for octave and speed.
             if (ImGui::InputInt("Octave",&cur_cursor.octave)) {
@@ -598,8 +600,13 @@ int main(int argc, char *argv[]) {
             ImGui::Checkbox("Follow Pattern",&cur_cursor.do_follow);
             ImGui::Checkbox("Loop Pattern",&cur_cursor.loop);
 
+            if (ImGui::InputScalar("Tuning",ImGuiDataType_U16,&c_song.a_frequency,&one_16)) {
+                if (c_song.a_frequency < 20) c_song.a_frequency = 20;
+                else if (c_song.a_frequency > 32767) c_song.a_frequency = 32767;
+                init_player_freq_table(c_song.a_frequency);
+            }
             //ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x/20.0,0.0f));
-            ImGui::NewLine();
+            //ImGui::NewLine();
 
             // Toggle cursor state between record and jam
             if (ImGui::Button(cur_cursor.do_record?"Jam":"Record")) {
