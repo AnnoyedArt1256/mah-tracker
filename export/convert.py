@@ -73,6 +73,7 @@ def convert(filename):
         else: out += ","
 
     max_ins = 0
+    pat_dict = {}
     for pat in range(max_pat+1):
         cur_eff_type = 0xff
         cur_eff_arg = 0
@@ -129,7 +130,12 @@ def convert(filename):
 
         if pat not in pats_used: pattern_data = [0xFF] # unused pattern
 
-        out += f"pattern{pat}: .byte {str(pattern_data)[1:-1]}\n"
+        pat_data = str(pattern_data)[1:-1]
+        if pat_data in pat_dict:
+            out += f"pattern{pat} = {pat_dict[pat_data]}\n"
+        else:
+            out += f"pattern{pat}: .byte {str(pattern_data)[1:-1]}\n"
+            pat_dict[pat_data] = f"pattern{pat}"
 
     ins_properties = []
     init_cutoffs_rel = []
