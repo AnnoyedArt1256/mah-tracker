@@ -71,6 +71,7 @@ extern void init_player_freq_table(uint16_t a_freq);
 extern void load_file(char *filename, song *song);
 extern void save_file(char *filename, song *song);
 extern void reset_audio_buffer();
+extern uint8_t *get_player_speeds();
 
 cursor cur_cursor;
 song c_song; // current song
@@ -139,6 +140,12 @@ void init_default_song(song *song) {
     song->init_speed = 6;
     song->pitch_bend_shift = 0;
     song->a_frequency = 440;
+}
+
+float get_bpm(float hz, int speed_a, int speed_b) {
+    float avg_speed = (((float)speed_a)+((float)speed_b))/2.0f;
+    // NOTE: 4 is the number of rows between each highlight per beat
+    return 60.0f*hz/(4.0f*avg_speed);
 }
 
 void ShowExampleAppDockSpace(bool* p_open) {
@@ -272,6 +279,15 @@ void ShowExampleAppDockSpace(bool* p_open) {
             ImGui::EndMenu();
         }
 
+        if (cur_cursor.playing) {
+            ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0x80,0x80,0x80,0xff));
+            uint8_t *speeds = get_player_speeds();
+            if (speeds[0] != speeds[1]) ImGui::Text("| Speed %d:%d", speeds[0], speeds[1]);
+            else ImGui::Text("| Speed %d", speeds[0]);
+            ImGui::SameLine();
+            ImGui::Text("(%.2f BPM) | Order %02X/%02X | Row %02X/40", get_bpm(50.0f, speeds[0], speeds[1]), cur_cursor.order, c_song.order_len-1, cur_cursor.row);
+            ImGui::PopStyleColor();
+        }
 
         ImGui::EndMenuBar();
     }
@@ -607,6 +623,15 @@ int main(int argc, char *argv[]) {
                 cur_cursor.play_row = 0;
                 cur_cursor.latch = 0;
                 init_routine(&c_song);
+            }
+            
+            ImGui::SameLine();
+
+            if (cur_cursor.playing) {
+                uint8_t *speeds = get_player_speeds();
+                ImGui::Text("%.2f BPM", get_bpm(50.0f, speeds[0], speeds[1]));
+            } else {
+                ImGui::Text("%.2f BPM", get_bpm(50.0f, c_song.init_speed, c_song.init_speed));
             }
 
             ImGui::Separator();

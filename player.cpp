@@ -265,6 +265,10 @@ struct pvars {
 
 pvars player_vars;
 
+uint8_t *get_player_speeds() {
+    return player_vars.speed;
+}
+
 // SID init routine
 void init_routine(song *song) {
     memset((void *)&player_vars,0,sizeof(pvars));
