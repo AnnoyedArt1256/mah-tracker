@@ -589,24 +589,10 @@ int main(int argc, char *argv[]) {
                 if (cur_cursor.octave < 0) cur_cursor.octave = 0; // put it back to 0
                 else if (cur_cursor.octave > 7) cur_cursor.octave = 7; // put it back to 7
             }
-            if (ImGui::InputScalar("Speed",ImGuiDataType_U8,&c_song.init_speed,&one)) {
-                if (c_song.init_speed < 1) c_song.init_speed = 1; // No speedcore for you
-                else if (c_song.init_speed > 127) c_song.init_speed = 127; // If you need more than 127 speed there's something wrong
-            }
-            if (ImGui::InputScalar("Pitch Bend Shift",ImGuiDataType_U8,&c_song.pitch_bend_shift,&one)) {
-                if (c_song.pitch_bend_shift < 0) c_song.pitch_bend_shift = 0;
-                else if (c_song.pitch_bend_shift > 3) c_song.pitch_bend_shift = 3;
-            }
             ImGui::Checkbox("Follow Pattern",&cur_cursor.do_follow);
             ImGui::Checkbox("Loop Pattern",&cur_cursor.loop);
 
-            if (ImGui::InputScalar("Tuning",ImGuiDataType_U16,&c_song.a_frequency,&one_16)) {
-                if (c_song.a_frequency < 20) c_song.a_frequency = 20;
-                else if (c_song.a_frequency > 32767) c_song.a_frequency = 32767;
-                init_player_freq_table(c_song.a_frequency);
-            }
-            //ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x/20.0,0.0f));
-            //ImGui::NewLine();
+            ImGui::Separator();
 
             // Toggle cursor state between record and jam
             if (ImGui::Button(cur_cursor.do_record?"Jam":"Record")) {
@@ -623,13 +609,34 @@ int main(int argc, char *argv[]) {
                 init_routine(&c_song);
             }
 
-            ImGui::SameLine();
+            ImGui::Separator();
 
-            if (ImGui::Button(cur_cursor.chip_mode?"8580":"6581")) {
+            if (ImGui::InputScalar("Speed",ImGuiDataType_U8,&c_song.init_speed,&one)) {
+                if (c_song.init_speed < 1) c_song.init_speed = 1; // No speedcore for you
+                else if (c_song.init_speed > 127) c_song.init_speed = 127; // If you need more than 127 speed there's something wrong
+            }
+            if (ImGui::InputScalar("Pitch Bend Shift",ImGuiDataType_U8,&c_song.pitch_bend_shift,&one)) {
+                if (c_song.pitch_bend_shift < 0) c_song.pitch_bend_shift = 0;
+                else if (c_song.pitch_bend_shift > 3) c_song.pitch_bend_shift = 3;
+            }
+            if (ImGui::InputScalar("Tuning",ImGuiDataType_U16,&c_song.a_frequency,&one_16)) {
+                if (c_song.a_frequency < 20) c_song.a_frequency = 20;
+                else if (c_song.a_frequency > 32767) c_song.a_frequency = 32767;
+                init_player_freq_table(c_song.a_frequency);
+            }
+
+            ImGui::Text("SID model select");
+            ImGui::SameLine();
+            if (ImGui::Button(cur_cursor.chip_mode?"8580 (new)":"6581 (old)")) {
                 cur_cursor.chip_mode = !cur_cursor.chip_mode;
                 SID_set_chip(cur_cursor.chip_mode);
             }
 
+            //ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x/20.0,0.0f));
+            //ImGui::NewLine();
+
+            ImGui::SameLine();
+    
             ImGui::End();
         }
 
