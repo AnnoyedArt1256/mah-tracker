@@ -187,10 +187,53 @@ void clear_pat_selection(song *song, cursor *cur_cursor) {
     }
 }
 
+// undo registering code
+void register_undo(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_chunks, undo_chunk *cur_undo) {
+    // if the current patterns have been edited,
+    // then save it in the undo buffer
+    cur_undo->order_cur = cur_cursor->order;
+    cur_undo->row_cur = cur_cursor->row;
+    for (int ch = 0; ch < UNDO_CHANNELS; ch++) {
+        int cur_pat = song->order_table[ch][cur_cursor->order];
+        memcpy(&cur_undo->ch_rows[ch], &song->pattern[cur_pat], sizeof(pattern_data));
+        cur_undo->changed_patterns[ch] = cur_pat;
+    }
+    int cur_size = undo_chunks->size();
+    for (int i = cur_cursor->undo_pos; i < cur_size; i++) {
+        undo_chunks->pop_back();
+    }
+    if (undo_chunks->size() >= MAX_UNDO_LEVELS) {
+        undo_chunks->erase(undo_chunks->begin());
+    }
+    undo_chunks->push_back(*cur_undo);
+    cur_cursor->undo_pos = undo_chunks->size();
+
+    // update cur_undo for subsequent undo buffer writes
+    for (int ch = 0; ch < UNDO_CHANNELS; ch++) {
+        int cur_pat = song->order_table[ch][cur_cursor->order];
+        memcpy(&cur_undo->ch_rows_old[cur_pat], &song->pattern[cur_pat], sizeof(pattern_data));
+        cur_undo->changed_patterns[ch] = cur_pat;
+    }
+    cur_undo->order_old = cur_cursor->order;
+    cur_undo->row_old = cur_cursor->row;
+}
+
 // Row/column controls
-void do_pat_keyboard(song *song, cursor *cur_cursor) {
+void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_chunks) {
     static uint8_t last_eff_type;
     static uint8_t last_eff_arg;
+
+    // init the current undo struct
+    undo_chunk cur_undo;
+    bool pats_changed = false;
+    cur_undo.order_old = cur_cursor->order;
+    cur_undo.row_old = cur_cursor->row;
+    for (int ch = 0; ch < UNDO_CHANNELS; ch++) {
+        int cur_pat = song->order_table[ch][cur_cursor->order];
+        memcpy(&cur_undo.ch_rows_old[cur_pat], &song->pattern[cur_pat], sizeof(pattern_data));
+        cur_undo.changed_patterns[ch] = cur_pat;
+    }
+
     ImGuiIO& io = ImGui::GetIO();
     ImVec2 char_size_xy = ImGui::CalcTextSize("A");
     char_size_xy.y += io.FontGlobalScale+2;
@@ -202,11 +245,48 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
     // Copy-paste function
     bool ctrl_pressed = ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl);
     if (ctrl_pressed) {
-        if (ImGui::IsKeyPressed(ImGuiKey_C)) copy_pat(song, cur_cursor);
-        if (ImGui::IsKeyPressed(ImGuiKey_V)) paste_pat(song, cur_cursor);
+        if (ImGui::IsKeyPressed(ImGuiKey_C)) {
+            // copy (ctrl+c)
+            copy_pat(song, cur_cursor);
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_V)) {
+            // paste (ctrl+v)
+            paste_pat(song, cur_cursor);
+            register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
+        }
         if (ImGui::IsKeyPressed(ImGuiKey_X) && cur_cursor->already_dragged) {
+            // cut (ctrl+x)
             copy_pat(song, cur_cursor);
             clear_pat_selection(song, cur_cursor);
+            register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_Z)) {
+            // undo (ctrl+z)
+            if (cur_cursor->undo_pos != 0) {
+                undo_chunk cur_undo_chunk = undo_chunks->at(cur_cursor->undo_pos-1);
+                for (int ch = 0; ch < UNDO_CHANNELS; ch++) {
+                    int cur_pat = cur_undo_chunk.changed_patterns[ch];
+                    memcpy(&song->pattern[cur_pat], &cur_undo_chunk.ch_rows_old[ch], sizeof(pattern_data));
+                }
+                cur_cursor->row = cur_undo_chunk.row_old;
+                cur_cursor->order = cur_undo_chunk.order_old;
+                ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
+                cur_cursor->undo_pos--;
+            }
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_Y)) {
+            // undo (ctrl+z)
+            if (cur_cursor->undo_pos != undo_chunks->size()) {
+                undo_chunk cur_undo_chunk = undo_chunks->at(cur_cursor->undo_pos);
+                for (int ch = 0; ch < UNDO_CHANNELS; ch++) {
+                    int cur_pat = cur_undo_chunk.changed_patterns[ch];
+                    memcpy(&song->pattern[cur_pat], &cur_undo_chunk.ch_rows[ch], sizeof(pattern_data));
+                }
+                cur_cursor->row = cur_undo_chunk.row_cur;
+                cur_cursor->order = cur_undo_chunk.order_cur;
+                ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
+                cur_cursor->undo_pos++;
+            }
         }
     }
 
@@ -288,6 +368,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
     if (ImGui::IsKeyPressed(ImGuiKey_Backspace) && cur_cursor->already_dragged) {
         // clear dragged selection if backspace is pressed (thx theduccinator for the advice!)
         clear_pat_selection(song, cur_cursor);
+        register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
     }
 
     pat_row *cur_pattern_rows = song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows;
@@ -301,6 +382,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
                     cur_pattern_rows[cur_cursor->row].instr = 
                         cur_cursor->instr;
                     cur_cursor->row = (cur_cursor->row+1)%64;
+                    register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
                     ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
                 }
                 cur_cursor->latch = 0;
@@ -320,6 +402,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
                 cur_cursor->latch = 0;
                 cur_cursor->already_dragged = false;
                 cur_cursor->dragging = false;
+                register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
                 ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
             }   
         }
@@ -327,6 +410,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
             cur_pattern_rows[cur_cursor->row].note = 
                 NOTE_EMPTY;
             cur_pattern_rows[cur_cursor->row].instr = 0;
+            register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
             cur_cursor->latch = 0;
             //cur_cursor->row = (cur_cursor->row+1)%64;
             //ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
@@ -347,10 +431,12 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
                     cur_pattern_rows[cur_cursor->row].instr = key;
                     cur_cursor->latch = 1;
                 }
+                register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
             }
         }
         if (ImGui::IsKeyPressed(ImGuiKey_Backspace) && !cur_cursor->already_dragged) {
             cur_pattern_rows[cur_cursor->row].instr = 0;
+            register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
             cur_cursor->latch = 0;
         }
     }
@@ -368,11 +454,13 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
                 last_eff_type = key;
                 cur_cursor->latch = 0;
                 cur_cursor->row = (cur_cursor->row+1)%64;
+                register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
                 ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
             }
         }
         if (ImGui::IsKeyPressed(ImGuiKey_Backspace) && !cur_cursor->already_dragged) {
             cur_pattern_rows[cur_cursor->row].eff_type = 0;
+            register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
             cur_cursor->latch = 0;
         }
     }
@@ -387,16 +475,19 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
                     last_eff_arg = cur_pattern_rows[cur_cursor->row].eff_arg;
                     cur_cursor->latch = 0;
                     cur_cursor->row = (cur_cursor->row+1)%64;
+                    register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
                     ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
                 } else {
                     last_eff_arg = cur_pattern_rows[cur_cursor->row].eff_arg = key;
                     cur_cursor->latch = 1;
+                    register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
                 }
             }
         }
         if (ImGui::IsKeyPressed(ImGuiKey_Backspace) && !cur_cursor->already_dragged) {
             cur_pattern_rows[cur_cursor->row].eff_arg = 0;
             cur_cursor->latch = 0;
+            register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
         }
     }
     if (ImGui::IsKeyPressed(ImGuiKey_Enter)) {
@@ -407,7 +498,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor) {
     }
 }
 
-void render_pat(song *song, cursor *cur_cursor, bool *enable) {
+void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_chunks, bool *enable) {
     // init window and table
     ImGuiIO& io = ImGui::GetIO();
     ImGui::Begin("Pattern", enable);
@@ -600,7 +691,7 @@ void render_pat(song *song, cursor *cur_cursor, bool *enable) {
         }
     }
 
-    if (ImGui::IsWindowFocused()) do_pat_keyboard(song, cur_cursor);
+    if (ImGui::IsWindowFocused()) do_pat_keyboard(song, cur_cursor, undo_chunks);
 
     if (cur_cursor->ch >= 0 && cur_cursor->ch < 3) {
         // render SELECTED cursor

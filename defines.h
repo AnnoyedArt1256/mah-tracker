@@ -18,6 +18,7 @@ along with this program; if not, see
 */
 
 #include <cstdint>
+#include <vector>
 
 // the current .mah module file format version
 #define MAH_CURRENT_VERSION 5
@@ -51,6 +52,20 @@ struct pat_row {
 // Pattern data, 64 rows each
 struct pattern_data {
     pat_row rows[64];
+};
+
+// undo properties
+#define MAX_UNDO_LEVELS 50
+#define UNDO_CHANNELS 3
+
+struct undo_chunk {
+    pattern_data ch_rows[UNDO_CHANNELS];
+    pattern_data ch_rows_old[UNDO_CHANNELS];
+    int changed_patterns[UNDO_CHANNELS];
+    int row_cur;
+    int row_old;
+    int order_cur;
+    int order_old;
 };
 
 struct pattern_chunk_copy {
@@ -88,6 +103,7 @@ struct cursor {
     // TODO: make this less memory-intensive :P
     pattern_chunk_copy pattern_copy_buffer;
     bool is_muted[3];
+    int undo_pos;
 };
 
 
@@ -126,6 +142,6 @@ struct song {
     uint16_t a_frequency;
 };
 
-extern void render_pat(song *song, cursor *cur_cursor, bool *enable);
+extern void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_chunks, bool *enable);
 extern void render_orders(song *song, cursor *cur_cursor, bool *enable);
 extern void render_instr(song *song, cursor *cur_cursor, bool *enable);

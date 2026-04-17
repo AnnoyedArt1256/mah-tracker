@@ -29,6 +29,7 @@ along with this program; if not, see
 #include <SDL.h>
 #include <sndfile.hh>
 #include <filesystem>
+#include <vector>
 #include "portable-file-dialogs.h"
 #include "defines.h"
 
@@ -75,6 +76,7 @@ extern uint8_t *get_player_speeds();
 
 cursor cur_cursor;
 song c_song; // current song
+std::vector<undo_chunk> undo_total;
 extern bool audio_paused;
 
 void init_default_song(song *song) {
@@ -469,6 +471,7 @@ int main(int argc, char *argv[]) {
             cur_cursor.pattern_copy_buffer.ch_rows[ch].rows[row].eff_type = 0;
         }
     }
+    cur_cursor.undo_pos = 0;
 
     // Main loop
     bool done = false;
@@ -591,7 +594,7 @@ int main(int argc, char *argv[]) {
         }
 
         if (visible_windows.pattern) {
-            render_pat(&c_song,&cur_cursor,(bool *)&visible_windows.pattern);
+            render_pat(&c_song,&cur_cursor,&undo_total,(bool *)&visible_windows.pattern);
         }
 
         if (visible_windows.controls) {
