@@ -230,7 +230,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
     cur_undo.row_old = cur_cursor->row;
     for (int ch = 0; ch < UNDO_CHANNELS; ch++) {
         int cur_pat = song->order_table[ch][cur_cursor->order];
-        memcpy(&cur_undo.ch_rows_old[cur_pat], &song->pattern[cur_pat], sizeof(pattern_data));
+        memcpy(&cur_undo.ch_rows_old[ch], &song->pattern[cur_pat], sizeof(pattern_data));
         cur_undo.changed_patterns[ch] = cur_pat;
     }
 
