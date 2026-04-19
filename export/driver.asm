@@ -703,7 +703,7 @@ set_pat:
     lda (temp), y
     cmp #$ff
     bne :+
-    lda #0
+    lda #order_loop
     sta order
     jmp set_pat
 :

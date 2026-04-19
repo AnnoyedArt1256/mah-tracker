@@ -28,16 +28,21 @@ def convert(filename):
     if not version >= 4:
         pitch_bend_shift = 0
 
-    out_file_props = open("music_props.asm","w")
-    out_file_props.write(f"pitch_shift_amt .set {pitch_bend_shift}\n")
-    out_file_props.close()
-
     # tuning for A-4 (in hz)
     tuning_hz = file.read(1)[0]
     tuning_hz |= file.read(1)[0]<<8
     if not version >= 5:
         tuning_hz = 440
-    file.read(2)
+
+    order_loop = file.read(1)[0]
+    if not version >= 6:
+        order_loop = 0
+    file.read(1)
+
+    out_file_props = open("music_props.asm","w")
+    out_file_props.write(f"pitch_shift_amt .set {pitch_bend_shift}\n")
+    out_file_props.write(f"order_loop .set {order_loop}\n")
+    out_file_props.close()
 
     file.read(32)
     file.read(32)

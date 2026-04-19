@@ -42,6 +42,14 @@ int get_unused_pattern(song *song) {
     }
     return pat_val;
 }
+
+// Clamp the pattern loop index
+void clamp_pattern_loop(song *song) {
+    if (song->order_loop >= song->order_len) {
+        song->order_loop = song->order_len-1;
+    }
+}
+
 // Remove pattern from module
 void remove_pattern(song *song, int pat_ind) {
     for (int ch = 0; ch < 3; ch++) {
@@ -52,7 +60,9 @@ void remove_pattern(song *song, int pat_ind) {
         }
     }
     song->order_len--;
+    clamp_pattern_loop(song);
 }
+
 // Render orders and listen for when the respective buttons are pressed
 void render_orders(song *song, cursor *cur_cursor, bool *enable) {
     // init window and table
@@ -70,6 +80,7 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
                 }
                 song->order_table[ch][pat_ind] = get_unused_pattern(song);
             }
+            clamp_pattern_loop(song);
         }
     }
     ImGui::SameLine();
@@ -91,6 +102,7 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
                 song->order_table[ch][pat_ind] = song->order_table[ch][pat_ind-1];
             }
             song->order_len++;
+            clamp_pattern_loop(song);
         }
     }
     ImGui::SameLine();
@@ -102,6 +114,7 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
             for (int ch = 0; ch < 3; ch++) {
                 song->order_table[ch][order_ind] = get_unused_pattern(song);
             }
+            clamp_pattern_loop(song);
         }
     }
     ImGui::SameLine();
@@ -114,6 +127,7 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
             for (int ch = 0; ch < 3; ch++) {
                 song->order_table[ch][order_ind] = song->order_table[ch][pat_ind_cursor];
             }
+            clamp_pattern_loop(song);
         }
     }
     ImGui::SameLine();
@@ -128,6 +142,7 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
                 song->order_table[ch][order_ind] = cur_order;
                 memcpy(&song->pattern[cur_order], &song->pattern[song->order_table[ch][pat_ind_cursor]], sizeof(pattern_data));
             }
+            clamp_pattern_loop(song);
         }
     }
     ImGui::SameLine();

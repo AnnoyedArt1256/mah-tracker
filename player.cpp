@@ -430,7 +430,7 @@ void advance_frame(song *song, cursor *cur_cursor) {
                 if (!cur_cursor->loop) {
                     cur_cursor->order++;
                     if (cur_cursor->order >= song->order_len) {
-                        cur_cursor->order = 0;
+                        cur_cursor->order = song->order_loop;
                         player_vars.looped++;
                     }
                     did_order_skip = true;
@@ -441,7 +441,7 @@ void advance_frame(song *song, cursor *cur_cursor) {
                 if (!cur_cursor->loop) {
                     cur_cursor->order++;
                     if (cur_cursor->order >= song->order_len) {
-                        cur_cursor->order = 0;
+                        cur_cursor->order = song->order_loop;
                         player_vars.looped++;
                     }
                 }

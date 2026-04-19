@@ -6,7 +6,7 @@ unless noted otherwise, each byte/word is treated as an **unsigned** value and i
 ## Header (128 bytes)
 - 8 byte magic string: `MAHTRACK` (\0 is null terminator or $00 in hex)
 - 1 byte: initial tick speed
-- 2 bytes: version (0-5 for now)
+- 2 bytes: version (0-6 for now)
 - IF VERSION >= 4:
     - 1 byte: pitch bend shift amount
 - ELSE:
@@ -15,8 +15,11 @@ unless noted otherwise, each byte/word is treated as an **unsigned** value and i
     - 2 bytes: Tuning for middle A (440 by default)
 - ELSE:
     - 2 bytes reserved (currently only zeros)
-
-- 2 bytes reserved (currently only zeros)
+- IF VERSION >= 6:
+    - 1 byte: order loop index
+- ELSE:
+    - 1 byte reserved (currently only zeros)
+- 1 byte reserved (currently only zeros)
 - 32 bytes reserved for title (in the future)
 - 32 bytes reserved for author (in the future)
 - 32 bytes reserved for copyright/year (in the future)

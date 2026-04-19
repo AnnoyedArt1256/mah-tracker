@@ -211,7 +211,7 @@ void register_undo(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo
     // update cur_undo for subsequent undo buffer writes
     for (int ch = 0; ch < UNDO_CHANNELS; ch++) {
         int cur_pat = song->order_table[ch][cur_cursor->order];
-        memcpy(&cur_undo->ch_rows_old[cur_pat], &song->pattern[cur_pat], sizeof(pattern_data));
+        memcpy(&cur_undo->ch_rows_old[ch], &song->pattern[cur_pat], sizeof(pattern_data));
         cur_undo->changed_patterns[ch] = cur_pat;
     }
     cur_undo->order_old = cur_cursor->order;

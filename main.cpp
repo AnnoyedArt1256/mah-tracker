@@ -138,6 +138,7 @@ void init_default_song(song *song) {
     song->order_table[1][0] = 0x01;
     song->order_table[2][0] = 0x02;
     song->order_len = 1;
+    song->order_loop = 0;
 
     song->init_speed = 6;
     song->pitch_bend_shift = 0;
@@ -658,6 +659,11 @@ int main(int argc, char *argv[]) {
             if (ImGui::Button(cur_cursor.chip_mode?"8580 (new)":"6581 (old)")) {
                 cur_cursor.chip_mode = !cur_cursor.chip_mode;
                 SID_set_chip(cur_cursor.chip_mode);
+            }
+
+            if (ImGui::InputScalar("Order Loop",ImGuiDataType_U8,&c_song.order_loop,&one)) {
+                if (c_song.order_loop < 0) c_song.order_loop = 0;
+                else if (c_song.order_loop >= c_song.order_len) c_song.order_loop = c_song.order_len-1;
             }
 
             //ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x/20.0,0.0f));
