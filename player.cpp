@@ -601,7 +601,7 @@ void display_filter_info(cursor *cur_cursor, bool *open) {
         "HP", "LP+HP", "BP+HP", "LP+BP+HP",        
     };
 
-    ImGui::Begin("Filter Info", open, ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoScrollWithMouse);
+    ImGui::Begin("Filter & Channel Info", open, ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoScrollWithMouse);
     for (int i = 0; i < 3; i++) {
         char ch_id[32];
         snprintf(ch_id,32,"Channel %d",i+1);

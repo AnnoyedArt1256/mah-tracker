@@ -278,7 +278,7 @@ void ShowExampleAppDockSpace(bool* p_open) {
             ImGui::MenuItem("Orders", NULL, (bool *)&visible_windows.orders);
             ImGui::MenuItem("Instrument Editor", NULL, (bool *)&visible_windows.instr);
             ImGui::MenuItem("Register View", NULL, (bool *)&visible_windows.reg_view);
-            ImGui::MenuItem("Filter Info", NULL, (bool *)&visible_windows.filter_view);
+            ImGui::MenuItem("Filter & Channel Info", NULL, (bool *)&visible_windows.filter_view);
             ImGui::EndMenu();
         }
 
