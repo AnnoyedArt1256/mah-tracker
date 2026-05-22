@@ -289,7 +289,7 @@ void ShowExampleAppDockSpace(bool* p_open) {
             if (speeds[0] != speeds[1]) ImGui::Text("| Speed %d:%d", speeds[0], speeds[1]);
             else ImGui::Text("| Speed %d", speeds[0]);
             ImGui::SameLine();
-            ImGui::Text("(%.2f BPM) | Order %02X/%02X | Row %02X/40", get_bpm(50.0f, speeds[0], speeds[1]), cur_cursor.order, c_song.order_len-1, cur_cursor.row);
+            ImGui::Text("(%.2f BPM) | Order %02X/%02X | Row %02X/%02X", get_bpm(50.0f, speeds[0], speeds[1]), cur_cursor.order, c_song.order_len-1, cur_cursor.row, c_song.row_length);
             ImGui::PopStyleColor();
         }
 
