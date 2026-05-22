@@ -19,7 +19,10 @@ unless noted otherwise, each byte/word is treated as an **unsigned** value and i
     - 1 byte: order loop index
 - ELSE:
     - 1 byte reserved (currently only zeros)
-- 1 byte reserved (currently only zeros)
+- IF VERSION >= 7:
+    - 1 byte: pattern row length
+- ELSE:
+    - 1 byte reserved (currently only zeros)
 - 32 bytes reserved for title (in the future)
 - 32 bytes reserved for author (in the future)
 - 32 bytes reserved for copyright/year (in the future)
@@ -35,7 +38,7 @@ unless noted otherwise, each byte/word is treated as an **unsigned** value and i
 - 1 byte: amount of patterns
     - NOTE: the same pattern can be shared across multiple channels, so eg. if channel 1 and channel 2 use pattern $02 then they will play the same pattern and notes
 - for each pattern:
-  - there are 64 rows and for each row
+  - there are 64 (or custom row length if VERSION >= 7) rows and for each row
     - there are 4 bytes
         - 1st byte: note (0 = C-0, ..., 95 = B-7, OFF = 254, EMPTY = 255)
         - 2nd byte: instrument 

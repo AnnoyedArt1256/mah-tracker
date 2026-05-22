@@ -51,7 +51,11 @@ void load_file(char *filename, song *song) {
             song->a_frequency |= fgetc(f)<<8;
             if (version >= 6) {
                 song->order_loop = fgetc(f);
-                fseek(f, 1L, SEEK_CUR);
+                if (version >= 7) {
+                    song->row_length = fgetc(f);
+                } else {
+                    fseek(f, 1L, SEEK_CUR);
+                }
             } else {
                 fseek(f, 2L, SEEK_CUR);
             }
@@ -85,7 +89,7 @@ void load_file(char *filename, song *song) {
     // patterns
     int max_pat = fgetc(f);
     for (int pat = 0; pat < max_pat+1; pat++) {
-        for (int row = 0; row < 64; row++) {
+        for (int row = 0; row < song->row_length; row++) {
             song->pattern[pat].rows[row].note = fgetc(f);
             song->pattern[pat].rows[row].instr = fgetc(f);
             song->pattern[pat].rows[row].eff_type = fgetc(f);
@@ -171,7 +175,7 @@ void save_file(char *filename, song *song) {
 
     fputc(song->order_loop, f);
 
-    for (int i = 0; i < 1; i++) fputc(0,f); // reserved
+    fputc(song->row_length, f);
 
     for (int i = 0; i < 32; i++) fputc(0,f); // reserved
     for (int i = 0; i < 32; i++) fputc(0,f); // reserved
@@ -198,7 +202,7 @@ void save_file(char *filename, song *song) {
     fputc(max_pat&0xff, f);
     // write the patterns
     for (int pat = 0; pat < max_pat+1; pat++) {
-        for (int row = 0; row < 64; row++) {
+        for (int row = 0; row < song->row_length; row++) {
             fputc(song->pattern[pat].rows[row].note, f);
             fputc(song->pattern[pat].rows[row].instr, f);
             fputc(song->pattern[pat].rows[row].eff_type, f);

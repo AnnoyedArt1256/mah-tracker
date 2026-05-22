@@ -425,7 +425,7 @@ void advance_frame(song *song, cursor *cur_cursor) {
             }
             player_vars.tick_sel ^= 1;
             cur_cursor->play_row++;
-            if (cur_cursor->play_row == 64) {
+            if (cur_cursor->play_row == song->row_length) {
                 cur_cursor->play_row = 0;
                 if (!cur_cursor->loop) {
                     cur_cursor->order++;

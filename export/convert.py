@@ -37,7 +37,10 @@ def convert(filename):
     order_loop = file.read(1)[0]
     if not version >= 6:
         order_loop = 0
-    file.read(1)
+
+    pattern_len = file.read(1)[0]
+    if not version >= 7:
+        pattern_len = 64
 
     out_file_props = open("music_props.asm","w")
     out_file_props.write(f"pitch_shift_amt .set {pitch_bend_shift}\n")
@@ -87,7 +90,7 @@ def convert(filename):
         cur_ins = 0
         write_buffer = []
         is_dxx = False
-        for row in range(64):
+        for row in range(pattern_len):
             note, instr, eff_type, eff_arg = file.read(4)
             if version == 0 and eff_type == 3: # workaround for tie notes in older modules
                 eff_arg = 0
@@ -120,12 +123,12 @@ def convert(filename):
                 else:
                     write_buffer.append(note|0x80)
                 
-            if last_write >= 63 or len(write_buffer) > 0:
+            if last_write >= (pattern_len-1) or len(write_buffer) > 0:
                 if last_write > 0: pattern_data.append(last_write)
                 pattern_data.extend(write_buffer)
                 last_write = 0
 
-            if not is_dxx and row != 63: last_write += 1
+            if not is_dxx and row != (pattern_len-1): last_write += 1
 
         # write the remaining waits
         if last_write > 0: pattern_data.append(last_write)

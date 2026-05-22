@@ -21,7 +21,7 @@ along with this program; if not, see
 #include <vector>
 
 // the current .mah module file format version
-#define MAH_CURRENT_VERSION 6
+#define MAH_CURRENT_VERSION 7
 
 // Magic numbers for file format
 #define NOTE_OFF 0xfe // Note off in pattern
@@ -49,9 +49,9 @@ struct pat_row {
     uint8_t note, instr, eff_type, eff_arg;
 };
 
-// Pattern data, 64 rows each
+// Pattern data, up to 256 rows each
 struct pattern_data {
-    pat_row rows[64];
+    pat_row rows[256];
 };
 
 // undo properties
@@ -141,6 +141,7 @@ struct song {
     uint8_t pitch_bend_shift;
     uint16_t a_frequency;
     uint8_t order_loop;
+    uint8_t row_length;
 };
 
 extern void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_chunks, bool *enable);

@@ -127,7 +127,7 @@ void paste_pat(song *song, cursor *cur_cursor) {
     pattern_chunk_copy *copy_buffer = &cur_cursor->pattern_copy_buffer;
     int cursor_row = cur_cursor->row;
     for (int row = 0; row < copy_buffer->row_len; row++) {
-        if ((row+cursor_row) >= 64) break;
+        if ((row+cursor_row) >= song->row_length) break;
         for (int col = copy_buffer->col_start; col < copy_buffer->col_start+copy_buffer->col_len; col++) {
             // i could use memcpy, but just in case someone's using big-endian or smth...
             int rel_col = col-copy_buffer->col_start;
@@ -141,7 +141,7 @@ void paste_pat(song *song, cursor *cur_cursor) {
             }
         }
         cur_cursor->row++;
-        if (cur_cursor->row >= 64) cur_cursor->row = 63;
+        if (cur_cursor->row >= song->row_length) cur_cursor->row = song->row_length-1;
     }
     ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);   
 }
@@ -172,7 +172,7 @@ void clear_pat_selection(song *song, cursor *cur_cursor) {
     int start_ch = col_start>>2;
     int cursor_row = row_start;
     for (int row = 0; row < row_len; row++) {
-        if ((row+cursor_row) >= 64) break;
+        if ((row+cursor_row) >= song->row_length) break;
         for (int col = col_start; col < col_start+col_len; col++) {
             // i could use memcpy, but just in case someone's using big-endian or smth...
             int rel_col = col-col_start;
@@ -295,7 +295,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
         cur_cursor->latch = 0;
         cur_cursor->already_dragged = false;
         cur_cursor->dragging = false;
-        cur_cursor->row = (cur_cursor->row+1)%64;
+        cur_cursor->row = (cur_cursor->row+1)%song->row_length;
         ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
     }
 
@@ -305,7 +305,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
         cur_cursor->already_dragged = false;
         cur_cursor->dragging = false;
         cur_cursor->row--;
-        if (cur_cursor->row < 0) cur_cursor->row = 64-1;
+        if (cur_cursor->row < 0) cur_cursor->row = song->row_length-1;
         ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
     }
 
@@ -381,7 +381,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
                         cur_cursor->octave*12+key_ind;
                     cur_pattern_rows[cur_cursor->row].instr = 
                         cur_cursor->instr;
-                    cur_cursor->row = (cur_cursor->row+1)%64;
+                    cur_cursor->row = (cur_cursor->row+1)%song->row_length;
                     register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
                     ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
                 }
@@ -398,7 +398,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
             if (cur_cursor->do_record) {
                 cur_pattern_rows[cur_cursor->row].note = 
                     NOTE_OFF;
-                cur_cursor->row = (cur_cursor->row+1)%64;
+                cur_cursor->row = (cur_cursor->row+1)%song->row_length;
                 cur_cursor->latch = 0;
                 cur_cursor->already_dragged = false;
                 cur_cursor->dragging = false;
@@ -425,7 +425,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
                     cur_pattern_rows[cur_cursor->row].instr <<= 4;
                     cur_pattern_rows[cur_cursor->row].instr |= key;
                     cur_cursor->latch = 0;
-                    cur_cursor->row = (cur_cursor->row+1)%64;
+                    cur_cursor->row = (cur_cursor->row+1)%song->row_length;
                     ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
                 } else {
                     cur_pattern_rows[cur_cursor->row].instr = key;
@@ -453,7 +453,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
                 }
                 last_eff_type = key;
                 cur_cursor->latch = 0;
-                cur_cursor->row = (cur_cursor->row+1)%64;
+                cur_cursor->row = (cur_cursor->row+1)%song->row_length;
                 register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
                 ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
             }
@@ -474,7 +474,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
                     cur_pattern_rows[cur_cursor->row].eff_arg |= key;
                     last_eff_arg = cur_pattern_rows[cur_cursor->row].eff_arg;
                     cur_cursor->latch = 0;
-                    cur_cursor->row = (cur_cursor->row+1)%64;
+                    cur_cursor->row = (cur_cursor->row+1)%song->row_length;
                     register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
                     ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
                 } else {
@@ -535,7 +535,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
     c.x += char_size_xy.x*4.0;
     c.y += char_size_xy.y*dummy_row_cnt;
     ImGui::TableNextRow(0,char_size_xy.y);
-    for (int row = 0; row < 64; row += 4) {
+    for (int row = 0; row < song->row_length; row += 4) {
         draw_list->AddRectFilled(ImVec2(c.x, c.y), 
                                  ImVec2(c.x+char_size_xy.x*(ch_row_len*3.0),c.y+char_size_xy.y),
                                  IM_COL32(0x20,0x2c,0x35,0xff));
@@ -635,7 +635,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
         }
 
         //printf("%02d %02d %d\n",ch,char_y,ch_select);
-        if (ch >= 0 && ch < 3 && char_y >= 0 && char_y < 64
+        if (ch >= 0 && ch < 3 && char_y >= 0 && char_y < song->row_length
             && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
             if (ImGui::IsMouseClicked(0)) {
                 cur_cursor->ch = ch;
@@ -667,13 +667,13 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
                     cur_cursor->drag_x_end = 0;
                     cur_cursor->drag_x_end_sel = note;
                 }
-                if (cur_cursor->drag_y_end >= 63) cur_cursor->drag_y_end = 63;
+                if (cur_cursor->drag_y_end >= song->row_length-1) cur_cursor->drag_y_end = song->row_length-1;
                 if (cur_cursor->drag_y_end < 0) cur_cursor->drag_y_end = 0;
             }
             if ((ImGui::GetMousePos().y-ImGui::GetWindowPos().y) >= (ImGui::GetWindowHeight()-char_size_xy.y*1.5)
                 && (fabs(io.MouseDelta.y) > 0 || fabs(io.MouseDelta.x) > 0)) {
                 cur_cursor->latch = 0;
-                if (cur_cursor->row < 63) cur_cursor->row++;
+                if (cur_cursor->row < song->row_length-1) cur_cursor->row++;
                 ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
             }
             if ((ImGui::GetMousePos().y-ImGui::GetWindowPos().y) <= char_size_xy.y*1.5
@@ -716,7 +716,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
         ImGui::TableNextRow(0,char_size_xy.y);
     }
 
-    for (int row = 0; row < 64; row++) {
+    for (int row = 0; row < song->row_length; row++) {
         ImGui::TableNextColumn();
         ImGui::Text(" %02X ", row);
         ImGui::TableNextColumn();

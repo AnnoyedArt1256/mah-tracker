@@ -81,7 +81,7 @@ extern bool audio_paused;
 
 void init_default_song(song *song) {
     for (int pat = 0; pat < 256; pat++) {
-        for (int row = 0; row < 64; row++) {
+        for (int row = 0; row < 256; row++) {
             song->pattern[pat].rows[row].note = NOTE_EMPTY;
             song->pattern[pat].rows[row].instr = 0;
             song->pattern[pat].rows[row].eff_type = 0;
@@ -139,6 +139,7 @@ void init_default_song(song *song) {
     song->order_table[2][0] = 0x02;
     song->order_len = 1;
     song->order_loop = 0;
+    song->row_length = 64;
 
     song->init_speed = 6;
     song->pitch_bend_shift = 0;
@@ -465,7 +466,7 @@ int main(int argc, char *argv[]) {
     cur_cursor.pattern_copy_buffer.col_start = 0;
     cur_cursor.pattern_copy_buffer.col_len = 0;
     for (int ch = 0; ch < 3; ch++) {
-        for (int row = 0; row < 64; row++) {
+        for (int row = 0; row < 256; row++) {
             cur_cursor.pattern_copy_buffer.ch_rows[ch].rows[row].note = NOTE_EMPTY;
             cur_cursor.pattern_copy_buffer.ch_rows[ch].rows[row].instr = 0;
             cur_cursor.pattern_copy_buffer.ch_rows[ch].rows[row].eff_arg = 0;
@@ -665,6 +666,12 @@ int main(int argc, char *argv[]) {
                 if (c_song.order_loop < 0) c_song.order_loop = 0;
                 else if (c_song.order_loop >= c_song.order_len) c_song.order_loop = c_song.order_len-1;
             }
+
+            if (ImGui::InputScalar("Pattern Length",ImGuiDataType_U8,&c_song.row_length,&one)) {
+                if (c_song.order_loop < 0) c_song.order_loop = 0;
+                else if (c_song.order_loop >= 127) c_song.order_loop = 127;
+            }
+
 
             //ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x/20.0,0.0f));
             //ImGui::NewLine();
