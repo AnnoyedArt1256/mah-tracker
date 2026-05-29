@@ -123,7 +123,7 @@ def convert(filename):
                 else:
                     write_buffer.append(note|0x80)
                 
-            if last_write >= (pattern_len-1) or len(write_buffer) > 0:
+            if last_write >= 63 or len(write_buffer) > 0:
                 if last_write > 0: pattern_data.append(last_write)
                 pattern_data.extend(write_buffer)
                 last_write = 0
