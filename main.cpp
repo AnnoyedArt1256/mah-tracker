@@ -32,6 +32,7 @@ along with this program; if not, see
 #include <vector>
 #include "portable-file-dialogs.h"
 #include "defines.h"
+#include "defines_ui.h"
 
 namespace fs = std::filesystem;
 
@@ -437,6 +438,8 @@ int main(int argc, char *argv[]) {
 
     // Our state
     ImVec4 clear_color = ImVec4(0.45f, 0.45f, 0.45f, 1.00f);
+
+    if (!std::filesystem::exists("imgui.ini")) reset_layout();
 
     load_settings();
     save_settings(); // for updating config files from older versions
