@@ -53,6 +53,7 @@ void load_file(char *filename, song *song) {
                 song->order_loop = fgetc(f);
                 if (version >= 7) {
                     song->row_length = fgetc(f);
+                    if (song->row_length == 0) song->row_length = 256;
                 } else {
                     fseek(f, 1L, SEEK_CUR);
                 }
@@ -175,7 +176,7 @@ void save_file(char *filename, song *song) {
 
     fputc(song->order_loop, f);
 
-    fputc(song->row_length, f);
+    fputc(song->row_length&0xff, f);
 
     for (int i = 0; i < 32; i++) fputc(0,f); // reserved
     for (int i = 0; i < 32; i++) fputc(0,f); // reserved

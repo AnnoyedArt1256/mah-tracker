@@ -21,6 +21,7 @@ unless noted otherwise, each byte/word is treated as an **unsigned** value and i
     - 1 byte reserved (currently only zeros)
 - IF VERSION >= 7:
     - 1 byte: pattern row length
+    - NOTE: if the pattern row length byte is 0, then there are **256 rows per pattern**
 - ELSE:
     - 1 byte reserved (currently only zeros)
 - 32 bytes reserved for title (in the future)

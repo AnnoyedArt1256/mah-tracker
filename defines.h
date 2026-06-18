@@ -141,7 +141,7 @@ struct song {
     uint8_t pitch_bend_shift;
     uint16_t a_frequency;
     uint8_t order_loop;
-    uint8_t row_length;
+    uint16_t row_length;
 };
 
 extern void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_chunks, bool *enable);

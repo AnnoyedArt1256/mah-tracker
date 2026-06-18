@@ -670,9 +670,9 @@ int main(int argc, char *argv[]) {
                 else if (c_song.order_loop >= c_song.order_len) c_song.order_loop = c_song.order_len-1;
             }
 
-            if (ImGui::InputScalar("Pattern Length",ImGuiDataType_U8,&c_song.row_length,&one)) {
-                if (c_song.order_loop < 0) c_song.order_loop = 0;
-                else if (c_song.order_loop >= 127) c_song.order_loop = 127;
+            if (ImGui::InputScalar("Pattern Length",ImGuiDataType_U16,&c_song.row_length,&one_16)) {
+                if (c_song.row_length < 0) c_song.row_length = 0;
+                else if (c_song.row_length >= 256) c_song.row_length = 256;
             }
 
 

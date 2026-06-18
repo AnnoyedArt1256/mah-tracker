@@ -41,6 +41,8 @@ def convert(filename):
     pattern_len = file.read(1)[0]
     if not version >= 7:
         pattern_len = 64
+    if pattern_len == 0:
+        pattern_len = 256
 
     out_file_props = open("music_props.asm","w")
     out_file_props.write(f"pitch_shift_amt .set {pitch_bend_shift}\n")
