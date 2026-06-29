@@ -304,6 +304,7 @@ void play_note_live(song *song, uint8_t ch, uint8_t note, uint8_t instr) {
 }
 
 void note_off_live(uint8_t ch) {
+    player_vars.hr_delay[ch] = 0xFF;
     player_vars.gate_mask[ch] = 0xFE;
 }
 
