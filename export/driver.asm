@@ -525,6 +525,20 @@ do_ch:
     jsr inc_pat
     jmp @parse_rept
 @skip_eff:
+    cmp #$fd
+    bne :++
+    ldy #1
+    lda (temp), y
+    sta ins, x
+    jsr inc_pat
+    jsr inc_pat
+    lda eff_type, x
+    cmp #3
+    beq :+
+    jsr reinit_note_inst
+:
+    jmp @parse_rept
+:
     cmp #$fe
     bne :+
     sta gate_mask, x
