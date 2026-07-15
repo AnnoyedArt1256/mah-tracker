@@ -498,6 +498,26 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
     }
 }
 
+// effect color palette directly yoinked from furnace :)
+const ImU32 effect_cols[16] = {
+    IM_COL32(255, 255, 255, 255), // .../0xx: default color
+    IM_COL32(226, 226, 76, 255), // 1xx: pitch-related color (yellow)
+    IM_COL32(226, 226, 76, 255), // 2xx: pitch-related color (yellow)
+    IM_COL32(226, 226, 76, 255), // 3xx: pitch-related color (yellow)
+    IM_COL32(226, 226, 76, 255), // 4xx: pitch-related color (yellow)
+    IM_COL32(154, 239, 74, 255), // 5xx: control-related color (green-ish lime color)
+    IM_COL32(154, 239, 74, 255), // 6xx: control-related color (green-ish lime color)
+    IM_COL32(154, 239, 74, 255), // 7xx: control-related color (green-ish lime color)
+    IM_COL32(154, 239, 74, 255), // 8xx: control-related color (green-ish lime color)
+    IM_COL32(154, 239, 74, 255), // 9xx: control-related color (green-ish lime color)
+    IM_COL32(154, 239, 74, 255), // Axx: control-related color (green-ish lime color)
+    IM_COL32(255, 255, 255, 255), // Bxx: default color
+    IM_COL32(114, 244, 74, 255), // Cxx: misc. color (green)
+    IM_COL32(232, 51, 35, 255), // Dxx: pattern-related color (red)
+    IM_COL32(227, 50, 241, 255), // Exx: speed-related color (magenta)
+    IM_COL32(227, 50, 241, 255), // Fxx: speed-related color (magenta)
+};
+
 void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_chunks, bool *enable) {
     // init window and table
     ImGuiIO& io = ImGui::GetIO();
@@ -722,7 +742,9 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
         ImGui::TableNextColumn();
         for (int ch = 0; ch < 3; ch++) {
             // C-4 01 4xx
-            char cur_note[11] = "... .. ...";
+            char cur_note[4] = "...";
+            char cur_ins[3] = "..";
+            char cur_eff[4] = "...";
             uint8_t note     = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].note;
             uint8_t instr    = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].instr;
             uint8_t eff_type = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].eff_type;
@@ -737,19 +759,31 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
             }
             if (instr != 0) {
                 const char *hex_str = "0123456789ABCDEF";
-                cur_note[4] = hex_str[instr>>4];
-                cur_note[5] = hex_str[instr&0xf];
+                cur_ins[0] = hex_str[instr>>4];
+                cur_ins[1] = hex_str[instr&0xf];
             }
             if (eff_type != 0) {
                 const char *hex_str = "0123456789ABCDEF";
-                cur_note[7] = hex_str[eff_type&0xf];
+                cur_eff[0] = hex_str[eff_type&0xf];
             }
             if (eff_arg != 0) {
                 const char *hex_str = "0123456789ABCDEF";
-                cur_note[8] = hex_str[eff_arg>>4];
-                cur_note[9] = hex_str[eff_arg&0xf];
+                cur_eff[1] = hex_str[eff_arg>>4];
+                cur_eff[2] = hex_str[eff_arg&0xf];
             }
-            ImGui::Text(" %s ",cur_note);
+            ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 255, 255));
+            ImGui::Text(" %s",cur_note);
+            ImGui::PopStyleColor();
+
+            ImGui::SameLine(0.0f, 0.0f);
+            ImGui::PushStyleColor(ImGuiCol_Text, instr ? IM_COL32(115, 167, 236, 255) : IM_COL32(255, 255, 255, 255));
+            ImGui::Text(" %s",cur_ins);
+            ImGui::PopStyleColor();
+
+            ImGui::SameLine(0.0f, 0.0f);
+            ImGui::PushStyleColor(ImGuiCol_Text, effect_cols[eff_type]);
+            ImGui::Text(" %s ",cur_eff);
+            ImGui::PopStyleColor();
             ImGui::TableNextColumn();
         }
         ImGui::TableNextRow(0,char_size_xy.y);
