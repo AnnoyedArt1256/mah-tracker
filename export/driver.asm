@@ -207,8 +207,7 @@ do_pulse_sweep:
     sbc duty_lo, x
     lda ins_duty_end_hi, y
     sbc duty_hi, x
-    and #$80
-    beq :+
+    bpl :+
     lda ins_duty_end_lo, y
     sta duty_lo, x
     lda ins_duty_end_hi, y
@@ -221,8 +220,7 @@ do_pulse_sweep:
     sbc ins_duty_start_lo, y
     lda duty_hi, x
     sbc ins_duty_start_hi, y
-    and #$80
-    beq :+
+    bpl :+
     lda ins_duty_start_lo, y
     sta duty_lo, x
     lda ins_duty_start_hi, y
@@ -272,7 +270,9 @@ set_adsr_note:
     rts
 
 init_note_macros:
-    jsr set_adsr_note
+    .if HR_MODE <> 1
+        jsr set_adsr_note
+    .endif
 
     ldy ins, x
     lda ins_duty_reset, y
@@ -282,8 +282,7 @@ init_note_macros:
     lda ins_duty_speed_hi, y 
     sta duty_speed_hi, x
     lda ins_duty_start_hi, y
-    and #$80
-    beq :+
+    bpl :+
     lda ins_duty_end_lo, y 
     sta duty_lo, x
     lda ins_duty_end_hi, y 
@@ -394,11 +393,6 @@ do_wav:
     cmp #$ff
     beq @do_jump
     and #$7f
-    tay
-    lda freq_lo, y
-    sta final_freq
-    lda freq_hi, y
-    sta final_freq+1
     jmp :++
 :
     clc
@@ -407,14 +401,14 @@ do_wav:
     adc cur_note, x
     sec
     sbc #48
+:
+
+@cont_wave:
     tay
     lda freq_lo, y
     sta final_freq
     lda freq_hi, y
     sta final_freq+1
-:
-
-@cont_wave:
 
     ldy ins, x
     lda arp_pos, x
@@ -454,6 +448,12 @@ do_ch:
     lda pat_ptr_hi, x
     sta temp+1
 
+
+    ldy #0
+    sty pattern_rel_ptr
+
+pattern_rel_ptr = *+1
+
 @parse_rept:
 
     ldy #0
@@ -461,14 +461,14 @@ do_ch:
     cmp #$40
     bcs :+
     sta dur, x
-    jsr inc_pat
+    inc pattern_rel_ptr
     jmp @end_parse
 :
     cmp #$80
     bcs :+
     and #$3f
     sta ins, x
-    jsr inc_pat
+    inc pattern_rel_ptr
     lda eff_type, x
     cmp #3
     beq @parse_rept
@@ -492,7 +492,7 @@ do_ch:
 @goto_set_note:
     sta cur_note, x
 @goto_set_note_tie:
-    jsr inc_pat
+    inc pattern_rel_ptr
     lda eff_type, x
     cmp #3
     beq @parse_rept
@@ -504,7 +504,7 @@ do_ch:
     lda #0
     sta eff_type, x
     sta eff_arg, x
-    jsr inc_pat
+    inc pattern_rel_ptr
     jmp @parse_rept
 :
     cmp #$f0
@@ -521,8 +521,8 @@ do_ch:
     bne :+
     sta row_has_9xx
 :
-    jsr inc_pat
-    jsr inc_pat
+    inc pattern_rel_ptr
+    inc pattern_rel_ptr
     jmp @parse_rept
 @skip_eff:
     cmp #$fd
@@ -530,8 +530,8 @@ do_ch:
     ldy #1
     lda (temp), y
     sta ins, x
-    jsr inc_pat
-    jsr inc_pat
+    inc pattern_rel_ptr
+    inc pattern_rel_ptr
     lda eff_type, x
     cmp #3
     beq :+
@@ -542,7 +542,7 @@ do_ch:
     cmp #$fe
     bne :+
     sta gate_mask, x
-    jsr inc_pat
+    inc pattern_rel_ptr
     jmp @parse_rept
 :
     cmp #$ff
@@ -551,6 +551,14 @@ do_ch:
     sta do_patend
 :
 @end_parse:
+    lda pattern_rel_ptr
+    clc
+    adc temp
+    sta temp
+    bcc :+
+    inc temp+1
+:
+
     lda last_eff
     cmp eff_type, x
     beq :+
@@ -626,15 +634,8 @@ do_ch:
     lda glide_temp+1
     sta glide_limit_hi, x
     ldy #0
-    jsr inc_pat
+    inc pattern_rel_ptr
     jmp @parse_rept
-
-inc_pat:
-    inc temp
-    bne :+
-    inc temp+1
-:
-    rts
 
 reinit_note_inst:
     lda #0
