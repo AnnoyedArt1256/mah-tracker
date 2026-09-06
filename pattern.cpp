@@ -365,7 +365,9 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
         }
     }
 
-    if (ImGui::IsKeyPressed(ImGuiKey_Backspace) && cur_cursor->already_dragged) {
+    bool delete_pressed = ImGui::IsKeyPressed(ImGuiKey_Backspace) || ImGui::IsKeyPressed(ImGuiKey_Delete);
+
+    if (delete_pressed && cur_cursor->already_dragged) {
         // clear dragged selection if backspace is pressed (thx theduccinator for the advice!)
         clear_pat_selection(song, cur_cursor);
         register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
@@ -406,7 +408,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
                 ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
             }   
         }
-        if (ImGui::IsKeyPressed(ImGuiKey_Backspace) && !cur_cursor->already_dragged) {
+        if (delete_pressed && !cur_cursor->already_dragged) {
             cur_pattern_rows[cur_cursor->row].note = 
                 NOTE_EMPTY;
             cur_pattern_rows[cur_cursor->row].instr = 0;
@@ -434,7 +436,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
                 register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
             }
         }
-        if (ImGui::IsKeyPressed(ImGuiKey_Backspace) && !cur_cursor->already_dragged) {
+        if (delete_pressed && !cur_cursor->already_dragged) {
             cur_pattern_rows[cur_cursor->row].instr = 0;
             register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
             cur_cursor->latch = 0;
@@ -458,7 +460,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
                 ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
             }
         }
-        if (ImGui::IsKeyPressed(ImGuiKey_Backspace) && !cur_cursor->already_dragged) {
+        if (delete_pressed && !cur_cursor->already_dragged) {
             cur_pattern_rows[cur_cursor->row].eff_type = 0;
             register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
             cur_cursor->latch = 0;
@@ -484,7 +486,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
                 }
             }
         }
-        if (ImGui::IsKeyPressed(ImGuiKey_Backspace) && !cur_cursor->already_dragged) {
+        if (delete_pressed && !cur_cursor->already_dragged) {
             cur_pattern_rows[cur_cursor->row].eff_arg = 0;
             cur_cursor->latch = 0;
             register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
