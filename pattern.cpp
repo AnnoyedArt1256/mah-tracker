@@ -547,12 +547,70 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
     }
     ImGui::TableSetupColumn("row_end",ImGuiTableColumnFlags_WidthFixed,char_size);
 
+    ImGui::TableSetupScrollFreeze(0, 1);
+
+    const float table_origin_x = ImGui::GetCursorScreenPos().x;
+
+    // channel mute headers (click to toggle mute)
+    ImGui::TableNextRow(ImGuiTableRowFlags_Headers, char_size_xy.y);
+    ImGui::TableNextColumn();
+    ImGui::TableNextColumn();
+    for (int ch = 0; ch < 3; ch++) {
+        char label[16];
+        snprintf(label, sizeof(label), "SID%d", ch + 1);
+
+        ImGui::PushID(ch);
+        bool muted = cur_cursor->is_muted[ch];
+        if (muted) {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.35f, 0.35f, 0.35f, 1.0f});
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.6f, 0.6f, 0.6f, 1.0f});
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.67f, 0.67f, 0.67f, 1.0f});
+        }
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
+        if (ImGui::Button(label, ImVec2(-FLT_MIN, char_size_xy.y))) {
+            cur_cursor->is_muted[ch] = !muted;
+            set_channel_mute(ch, cur_cursor->is_muted[ch]);
+        }
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+            bool any_muted = false;
+            for (int i = 0; i < 3; i++) {
+                if (cur_cursor->is_muted[i]) {
+                    any_muted = true;
+                    break;
+                }
+            }
+            if (any_muted) {
+                // unsolo: unmute all channels
+                for (int i = 0; i < 3; i++) {
+                    if (cur_cursor->is_muted[i]) {
+                        cur_cursor->is_muted[i] = false;
+                        set_channel_mute(i, false);
+                    }
+                }
+            } else {
+                // solo: mute every channel except the one clicked
+                for (int i = 0; i < 3; i++) {
+                    bool mute = (i != ch);
+                    cur_cursor->is_muted[i] = mute;
+                    set_channel_mute(i, mute);
+                }
+            }
+        }
+        ImGui::PopStyleVar();
+        if (muted) {
+            ImGui::PopStyleColor(3);
+        }
+        ImGui::PopID();
+        ImGui::TableNextColumn();
+    }
+    ImGui::TableNextRow();
+
     // get the amount of dummy rows
     int dummy_row_cnt = (int)(ImGui::GetWindowSize().y/(2.0*char_size_xy.y));
 
     // draw row highlights
     ImVec2 c = ImGui::GetCursorScreenPos();
-    c.x += char_size_xy.x*4.0;
+    c.x = table_origin_x + char_size_xy.x*4.0;
     c.y += char_size_xy.y*dummy_row_cnt;
     ImGui::TableNextRow(0,char_size_xy.y);
     for (int row = 0; row < song->row_length; row += 4) {
@@ -564,7 +622,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
 
     if (cur_cursor->playing) {
         c = ImGui::GetCursorScreenPos();
-        c.x += char_size_xy.x*4.0;
+        c.x = table_origin_x + char_size_xy.x*4.0;
         c.y += char_size_xy.y*dummy_row_cnt;
         if (cur_cursor->do_follow && cur_cursor->playing) {
             c.y += char_size_xy.y*cur_cursor->row;
@@ -579,7 +637,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
 
     if (cur_cursor->do_record) {
         c = ImGui::GetCursorScreenPos();
-        c.x += char_size_xy.x*4.0;
+        c.x = table_origin_x + char_size_xy.x*4.0;
         c.y += char_size_xy.y*dummy_row_cnt;
         c.y += char_size_xy.y*cur_cursor->row;
 
@@ -590,7 +648,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
 
     if (cur_cursor->already_dragged) {
         ImVec2 c_start = ImGui::GetCursorScreenPos();
-        c_start.x += char_size_xy.x*5.0; // offset it correctly
+        c_start.x = table_origin_x + char_size_xy.x*5.0; // offset it correctly
         c_start.x += get_select_offset(cur_cursor->drag_x_start_sel)*char_size_xy.x+1.0;
         c_start.x += floorf(cur_cursor->drag_x_start/4)*12*char_size_xy.x;
         c_start.y += cur_cursor->drag_y_start*char_size_xy.y;
@@ -601,7 +659,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
             c_start += ImVec2(0.0f, char_size_xy.y);
 
         ImVec2 c_end = ImGui::GetCursorScreenPos();
-        c_end.x += char_size_xy.x*5.0; // offset it correctly
+        c_end.x = table_origin_x + char_size_xy.x*5.0; // offset it correctly
         c_end.x += get_select_offset(cur_cursor->drag_x_end_sel)*char_size_xy.x+1.0;
         c_end.x += floorf(cur_cursor->drag_x_end/4)*12*char_size_xy.x;
         c_end.y += cur_cursor->drag_y_end*char_size_xy.y;
@@ -623,7 +681,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
         x -= char_size_xy.x*5.0;
         int char_x = (int)floorf(x/char_size_xy.x);
         int char_y = (int)floorf(y/char_size_xy.y);
-        char_y -= dummy_row_cnt;
+        char_y -= dummy_row_cnt+1;
 
         // get channel selection type
         int ch = char_x/12;
@@ -716,7 +774,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
     if (cur_cursor->ch >= 0 && cur_cursor->ch < 3) {
         // render SELECTED cursor
         ImVec2 c = ImGui::GetCursorScreenPos();
-        c.x += char_size_xy.x*5.0; // offset it correctly
+        c.x = table_origin_x + char_size_xy.x*5.0; // offset it correctly
         c.x += get_select_offset(cur_cursor->selection)*char_size_xy.x+1.0;
         c.x += (cur_cursor->ch*12)*char_size_xy.x;
         c.y += cur_cursor->row*char_size_xy.y;

@@ -147,3 +147,5 @@ struct song {
 extern void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_chunks, bool *enable);
 extern void render_orders(song *song, cursor *cur_cursor, bool *enable);
 extern void render_instr(song *song, cursor *cur_cursor, bool *enable);
+
+extern void set_channel_mute(int ch, bool muted);
