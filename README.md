@@ -15,6 +15,26 @@ AArt1256's custom SID chiptune tracker meant to be easy to use for newcomers and
 - Exy: set funk tempo (aka two alternating speeds) to be x and y for each speed value
 - Fxx: set speed to xx
 
+### shortcuts
+### pattern editor:
+- up/down/left/right: move the cursor in that direction
+- space: switch between read-only ("Jam") and read-write ("Record") modes. this can also be done through the Jam/Record button in the Controls window.
+- enter: play the song beginning from the current pattern
+- **1**: put a note cut/off in the selected channel's row (IF the cursor is over a note)
+<br><br>
+- ctrl+c: **copy** note/selection
+- ctrl+x: **cut** note/selection
+- ctrl+v: **paste** note/selection
+- ctrl+z: **undo** note/selection
+- ctrl+y: **redo** note/selection
+<br><br>
+- backspace/delete: delete current note/selection
+<br><br>
+- ctrl/cmd+f1: transpose note/selection by +1 semitone
+- ctrl/cmd+f2: transpose note/selection by -1 semitone
+- ctrl/cmd+f3: transpose note/selection by +1 octave (+12 semitones)
+- ctrl/cmd+f4: transpose note/selection by -1 octave (-12 semitones)
+
 ## legal
 The **tracker GUI** in C++ is distributed under the GPLv2 license as shown in [LICENSE](LICENSE)
 

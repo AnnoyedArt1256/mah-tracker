@@ -174,7 +174,7 @@ void clear_pat_selection(song *song, cursor *cur_cursor) {
     for (int row = 0; row < row_len; row++) {
         if ((row+cursor_row) >= song->row_length) break;
         for (int col = col_start; col < col_start+col_len; col++) {
-            // i could use memcpy, but just in case someone's using big-endian or smth...
+            // i could use memcpy, but just in case someone's using big-endian or something...
             int rel_col = col-col_start;
             pat_row *cur_pat_rows = song->pattern[song->order_table[start_ch+(rel_col>>2)][cur_cursor->order]].rows;
             switch (col&3) {
@@ -183,6 +183,46 @@ void clear_pat_selection(song *song, cursor *cur_cursor) {
                 case 2: cur_pat_rows[row+cursor_row].eff_type = 0; break;
                 case 3: cur_pat_rows[row+cursor_row].eff_arg = 0; break;
             }
+        }
+    }
+}
+
+// transpose notes in the selection (or the note under the cursor) by delta semitones
+void transpose_pat_notes(song *song, cursor *cur_cursor, int delta) {
+    int row_start, row_end, col_start, col_end;
+    if (cur_cursor->already_dragged) {
+        row_start = cur_cursor->drag_y_start;
+        row_end = cur_cursor->drag_y_end;
+        if (row_start > row_end) {
+            int temp = row_end;
+            row_end = row_start;
+            row_start = temp;
+        }
+        col_start = cur_cursor->drag_x_start;
+        col_end = cur_cursor->drag_x_end;
+        if (col_start > col_end) {
+            int temp = col_end;
+            col_end = col_start;
+            col_start = temp;
+        }
+    } else {
+        row_start = row_end = cur_cursor->row;
+        col_start = col_end = cur_cursor->ch*4; // note column of current channel
+    }
+
+    for (int row = row_start; row <= row_end; row++) {
+        if (row < 0 || row >= song->row_length) continue;
+        for (int col = col_start; col <= col_end; col++) {
+            if ((col&3) != 0) continue; // only note columns
+            int ch = col>>2;
+            if (ch < 0 || ch >= 12) continue;
+            pat_row *cur_pat_rows = song->pattern[song->order_table[ch][cur_cursor->order]].rows;
+            uint8_t note = cur_pat_rows[row].note;
+            if (note == NOTE_EMPTY || note == NOTE_OFF) continue;
+            int final_note = (int)note + delta;
+            if (final_note < 0) final_note = 0;
+            if (final_note > 127) final_note = 127;
+            cur_pat_rows[row].note = (uint8_t)final_note;
         }
     }
 }
@@ -242,8 +282,13 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
         cur_cursor->do_record = !cur_cursor->do_record;
     }
 
-    // Copy-paste function
+    // read special key inputs for shortcuts
     bool ctrl_pressed = ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl);
+    bool delete_pressed = ImGui::IsKeyPressed(ImGuiKey_Backspace) || ImGui::IsKeyPressed(ImGuiKey_Delete);
+ 	bool super_pressed = ImGui::IsKeyDown(ImGuiKey_LeftSuper) || ImGui::IsKeyDown(ImGuiKey_RightSuper);
+	bool mod_pressed = ctrl_pressed || super_pressed; // Ctrl on Win/Linux, Cmd or Ctrl on macOS
+
+    // Copy-paste functions
     if (ctrl_pressed) {
         if (ImGui::IsKeyPressed(ImGuiKey_C)) {
             // copy (ctrl+c)
@@ -290,6 +335,23 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
         }
     }
 
+    // Transpose notes
+    // Ctrl/Cmd + F1: +1 semitone
+    // Ctrl/Cmd + F2: -1 semitone
+    // Ctrl/Cmd + F3: +1 octave (+12 semitones)
+    // Ctrl/Cmd + F4: -1 octave (-12 semitones)
+    if (mod_pressed) {
+	    int transpose_delta = 0;
+	    if (ImGui::IsKeyPressed(ImGuiKey_F1)) transpose_delta = -1;
+        else if (ImGui::IsKeyPressed(ImGuiKey_F2)) transpose_delta = 1;
+	    else if (ImGui::IsKeyPressed(ImGuiKey_F3)) transpose_delta = -12;
+	    else if (ImGui::IsKeyPressed(ImGuiKey_F4)) transpose_delta = 12;
+	    if (transpose_delta != 0) {
+	        transpose_pat_notes(song, cur_cursor, transpose_delta);
+	        register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
+	    }
+    }
+    
     // Down one row
     if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
         cur_cursor->latch = 0;
@@ -364,8 +426,6 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
             default: break;
         }
     }
-
-    bool delete_pressed = ImGui::IsKeyPressed(ImGuiKey_Backspace) || ImGui::IsKeyPressed(ImGuiKey_Delete);
 
     if (delete_pressed && cur_cursor->already_dragged) {
         // clear dragged selection if backspace is pressed (thx theduccinator for the advice!)
