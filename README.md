@@ -1,7 +1,23 @@
 # mah-tracker
 AArt1256's custom SID chiptune tracker meant to be easy to use for newcomers and experts alike!
 
-### effects (in the editor, just in case)
+![screenshot of mah-tracker playing a SID tune](misc/mah_screenshot.png)
+
+## features
+- accurate SID emulation via ReSIDfp
+- a clean and modular interface using Dear ImGUI
+- instrument editor inspired by Furnace and Sidtracker64 to be easy to use
+- file save/loading using a custom .mah format
+- **proper** hardware .prg export as a first-class feature (prg export code in [the export folder](export), can be easily modified for .sid export as well)
+- many common shortcuts are included, such as transposition, cut/copy/paste and undo/redo (more info in the [shortcuts](#shortcuts) section)
+- 6581 and 8580 support included
+- ADSR effect commands **(5xy and 6xy)**
+- funktempo/swing-tempo support through the **Exy** effect
+- per-channel transpose through the **Cxx** effect
+- custom pattern lengths (up to 256 rows!)
+- custom A-4 tuning (user-definable in the .mah file itself) for changing tuning tables during export!
+
+## effects (in the editor)
 - 1xx: pitch up
 - 2xx: pitch down
 - 3.. (or 300): tie note
@@ -15,7 +31,7 @@ AArt1256's custom SID chiptune tracker meant to be easy to use for newcomers and
 - Exy: set funk tempo (aka two alternating speeds) to be x and y for each speed value
 - Fxx: set speed to xx
 
-### shortcuts
+## shortcuts
 ### pattern editor:
 - up/down/left/right: move the cursor in that direction
 - space: switch between read-only ("Jam") and read-write ("Record") modes. this can also be done through the Jam/Record button in the Controls window.
