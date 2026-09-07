@@ -17,6 +17,31 @@ AArt1256's custom SID chiptune tracker meant to be easy to use for newcomers and
 - custom pattern lengths (up to 256 rows!)
 - custom A-4 tuning (user-definable in the .mah file itself) for changing tuning tables during export!
 
+## support
+
+A community space for talking about, developing and asking help about mah-tracker can be found on [Matrix (#mah-tracker:matrix.aart1256.net)](https://matrix.to/#/#mah-tracker:matrix.aart1256.net).
+
+A Discord server bridged to the Matrix space may be created in the future...
+
+## building
+If you want to use ready-made binaries for mah-tracker (from the latest commits), you can go to the [nightly.link](https://nightly.link/AnnoyedArt1256/mah-tracker/workflows/cmake-multi-platform/main) URL for this repo, download the .zip for your OS/architecture, unzip and run the executable in the extracted folder.
+
+Otherwise, you can first clone the contents of this repo with these commands in a terminal/console: 
+```
+git clone --recursive https://github.com/AnnoyedArt1256/mah-tracker.git
+cd mah-tracker
+``` 
+
+Then, you can create a `build` directory inside the repo and compile it with cmake like so:
+```
+mkdir build
+cd build
+cmake ..
+make
+```
+
+> NOTE: You need a C/C++ compiler, git and cmake to build mah-tracker from source.
+
 ## effects (in the editor)
 - 1xx: pitch up
 - 2xx: pitch down
