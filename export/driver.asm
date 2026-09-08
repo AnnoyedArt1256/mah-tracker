@@ -443,11 +443,13 @@ do_ch:
     rts
 :
 
+    lda eff_type, x
+    sta last_eff
+
     lda pat_ptr_lo, x
     sta temp
     lda pat_ptr_hi, x
     sta temp+1
-
 
     ldy #0
     sty pattern_rel_ptr
