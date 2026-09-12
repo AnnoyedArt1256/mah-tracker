@@ -789,6 +789,11 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
                 cur_cursor->drag_x_start_sel = ch_select;
                 ImGui::SetScrollY(char_y*char_size_xy.y);
             }
+ 	        // double-click instrument column to select it in the instrument editor
+	        if (ImGui::IsMouseDoubleClicked(0) && ch_select == instr) {
+	            uint8_t cell_instr = song->pattern[song->order_table[ch][cur_cursor->order]].rows[char_y].instr;
+                if (cell_instr != 0) cur_cursor->instr = cell_instr;
+	        }
         }
         // the mouse dragging code (eventually for copy+paste)
         if (ImGui::IsMouseDragging(0) && (!ImGui::IsMouseClicked(0))) {
