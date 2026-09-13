@@ -21,6 +21,7 @@ along with this program; if not, see
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "defines.h"
+#include "misc/cpp/imgui_stdlib.h"
 
 #define rightClickable if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) ImGui::SetKeyboardFocusHere(-1);
 #define CLAMP(x,y,z) ((x)>(z)?(z):((x)<(y)?(y):(x)))
@@ -58,7 +59,7 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
 
     ImGui::Begin("Instrument Editor", enable);
 
-    if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) {
+    if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive()) {
         // live playing
         for (int key_ind = 0; key_ind < sizeof(piano_keys)/sizeof(ImGuiKey); key_ind++) {
             if (ImGui::IsKeyPressed(piano_keys[key_ind], false)) {
@@ -71,11 +72,12 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
     }
 
     char ins_name_preview[32];
-    snprintf(ins_name_preview,32,"Instrument %02X",cur_cursor->instr);
+    ImGui::SetNextItemWidth(ImGui::GetWindowSize().x * 0.1f);
+    snprintf(ins_name_preview,32,"%02X",cur_cursor->instr);
     if (ImGui::BeginCombo("##ins_select",ins_name_preview)) {
         for (int n = 1; n < 128; n++) {
             char ins_name_select[32];
-            snprintf(ins_name_select,32,"Instrument %02X",n);
+            snprintf(ins_name_select,32,"%02X: %s",n,song->instr[n].name.c_str());
             const bool is_selected = (cur_cursor->instr == n);
             if (ImGui::Selectable(ins_name_select, is_selected))
                 cur_cursor->instr = n;
@@ -87,6 +89,8 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
         ImGui::EndCombo();
     }
     ImGui::SameLine();
+    ImGui::InputText("Name", &song->instr[cur_cursor->instr].name);
+
     if (ImGui::Button("Copy")) {
         instr_copy = song->instr[cur_cursor->instr];
     }

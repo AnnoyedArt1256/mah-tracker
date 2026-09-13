@@ -53,6 +53,9 @@ unless noted otherwise, each byte/word is treated as an **unsigned** value and i
 ## Instruments
 - there are 128 instruments in a module (no more, no less)
 - for each instrument the byte structure is as follows
+    - IF VERSION >= 8:
+        - **zero-terminated** string: instrument name
+
     - 1 byte: attack
     - 1 byte: decay
     - 1 byte: sustain

@@ -27,6 +27,7 @@ add_library(imgui STATIC
     ${ROOT}/imgui_internal.h
     ${ROOT}/imgui_tables.cpp
     ${ROOT}/imgui_widgets.cpp
+    ${ROOT}/misc/cpp/imgui_stdlib.cpp
 )
 
 add_library(residfp STATIC

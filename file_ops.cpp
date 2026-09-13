@@ -106,6 +106,21 @@ void load_file(char *filename, song *song) {
     // instruments
     for (int inst = 0; inst < 128; inst++) {
         instrument *instr = &song->instr[inst];
+
+        if (version >= 8) {
+            // add instrument name
+            int ch;
+            instr->name = "";
+            while ((ch = fgetc(f)) != EOF && ch != '\0') {
+                instr->name.push_back((char)ch);
+            }
+        } else {
+            // add a stub name for older modules
+            char ins_name_preview[32];
+            snprintf(ins_name_preview,32,"Instrument %d",inst);
+            instr->name = ins_name_preview;
+        }
+
         instr->a = fgetc(f); // A
         instr->d = fgetc(f); // D
         instr->s = fgetc(f); // S
@@ -214,6 +229,10 @@ void save_file(char *filename, song *song) {
     // instruments (WIP)
     for (int inst = 0; inst < 128; inst++) {
         instrument *instr = &song->instr[inst];
+
+        fwrite(instr->name.c_str(), sizeof(char), instr->name.length(), f);
+        fputc(0, f); // zero-terminator
+
         // i know i could group two nibbles, but i want to futureproof it i guess?
         fputc(instr->a, f); // A
         fputc(instr->d, f); // D

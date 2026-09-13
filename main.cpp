@@ -98,7 +98,10 @@ void init_default_song(song *song) {
     // >chiptune writers making the best sounds you've ever heard and they're all named "new instrument"
 
     for (int ins = 0; ins < 128; ins++) {
-
+        // Instrument Name
+        char ins_name_preview[32];
+        snprintf(ins_name_preview,32,"Instrument %d",ins);
+        song->instr[ins].name = ins_name_preview;
         // ADSR
         song->instr[ins].a = 0x0;
         song->instr[ins].d = 0x8;

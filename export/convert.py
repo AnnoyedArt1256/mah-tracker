@@ -152,6 +152,11 @@ def convert(filename):
     ins_wave_dict = {}
     for ins in range(max_ins+1):
         ins_prop = []
+
+        if version >= 8:
+            # skip zero-terminated string name
+            while file.read(1)[0] != 0: pass
+
         a, d, s, r = file.read(4) # get adsr
         ins_prop.append(a<<4|d)
         ins_prop.append(s<<4|r)

@@ -21,7 +21,7 @@ along with this program; if not, see
 #include <vector>
 
 // the current .mah module file format version
-#define MAH_CURRENT_VERSION 7
+#define MAH_CURRENT_VERSION 8
 
 // Magic numbers for file format
 #define NOTE_OFF 0xfe // Note off in pattern
@@ -110,6 +110,7 @@ struct cursor {
 // Instrument
 // Max number of commands in an instrument struct is 128
 struct instrument {
+    std::string name; // instrument name
     uint8_t a, d, s, r; // ADSR envelope
     uint8_t wav_len; // also for arps
     uint8_t wav_loop; // also for arps
