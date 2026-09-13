@@ -19,6 +19,8 @@ along with this program; if not, see
 
 #include <cstdint>
 #include <vector>
+#include <string>
+#include <iostream>
 
 // the current .mah module file format version
 #define MAH_CURRENT_VERSION 8
