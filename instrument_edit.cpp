@@ -72,7 +72,7 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
     }
 
     char ins_name_preview[32];
-    ImGui::SetNextItemWidth(ImGui::GetWindowSize().x * 0.1f);
+    ImGui::SetNextItemWidth(ImGui::GetWindowSize().x * 0.15f);
     snprintf(ins_name_preview,32,"%02X",cur_cursor->instr);
     if (ImGui::BeginCombo("##ins_select",ins_name_preview)) {
         for (int n = 1; n < 128; n++) {
@@ -89,8 +89,11 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
         ImGui::EndCombo();
     }
     ImGui::SameLine();
+
+    ImGui::SetNextItemWidth(ImGui::GetWindowSize().x * 0.5f);
     ImGui::InputText("Name", &song->instr[cur_cursor->instr].name);
 
+    ImGui::SameLine();
     if (ImGui::Button("Copy")) {
         instr_copy = song->instr[cur_cursor->instr];
     }

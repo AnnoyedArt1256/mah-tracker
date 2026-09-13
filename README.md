@@ -76,6 +76,17 @@ make
 - ctrl/cmd+f3: transpose note/selection by +1 octave (+12 semitones)
 - ctrl/cmd+f4: transpose note/selection by -1 octave (-12 semitones)
 
+### controls:
+- **octave:** current base octave for note input with the keyboard
+- **step:** the edit step, larger numbers will skip more rows
+- **follow pattern:** if enabled, the cursor will follow the playhead during playback
+- **loop pattern:** if enabled, the current selected order will be repeated during playback.
+- **speed:** number of ticks/frames per row
+- **pitch bend shift:** multiplier for pitch slide commands (1xx, 2xx, 3xx), higher numbers result in faster pitch slides
+- **tuning:** the frequency of A-4 (middle A) in Hz
+- **order loop:** the starting order number for the looping section of your module
+- **pattern length:** the length of every pattern (between 1-256)
+
 ## legal
 The **tracker GUI** in C++ is distributed under the GPLv2 license as shown in [LICENSE](LICENSE)
 

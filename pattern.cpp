@@ -443,7 +443,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
                         cur_cursor->octave*12+key_ind;
                     cur_pattern_rows[cur_cursor->row].instr = 
                         cur_cursor->instr;
-                    cur_cursor->row = (cur_cursor->row+1)%song->row_length;
+                    cur_cursor->row = (cur_cursor->row+cur_cursor->edit_step)%song->row_length;
                     register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
                     ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
                 }
@@ -460,7 +460,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
             if (cur_cursor->do_record) {
                 cur_pattern_rows[cur_cursor->row].note = 
                     NOTE_OFF;
-                cur_cursor->row = (cur_cursor->row+1)%song->row_length;
+                cur_cursor->row = (cur_cursor->row+cur_cursor->edit_step)%song->row_length;
                 cur_cursor->latch = 0;
                 cur_cursor->already_dragged = false;
                 cur_cursor->dragging = false;
@@ -487,7 +487,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
                     cur_pattern_rows[cur_cursor->row].instr <<= 4;
                     cur_pattern_rows[cur_cursor->row].instr |= key;
                     cur_cursor->latch = 0;
-                    cur_cursor->row = (cur_cursor->row+1)%song->row_length;
+                    cur_cursor->row = (cur_cursor->row+cur_cursor->edit_step)%song->row_length;
                     ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
                 } else {
                     cur_pattern_rows[cur_cursor->row].instr = key;
@@ -515,7 +515,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
                 }
                 last_eff_type = key;
                 cur_cursor->latch = 0;
-                cur_cursor->row = (cur_cursor->row+1)%song->row_length;
+                cur_cursor->row = (cur_cursor->row+cur_cursor->edit_step)%song->row_length;
                 register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
                 ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
             }
@@ -536,7 +536,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
                     cur_pattern_rows[cur_cursor->row].eff_arg |= key;
                     last_eff_arg = cur_pattern_rows[cur_cursor->row].eff_arg;
                     cur_cursor->latch = 0;
-                    cur_cursor->row = (cur_cursor->row+1)%song->row_length;
+                    cur_cursor->row = (cur_cursor->row+cur_cursor->edit_step)%song->row_length;
                     register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
                     ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
                 } else {

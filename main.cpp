@@ -452,6 +452,7 @@ int main(int argc, char *argv[]) {
     cur_cursor.row = 0;
     cur_cursor.selection = note;
     cur_cursor.octave = 3;
+    cur_cursor.edit_step = 1;
     cur_cursor.latch = 0;
     cur_cursor.order = 0;
     cur_cursor.instr = 1;
@@ -611,11 +612,19 @@ int main(int argc, char *argv[]) {
             uint8_t one = 1;
             uint16_t one_16 = 1;
 
-            // Out-of-bounds protection for octave and speed.
+            // Out-of-bounds protection for octave and edit step.
+            ImGui::SetNextItemWidth(ImGui::GetWindowSize().x * 0.5f);
             if (ImGui::InputInt("Octave",&cur_cursor.octave)) {
                 if (cur_cursor.octave < 0) cur_cursor.octave = 0; // put it back to 0
                 else if (cur_cursor.octave > 7) cur_cursor.octave = 7; // put it back to 7
             }
+    
+            ImGui::SetNextItemWidth(ImGui::GetWindowSize().x * 0.5f);
+            if (ImGui::InputInt("Step",&cur_cursor.edit_step)) {
+                if (cur_cursor.edit_step < 0) cur_cursor.edit_step = 0; // put it back to 0
+                else if (cur_cursor.edit_step > 63) cur_cursor.edit_step = 63; // put it back to 63
+            }
+
             ImGui::Checkbox("Follow Pattern",&cur_cursor.do_follow);
             ImGui::Checkbox("Loop Pattern",&cur_cursor.loop);
 
@@ -647,6 +656,8 @@ int main(int argc, char *argv[]) {
 
             ImGui::Separator();
 
+            // Out-of-bounds protection for speed.
+            ImGui::PushItemWidth(ImGui::GetWindowSize().x * 0.5f);
             if (ImGui::InputScalar("Speed",ImGuiDataType_U8,&c_song.init_speed,&one)) {
                 if (c_song.init_speed < 1) c_song.init_speed = 1; // No speedcore for you
                 else if (c_song.init_speed > 127) c_song.init_speed = 127; // If you need more than 127 speed there's something wrong
@@ -660,6 +671,7 @@ int main(int argc, char *argv[]) {
                 else if (c_song.a_frequency > 32767) c_song.a_frequency = 32767;
                 init_player_freq_table(c_song.a_frequency);
             }
+            ImGui::PopItemWidth();
 
             ImGui::Text("SID model select");
             ImGui::SameLine();
@@ -668,16 +680,17 @@ int main(int argc, char *argv[]) {
                 SID_set_chip(cur_cursor.chip_mode);
             }
 
+            ImGui::PushItemWidth(ImGui::GetWindowSize().x * 0.5f);
             if (ImGui::InputScalar("Order Loop",ImGuiDataType_U8,&c_song.order_loop,&one)) {
                 if (c_song.order_loop < 0) c_song.order_loop = 0;
                 else if (c_song.order_loop >= c_song.order_len) c_song.order_loop = c_song.order_len-1;
             }
 
             if (ImGui::InputScalar("Pattern Length",ImGuiDataType_U16,&c_song.row_length,&one_16)) {
-                if (c_song.row_length < 0) c_song.row_length = 0;
+                if (c_song.row_length < 1) c_song.row_length = 1;
                 else if (c_song.row_length >= 256) c_song.row_length = 256;
             }
-
+            ImGui::PopItemWidth();
 
             //ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x/20.0,0.0f));
             //ImGui::NewLine();

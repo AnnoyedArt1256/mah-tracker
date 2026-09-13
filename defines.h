@@ -83,6 +83,7 @@ struct cursor {
     int ch, row;
     enum channel_mode selection;
     int octave;
+    int edit_step;
     int latch;
     int order;
     int instr;
