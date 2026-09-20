@@ -689,6 +689,8 @@ int main(int argc, char *argv[]) {
             if (ImGui::InputScalar("Pattern Length",ImGuiDataType_U16,&c_song.row_length,&one_16)) {
                 if (c_song.row_length < 1) c_song.row_length = 1;
                 else if (c_song.row_length >= 256) c_song.row_length = 256;
+                if (cur_cursor.row >= c_song.row_length) cur_cursor.row = c_song.row_length-1;
+                if (cur_cursor.play_row >= c_song.row_length) cur_cursor.play_row = c_song.row_length-1;
             }
             ImGui::PopItemWidth();
 
