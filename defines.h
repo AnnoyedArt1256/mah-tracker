@@ -153,3 +153,19 @@ extern void render_orders(song *song, cursor *cur_cursor, bool *enable);
 extern void render_instr(song *song, cursor *cur_cursor, bool *enable);
 
 extern void set_channel_mute(int ch, bool muted);
+
+// Global settings for the editor itself
+struct window_bool {
+    float audio_volume;
+    bool settings;
+    bool imgui_debugger;
+    bool pattern;
+    bool controls;
+    bool orders;
+    bool instr;
+    bool reg_view;
+    bool filter_view;
+    bool decimal_rows;
+};
+
+extern struct window_bool visible_windows;

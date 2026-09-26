@@ -53,18 +53,6 @@ namespace fs = std::filesystem;
 void save_settings();
 void load_settings();
 
-struct window_bool {
-    float audio_volume;
-    bool settings;
-    bool imgui_debugger;
-    bool pattern;
-    bool controls;
-    bool orders;
-    bool instr;
-    bool reg_view;
-    bool filter_view;
-};
-
 struct window_bool visible_windows;
 
 static bool opt_padding = false; // Is there padding (a blank space) between the window edge and the Dockspace?
@@ -223,9 +211,7 @@ void ShowExampleAppDockSpace(bool* p_open) {
         // The GetID() function is to give a unique identifier to the Dockspace - here, it's "MyDockSpace".
         ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
-    }
-    else
-    {
+    } else {
         // Docking is DISABLED - Show a warning message
     }
 
@@ -352,6 +338,9 @@ int main(int argc, char *argv[]) {
     visible_windows.pattern = true;
     visible_windows.settings = true;
     visible_windows.audio_volume = 1.0f;
+    visible_windows.reg_view = true;
+    visible_windows.filter_view = true;
+    visible_windows.decimal_rows = true;
 
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
@@ -593,6 +582,15 @@ int main(int argc, char *argv[]) {
             ImGui::Begin("Settings",(bool *)&visible_windows.settings);
             ImGui::SliderFloat("UI Scaling Factor", &io.FontGlobalScale, 0.5f, 3.0f); rightClickable
             ImGui::SliderFloat("Master Audio Volume", &visible_windows.audio_volume, 0.0f, 3.0f); rightClickable
+            ImGui::Text("Pattern row number format:");
+            ImGui::Indent();
+            if (ImGui::RadioButton("Decimal", visible_windows.decimal_rows == true)) {
+                visible_windows.decimal_rows = true;
+            }
+            if (ImGui::RadioButton("Hexadecimal", visible_windows.decimal_rows == false)) {
+                visible_windows.decimal_rows = false;
+            }
+            ImGui::Unindent();
             ImGui::Separator();
             ImGui::MenuItem("Padding", NULL, &opt_padding);
             ImGui::Separator();

@@ -863,7 +863,11 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
 
     for (int row = 0; row < song->row_length; row++) {
         ImGui::TableNextColumn();
-        ImGui::Text(" %02X ", row);
+        if (visible_windows.decimal_rows) {
+            ImGui::Text("%3d ", row);
+        } else {
+            ImGui::Text(" %02X ", row);
+        }
         ImGui::TableNextColumn();
         for (int ch = 0; ch < 3; ch++) {
             // C-4 01 4xx
