@@ -20,13 +20,15 @@ along with this program; if not, see
 // Default layout for imgui.ini
 const char *default_layout="[Window][DockSpace Demo]\n\
 Pos=0,0\n\
-Size=1470,816\n\
+Size=1470,815\n\
 Collapsed=0\n\
+LastUsed=20260927\n\
 \n\
 [Window][Debug##Default]\n\
 Pos=60,60\n\
 Size=400,400\n\
 Collapsed=0\n\
+LastUsed=20260927\n\
 \n\
 [Window][Dear ImGui Metrics/Debugger]\n\
 Pos=1038,323\n\
@@ -39,56 +41,64 @@ Pos=974,26\n\
 Size=496,295\n\
 Collapsed=0\n\
 DockId=0x0000000C,0\n\
+LastUsed=20260927\n\
 \n\
 [Window][Pattern]\n\
 Pos=0,363\n\
-Size=857,453\n\
+Size=857,452\n\
 Collapsed=0\n\
 DockId=0x0000000E,0\n\
+LastUsed=20260927\n\
 \n\
 [Window][Controls]\n\
 Pos=593,26\n\
 Size=379,295\n\
 Collapsed=0\n\
 DockId=0x0000000B,0\n\
+LastUsed=20260927\n\
 \n\
 [Window][Orders]\n\
 Pos=0,26\n\
 Size=591,295\n\
 Collapsed=0\n\
 DockId=0x00000005,0\n\
+LastUsed=20260927\n\
 \n\
 [Window][Instrument Editor]\n\
 Pos=859,323\n\
-Size=611,493\n\
+Size=611,492\n\
 Collapsed=0\n\
 DockId=0x00000008,0\n\
+LastUsed=20260927\n\
 \n\
 [Window][Register View]\n\
 Pos=593,26\n\
 Size=379,295\n\
 Collapsed=0\n\
 DockId=0x0000000B,1\n\
-\n\
-[Window][Filter Info]\n\
-Pos=0,323\n\
-Size=857,44\n\
-Collapsed=0\n\
-DockId=0x00000009,0\n\
+LastUsed=20260927\n\
 \n\
 [Window][Filter & Channel Info]\n\
 Pos=0,323\n\
 Size=857,38\n\
 Collapsed=0\n\
 DockId=0x0000000D,0\n\
+LastUsed=20260927\n\
 \n\
 [Window][Warning]\n\
 Pos=490,360\n\
 Size=490,92\n\
 Collapsed=0\n\
 \n\
+[Window][Effect List]\n\
+Pos=859,323\n\
+Size=611,492\n\
+Collapsed=0\n\
+DockId=0x00000008,1\n\
+LastUsed=20260927\n\
+\n\
 [Docking][Data]\n\
-DockSpace           ID=0xC0DFADC4 Window=0xD0388BC8 Pos=0,26 Size=1470,790 Split=Y\n\
+DockSpace           ID=0xC0DFADC4 Window=0xD0388BC8 Pos=0,26 Size=1470,789 Split=Y\n\
   DockNode          ID=0x00000003 Parent=0xC0DFADC4 SizeRef=1470,295 Split=X Selected=0xA0C159B7\n\
     DockNode        ID=0x00000005 Parent=0x00000003 SizeRef=591,265 HiddenTabBar=1 Selected=0x575D137D\n\
     DockNode        ID=0x00000006 Parent=0x00000003 SizeRef=877,265 Split=X Selected=0x4746B4B8\n\

@@ -6,7 +6,7 @@ unless noted otherwise, each byte/word is treated as an **unsigned** value and i
 ## Header (128 bytes)
 - 8 byte magic string: `MAHTRACK` (\0 is null terminator or $00 in hex)
 - 1 byte: initial tick speed
-- 2 bytes: version (0-6 for now)
+- 2 bytes: version (0-8 for now)
 - IF VERSION >= 4:
     - 1 byte: pitch bend shift amount
 - ELSE:

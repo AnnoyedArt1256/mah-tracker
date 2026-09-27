@@ -151,6 +151,7 @@ struct song {
 extern void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_chunks, bool *enable);
 extern void render_orders(song *song, cursor *cur_cursor, bool *enable);
 extern void render_instr(song *song, cursor *cur_cursor, bool *enable);
+extern void render_eff_list(bool *enable);
 
 extern void set_channel_mute(int ch, bool muted);
 
@@ -166,6 +167,7 @@ struct window_bool {
     bool reg_view;
     bool filter_view;
     bool decimal_rows;
+    bool effects_list;
 };
 
-extern struct window_bool visible_windows;
+extern window_bool visible_windows;

@@ -53,7 +53,7 @@ namespace fs = std::filesystem;
 void save_settings();
 void load_settings();
 
-struct window_bool visible_windows;
+window_bool visible_windows;
 
 static bool opt_padding = false; // Is there padding (a blank space) between the window edge and the Dockspace?
 
@@ -268,6 +268,7 @@ void ShowExampleAppDockSpace(bool* p_open) {
             ImGui::MenuItem("Controls", NULL, (bool *)&visible_windows.controls);
             ImGui::MenuItem("Orders", NULL, (bool *)&visible_windows.orders);
             ImGui::MenuItem("Instrument Editor", NULL, (bool *)&visible_windows.instr);
+            ImGui::MenuItem("Effect List", NULL, (bool *)&visible_windows.effects_list);
             ImGui::MenuItem("Register View", NULL, (bool *)&visible_windows.reg_view);
             ImGui::MenuItem("Filter & Channel Info", NULL, (bool *)&visible_windows.filter_view);
             ImGui::EndMenu();
@@ -341,6 +342,7 @@ int main(int argc, char *argv[]) {
     visible_windows.reg_view = true;
     visible_windows.filter_view = true;
     visible_windows.decimal_rows = true;
+    visible_windows.effects_list = true;
 
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
@@ -411,7 +413,7 @@ int main(int argc, char *argv[]) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.Fonts->AddFontDefault();
+    io.Fonts->AddFontDefaultBitmap();
     //io.Fonts->AddFontFromFileTTF("res/fontawesome.otf", 12.0f);
     //io.Fonts->AddFontFromFileTTF("IBMPlexMono-Regular.ttf", 25.0f); // FOINISS FONT OH MAI GAHHHH
 
@@ -602,6 +604,10 @@ int main(int argc, char *argv[]) {
 
         if (visible_windows.pattern) {
             render_pat(&c_song,&cur_cursor,&undo_total,(bool *)&visible_windows.pattern);
+        }
+
+        if (visible_windows.effects_list) {
+            render_eff_list((bool *)&visible_windows.effects_list);
         }
 
         if (visible_windows.controls) {

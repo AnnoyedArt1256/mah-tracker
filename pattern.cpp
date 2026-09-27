@@ -580,6 +580,32 @@ const ImU32 effect_cols[16] = {
     IM_COL32(227, 50, 241, 255), // Fxx: speed-related color (magenta)
 };
 
+struct effect_info {
+    bool implemented; // set to true if the effect is implemented
+    bool nibble_arg; // set to true if the effect uses two seperate nibbles for arguments
+    std::string description; // a basic description of said effect
+};
+
+// a lookup array for effect info
+const effect_info all_effect_info[16] = {
+    {false, false, ""}, // 0xx
+    {true,  false, "Pitch slide up"}, // 1xx
+    {true,  false, "Pitch slide down"}, // 2xx
+    {true,  false, "Portamento"}, // 3xx
+    {true,  true,  "Vibrato (x: speed, y: depth)"}, // 4xy
+    {true,  true,  "Set attack/decay to XY (x: attack, y: decay)"}, // 5xy
+    {true,  true,  "Set sustain/release to XY (x: sustain, y: release)"}, // 6xy
+    {false, false, ""}, // 7xx
+    {false, false, ""}, // 8xx
+    {true,  false, "Set filter cutoff"}, // 9xx
+    {false, false, ""}, // Axx
+    {false, false, ""}, // Bxx
+    {true,  false, "Set channel transpose"}, // Cxx
+    {true,  false, "Jump to next pattern"}, // Dxx
+    {true,  true,  "Set two alternating speeds (x: speed 1, y: speed 2)"}, // Exy
+    {true,  false, "Set speed"}, // Fxx
+};
+
 void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_chunks, bool *enable) {
     // init window and table
     ImGuiIO& io = ImGui::GetIO();
@@ -589,7 +615,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
     // only render the table if it's on screen...
     bool render_table = ImGui::BeginTable("patview",3+2,ImGuiTableFlags_BordersInnerV|ImGuiTableFlags_ScrollX|ImGuiTableFlags_ScrollY|ImGuiTableFlags_NoPadInnerX); 
     ImVec2 char_size_xy = ImGui::CalcTextSize("A");
-    float char_size = char_size_xy.x; // from foiniss
+    float char_size = char_size_xy.x; // from furnace
     char_size_xy.y += io.FontGlobalScale+2;
     const float ch_row_len = 12.0; // C-4 69 420
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
@@ -931,6 +957,55 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
     if (cur_cursor->do_follow && cur_cursor->playing) {
         cur_cursor->row = cur_cursor->play_row;
         ImGui::SetScrollY(cur_cursor->row*char_size_xy.y); 
+    }
+
+    ImGui::EndTable();
+    ImGui::PopStyleVar();
+    ImGui::End();
+}
+
+void render_eff_list(bool *enable) {
+    // init window and table
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::Begin("Effect List", enable);
+
+    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding,ImVec2(0.0f,0.0f));
+    // only render the table if it's on screen...
+    bool render_table = ImGui::BeginTable("effect_table",2,ImGuiTableFlags_ScrollY); 
+    ImVec2 char_size_xy = ImGui::CalcTextSize("A");
+    float char_size = char_size_xy.x; // from furnace
+    char_size_xy.y += io.FontGlobalScale+2;
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+    if (!render_table) {
+        // this is so the program doesn't crash when the effect list window is a hidden tab
+        ImGui::PopStyleVar();
+        ImGui::End();
+        return;
+    }
+
+    ImGui::TableSetupScrollFreeze(0, 1);
+    ImGui::TableSetupColumn("eff_name",ImGuiTableColumnFlags_WidthFixed,5.0*char_size);
+    ImGui::TableSetupColumn("eff_desc",ImGuiTableColumnFlags_WidthStretch);
+
+    ImGui::TableNextRow(ImGuiTableRowFlags_Headers, char_size_xy.y);
+    ImGui::TableNextColumn();
+    ImGui::Text("Name");
+    ImGui::TableNextColumn();
+    ImGui::Text("Description");
+    ImGui::TableNextRow(ImGuiTableRowFlags_None, char_size_xy.y/8.0f);
+    ImGui::TableNextRow(ImGuiTableRowFlags_None, char_size_xy.y);
+
+    for (int eff = 0; eff < 16; eff++) {
+        if (all_effect_info[eff].implemented) {
+            ImGui::TableNextColumn();
+            ImGui::PushStyleColor(ImGuiCol_Text, effect_cols[eff]);
+            ImGui::TextAligned(0.25f, 5.0*char_size, "%Xxx", eff);
+            ImGui::PopStyleColor();
+            ImGui::TableNextColumn();
+            ImGui::TextWrapped("%s", all_effect_info[eff].description.c_str()); 
+            ImGui::TableNextRow(ImGuiTableRowFlags_None, char_size_xy.y);
+        }
     }
 
     ImGui::EndTable();
