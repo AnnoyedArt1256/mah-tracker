@@ -108,6 +108,9 @@ struct cursor {
     pattern_chunk_copy pattern_copy_buffer;
     bool is_muted[6];
     int undo_pos;
+    // TODO: add 3SID, etc. support, thus requiring this
+    // variable to be an int, not a bool.
+    bool n_sids;
 };
 
 
@@ -151,6 +154,9 @@ struct song {
     // variable to be an int, not a bool.
     bool n_sids;
 };
+
+// a macro for getting the channel count of a song struct
+#define SONG_CH_COUNT(song) (song->n_sids ? 6 : 3)
 
 extern void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_chunks, bool *enable);
 extern void render_orders(song *song, cursor *cur_cursor, bool *enable);

@@ -69,7 +69,7 @@ std::vector<undo_chunk> undo_total;
 extern bool audio_paused;
 
 void init_default_song(song *song) {
-    int ch_count = song->n_sids ? 6 : 3; // for 2SID support
+    int ch_count = SONG_CH_COUNT(song); // for 2SID support
     for (int pat = 0; pat < 256; pat++) {
         for (int row = 0; row < 256; row++) {
             song->pattern[pat].rows[row].note = NOTE_EMPTY;
@@ -479,6 +479,7 @@ int main(int argc, char *argv[]) {
     // Main loop
     bool done = false;
     int cur_frame = 0;
+    cur_cursor.n_sids = false;
     c_song.n_sids = false;
     init_default_song(&c_song);
 
@@ -590,9 +591,10 @@ int main(int argc, char *argv[]) {
             if (ImGui::BeginPopupModal("New Song")) {
                 ImGui::SetItemDefaultFocus();
                 ImGui::TextUnformatted("Choose your module settings");
-                ImGui::Checkbox("Use 2 SIDs", (bool *)&c_song.n_sids);
+                ImGui::Checkbox("Use 2 SIDs", (bool *)&cur_cursor.n_sids);
                 if (ImGui::Button("OK")) {
                     cur_cursor.new_file_init = false;
+                    c_song.n_sids = cur_cursor.n_sids;
                     init_default_song(&c_song);
                     init_routine(&c_song);
                     cur_cursor.latch = 0;
