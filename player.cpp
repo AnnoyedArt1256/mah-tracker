@@ -28,6 +28,8 @@ along with this program; if not, see
 #include "siddefs-fp.h"
 #include "SID.h"
 
+#define GET_SID_CH_ADDR(ch) (((ch%3)*7)+((ch/3)*0x20))
+
 SDL_AudioDeviceID dev;
 reSIDfp::SID* sid_fp;
 
@@ -141,18 +143,20 @@ void init_sid() {
     reset_audio_buffer();
 }
 
-uint8_t sid_regs[0x20];
+uint8_t sid_regs[0x40];
 
 // SID write
 void write_sid(uint8_t addr, uint8_t val) {
-    sid_regs[addr&0x1f] = val;
-    sid_fp->write(addr,val);
+    sid_regs[addr&0x3f] = val;
+    if (addr < 0x20) sid_fp->write(addr,val);
 }
 
 // SID read
+/*
 uint8_t read_sid(uint8_t addr) {
     return sid_fp->read(addr);
 }
+*/
 
 void free_sid() {
     SDL_PauseAudioDevice(dev, 1);
@@ -233,17 +237,17 @@ struct pvars {
     uint8_t tick;
     uint8_t tick_sel;
     uint8_t speed[2];
-    uint8_t hr_delay[3];
-    uint8_t cur_note[3];
-    uint8_t incoming_note[3];
-    uint8_t incoming_note_delay[3];
-    uint8_t inst[3];
-    uint8_t cur_arpwave_pos[3];
-    uint16_t freq[3];
-    uint16_t bend[3];
-    uint16_t bend_delta[3];
-    uint16_t pw[3];
-    uint16_t pw_speed[3];
+    uint8_t hr_delay[MAX_SID_CHANNELS];
+    uint8_t cur_note[MAX_SID_CHANNELS];
+    uint8_t incoming_note[MAX_SID_CHANNELS];
+    uint8_t incoming_note_delay[MAX_SID_CHANNELS];
+    uint8_t inst[MAX_SID_CHANNELS];
+    uint8_t cur_arpwave_pos[MAX_SID_CHANNELS];
+    uint16_t freq[MAX_SID_CHANNELS];
+    uint16_t bend[MAX_SID_CHANNELS];
+    uint16_t bend_delta[MAX_SID_CHANNELS];
+    uint16_t pw[MAX_SID_CHANNELS];
+    uint16_t pw_speed[MAX_SID_CHANNELS];
     uint8_t cur_filter_pos;
     uint8_t filter_inst;
     uint8_t filter_advance;
@@ -251,14 +255,14 @@ struct pvars {
     uint8_t cutoff;
     uint8_t filt_mode;
     uint8_t vol;
-    uint8_t gate_mask[3];
-    uint8_t vib_arg[3];
-    uint8_t vib_tim[3];
-    uint8_t last_eff[3];
-    uint8_t last_arg[3];
-    uint8_t transpose[3];
-    uint16_t glide_limit[3];
-    uint8_t glide_note[3];
+    uint8_t gate_mask[MAX_SID_CHANNELS];
+    uint8_t vib_arg[MAX_SID_CHANNELS];
+    uint8_t vib_tim[MAX_SID_CHANNELS];
+    uint8_t last_eff[MAX_SID_CHANNELS];
+    uint8_t last_arg[MAX_SID_CHANNELS];
+    uint8_t transpose[MAX_SID_CHANNELS];
+    uint16_t glide_limit[MAX_SID_CHANNELS];
+    uint8_t glide_note[MAX_SID_CHANNELS];
     uint8_t looped;
     bool row_has_9xx;
 };
@@ -277,13 +281,15 @@ void init_routine(song *song) {
     player_vars.tick = 1;
     player_vars.tick_sel = 0;
     player_vars.row_has_9xx = false;
-    memset(&player_vars.hr_delay,0xFF,3);
-    memset(&player_vars.inst,0,3);
-    memset(&player_vars.transpose,0,3);
-    memset(&player_vars.gate_mask,0xFF,3);
-    memset(&player_vars.incoming_note_delay,0xFF,3);
+    memset(&player_vars.hr_delay,0xFF,MAX_SID_CHANNELS);
+    memset(&player_vars.inst,0,MAX_SID_CHANNELS);
+    memset(&player_vars.transpose,0,MAX_SID_CHANNELS);
+    memset(&player_vars.gate_mask,0xFF,MAX_SID_CHANNELS);
+    memset(&player_vars.incoming_note_delay,0xFF,MAX_SID_CHANNELS);
     for (int i = 0; i <= 0x18; i++) write_sid(i,0);
+    for (int i = 0; i <= 0x18; i++) write_sid(i+0x20,0);
     write_sid(0x18, 0x0F);
+    write_sid(0x18+0x20, 0x0F);
     player_vars.vol = 0x0F;
     player_vars.filt_mode = 0x00;
     player_vars.looped = 0;
@@ -298,9 +304,9 @@ void play_note_live(song *song, uint8_t ch, uint8_t note, uint8_t instr) {
     player_vars.cur_note[ch] = note;
     player_vars.cur_arpwave_pos[ch] = 0;
     player_vars.hr_delay[ch] = 0;
-    write_sid(ch*7+5, 0x00);
-    write_sid(ch*7+6, 0x00);
-    write_sid(ch*7+4, 0x08);
+    write_sid(GET_SID_CH_ADDR(ch)+5, 0x00);
+    write_sid(GET_SID_CH_ADDR(ch)+6, 0x00);
+    write_sid(GET_SID_CH_ADDR(ch)+4, 0x08);
 }
 
 void note_off_live(uint8_t ch) {
@@ -319,7 +325,7 @@ void advance_frame(song *song, cursor *cur_cursor) {
             bool did_order_skip = false;
             player_vars.tick = player_vars.speed[player_vars.tick_sel];
             uint8_t row = cur_cursor->play_row;
-            for (int ch = 0; ch < 3; ch++) {
+            for (int ch = 0; ch < MAX_SID_CHANNELS; ch++) {
                 uint8_t note     = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].note;
                 uint8_t instr    = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].instr;
                 uint8_t eff_type = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].eff_type;
@@ -345,9 +351,9 @@ void advance_frame(song *song, cursor *cur_cursor) {
                             player_vars.hr_delay[ch] = 0;
                             player_vars.bend[ch] = 0;
                             player_vars.vib_tim[ch] = 0;
-                            write_sid(ch*7+5, 0x00);
-                            write_sid(ch*7+6, 0x00);
-                            write_sid(ch*7+4, 0x08);
+                            write_sid(GET_SID_CH_ADDR(ch)+5, 0x00);
+                            write_sid(GET_SID_CH_ADDR(ch)+6, 0x00);
+                            write_sid(GET_SID_CH_ADDR(ch)+4, 0x08);
                         }
                     }
                 }
@@ -356,9 +362,9 @@ void advance_frame(song *song, cursor *cur_cursor) {
                     if (eff_type != 3) {
                         player_vars.cur_arpwave_pos[ch] = 0;
                         player_vars.hr_delay[ch] = 0;
-                        write_sid(ch*7+5, 0x00);
-                        write_sid(ch*7+6, 0x00);
-                        write_sid(ch*7+4, 0x08);
+                        write_sid(GET_SID_CH_ADDR(ch)+5, 0x00);
+                        write_sid(GET_SID_CH_ADDR(ch)+6, 0x00);
+                        write_sid(GET_SID_CH_ADDR(ch)+4, 0x08);
                     }
                 }
                 if (!(eff_type == 3 && eff_arg != 0)) player_vars.bend_delta[ch] = 0;
@@ -383,13 +389,13 @@ void advance_frame(song *song, cursor *cur_cursor) {
                         }
                         case 0x5: {
                             if (player_vars.hr_delay[ch] == 0xFF) {
-                                write_sid(ch*7+5, eff_arg);
+                                write_sid(GET_SID_CH_ADDR(ch)+5, eff_arg);
                             }
                             break;
                         }
                         case 0x6: {
                             if (player_vars.hr_delay[ch] == 0xFF) {
-                                write_sid(ch*7+6, eff_arg);
+                                write_sid(GET_SID_CH_ADDR(ch)+6, eff_arg);
                             }
                             break;
                         }
@@ -449,7 +455,7 @@ void advance_frame(song *song, cursor *cur_cursor) {
             }
         }
     }
-    for (int ch = 0; ch < 3; ch++) {
+    for (int ch = 0; ch < MAX_SID_CHANNELS; ch++) {
         uint8_t inst = player_vars.inst[ch];
         if (inst == 0) continue;
         if (player_vars.incoming_note_delay[ch] != 0xFF) {
@@ -463,14 +469,14 @@ void advance_frame(song *song, cursor *cur_cursor) {
                 player_vars.hr_delay[ch] = 0xFF;
                 player_vars.gate_mask[ch] = 0xFF; // gate on
                 if (player_vars.last_eff[ch] == 0x05)
-                    write_sid(ch*7+5, player_vars.last_arg[ch]);
+                    write_sid(GET_SID_CH_ADDR(ch)+5, player_vars.last_arg[ch]);
                 else
-                    write_sid(ch*7+5, (song->instr[inst].a<<4)|song->instr[inst].d);
+                    write_sid(GET_SID_CH_ADDR(ch)+5, (song->instr[inst].a<<4)|song->instr[inst].d);
 
                 if (player_vars.last_eff[ch] == 0x06)
-                    write_sid(ch*7+6, player_vars.last_arg[ch]);
+                    write_sid(GET_SID_CH_ADDR(ch)+6, player_vars.last_arg[ch]);
                 else
-                    write_sid(ch*7+6, (song->instr[inst].s<<4)|song->instr[inst].r);
+                    write_sid(GET_SID_CH_ADDR(ch)+6, (song->instr[inst].s<<4)|song->instr[inst].r);
 
                 if (song->instr[player_vars.inst[ch]].duty_reset) {
                     player_vars.pw[ch] = song->instr[player_vars.inst[ch]].duty_start;
@@ -522,7 +528,7 @@ void advance_frame(song *song, cursor *cur_cursor) {
             if (arp_val&0x80) arp_val &= 0x7f; // abs
             else arp_val = player_vars.cur_note[ch] + (arp_val-48) + player_vars.transpose[ch]; // rel
             player_vars.freq[ch] = freqtbllo[arp_val&127]|(freqtblhi[arp_val&127]<<8);
-            write_sid(ch*7+4,song->instr[inst].wav[arp_pos] & player_vars.gate_mask[ch]);
+            write_sid(GET_SID_CH_ADDR(ch)+4,song->instr[inst].wav[arp_pos] & player_vars.gate_mask[ch]);
             player_vars.cur_arpwave_pos[ch]++;
             if (player_vars.cur_arpwave_pos[ch] >= song->instr[inst].wav_len) {
                 uint8_t loop = song->instr[inst].wav_loop;
@@ -561,10 +567,10 @@ void advance_frame(song *song, cursor *cur_cursor) {
             else player_vars.bend[ch] += vib_depth;
         }
         uint16_t final_freq = player_vars.freq[ch]+player_vars.bend[ch];
-        write_sid(ch*7+0,final_freq&0xff);
-        write_sid(ch*7+1,final_freq>>8);
-        write_sid(ch*7+2,player_vars.pw[ch]&0xff);
-        write_sid(ch*7+3,player_vars.pw[ch]>>8);
+        write_sid(GET_SID_CH_ADDR(ch)+0,final_freq&0xff);
+        write_sid(GET_SID_CH_ADDR(ch)+1,final_freq>>8);
+        write_sid(GET_SID_CH_ADDR(ch)+2,player_vars.pw[ch]&0xff);
+        write_sid(GET_SID_CH_ADDR(ch)+3,player_vars.pw[ch]>>8);
     }
     if (player_vars.filter_advance) {
         // advance filter table
@@ -587,11 +593,19 @@ void advance_frame(song *song, cursor *cur_cursor) {
     write_sid(0x18,player_vars.filt_mode|player_vars.vol);
 }
 
-void register_view(bool *open) {
+void register_view(song *song, bool *open) {
     ImGui::Begin("Register View", open);
     for (int i = 0; i <= 0x18; i++) {
         ImGui::Text("%02x",sid_regs[i]);
         if ((i%7) != 6) ImGui::SameLine();
+    }
+    if (song->n_sids) {
+        ImGui::NewLine();
+        ImGui::Separator();
+        for (int i = 0; i <= 0x18; i++) {
+            ImGui::Text("%02x",sid_regs[i+0x20]);
+            if ((i%7) != 6) ImGui::SameLine();
+        }
     }
     ImGui::End();
 }

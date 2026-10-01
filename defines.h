@@ -34,6 +34,7 @@ along with this program; if not, see
 // audio properties
 #define SAMPLE_RATE 48000
 #define BUFFER_SIZE (960) // 44100/60
+#define MAX_SID_CHANNELS (6)
 
 // Pattern editor, for the column cursor position
 enum channel_mode {
@@ -71,7 +72,7 @@ struct undo_chunk {
 };
 
 struct pattern_chunk_copy {
-    pattern_data ch_rows[6];
+    pattern_data ch_rows[MAX_SID_CHANNELS];
     //int row_start;
     int row_len;
     int col_start;
@@ -106,7 +107,7 @@ struct cursor {
     bool already_dragged;
     // TODO: make this less memory-intensive :P
     pattern_chunk_copy pattern_copy_buffer;
-    bool is_muted[6];
+    bool is_muted[MAX_SID_CHANNELS];
     int undo_pos;
     // TODO: add 3SID, etc. support, thus requiring this
     // variable to be an int, not a bool.
@@ -142,7 +143,7 @@ struct instrument {
 // Pattern, order table, order length, 128 instruments, and initial speed
 struct song {
     pattern_data pattern[256];
-    uint16_t order_table[6][256];
+    uint16_t order_table[MAX_SID_CHANNELS][256];
     uint8_t order_len;
     instrument instr[128];
     uint8_t init_speed;

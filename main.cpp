@@ -324,7 +324,7 @@ extern void advance_audio(song *song, cursor *cur_cursor); // player.cpp
 extern int advance_sample(song *song, cursor *cur_cursor, int16_t *buffer, int buffer_length); // player.cpp
 extern int player_get_loop_cnt(); // player.cpp
 extern void init_routine(song *song); // player.cpp
-extern void register_view(bool *open);
+extern void register_view(song *song, bool *open);
 extern void display_filter_info(cursor *cur_cursor, bool *open);
 extern void SID_set_chip(bool mode); // player.cpp
 
@@ -459,14 +459,14 @@ int main(int argc, char *argv[]) {
     cur_cursor.chip_mode = true; // 8580 SID
     cur_cursor.dragging = false;
     cur_cursor.already_dragged = false;
-    for (int ch = 0; ch < 6; ch++) {
+    for (int ch = 0; ch < MAX_SID_CHANNELS; ch++) {
         cur_cursor.is_muted[ch] = false;
     }
 
     cur_cursor.pattern_copy_buffer.row_len = 0;
     cur_cursor.pattern_copy_buffer.col_start = 0;
     cur_cursor.pattern_copy_buffer.col_len = 0;
-    for (int ch = 0; ch < 6; ch++) {
+    for (int ch = 0; ch < MAX_SID_CHANNELS; ch++) {
         for (int row = 0; row < 256; row++) {
             cur_cursor.pattern_copy_buffer.ch_rows[ch].rows[row].note = NOTE_EMPTY;
             cur_cursor.pattern_copy_buffer.ch_rows[ch].rows[row].instr = 0;
@@ -748,7 +748,7 @@ int main(int argc, char *argv[]) {
         }
 
         if (visible_windows.reg_view) {
-            register_view(&visible_windows.reg_view);
+            register_view(&c_song, &visible_windows.reg_view);
         }
 
         if (visible_windows.filter_view) {
