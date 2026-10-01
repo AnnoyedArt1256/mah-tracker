@@ -57,6 +57,10 @@ make
 - Fxx: set speed to xx
 
 ## shortcuts
+
+### global:
+ctrl+n: **create** new song
+
 ### pattern editor:
 - up/down/left/right: move the cursor in that direction
 - space: switch between read-only ("Jam") and read-write ("Record") modes. this can also be done through the Jam/Record button in the Controls window.

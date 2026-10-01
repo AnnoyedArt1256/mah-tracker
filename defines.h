@@ -93,6 +93,7 @@ struct cursor {
     bool do_follow;
     bool do_record;
     bool new_file_popup;
+    bool new_file_init;
     bool chip_mode;
     int drag_pat;
     int drag_x_start;
@@ -138,7 +139,7 @@ struct instrument {
 // Pattern, order table, order length, 128 instruments, and initial speed
 struct song {
     pattern_data pattern[256];
-    uint16_t order_table[3][256];
+    uint16_t order_table[6][256];
     uint8_t order_len;
     instrument instr[128];
     uint8_t init_speed;

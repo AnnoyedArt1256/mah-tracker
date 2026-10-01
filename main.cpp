@@ -453,6 +453,7 @@ int main(int argc, char *argv[]) {
     cur_cursor.do_record = false; // jam
     cur_cursor.do_follow = true; // enable follow-play
     cur_cursor.new_file_popup = false;
+    cur_cursor.new_file_init = false;
     cur_cursor.chip_mode = true; // 8580 SID
     cur_cursor.dragging = false;
     cur_cursor.already_dragged = false;
@@ -553,6 +554,12 @@ int main(int argc, char *argv[]) {
 
         ShowExampleAppDockSpace((bool*)false);
 
+        bool ctrl_pressed = ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl);
+        if (ctrl_pressed && ImGui::IsKeyDown(ImGuiKey_N)) { // ctrl+n: new song
+            cur_cursor.new_file_popup = true;
+            reset_audio_buffer();
+        }
+    
         if (cur_cursor.order >= c_song.order_len)
             cur_cursor.order = c_song.order_len-1;
 
@@ -562,6 +569,7 @@ int main(int argc, char *argv[]) {
                 ImGui::SetItemDefaultFocus();
                 ImGui::TextUnformatted("Are you sure you want to create a new song?");
                 if (ImGui::Button("Yes")) {
+                    cur_cursor.new_file_init = true;
                     init_default_song(&c_song);
                     init_routine(&c_song);
                     cur_cursor.latch = 0;
@@ -577,6 +585,10 @@ int main(int argc, char *argv[]) {
                 }
                 ImGui::EndPopup();
             }
+        }
+
+        if (cur_cursor.new_file_init) {
+            cur_cursor.new_file_init = false;
         }
 
         if (visible_windows.settings) {
