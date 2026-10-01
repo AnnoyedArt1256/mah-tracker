@@ -77,9 +77,9 @@ void init_default_song(song *song) {
             song->pattern[pat].rows[row].eff_type = 0;
             song->pattern[pat].rows[row].eff_arg = 0;
         }
-        song->order_table[0][pat] = 0;
-        song->order_table[1][pat] = 0;
-        song->order_table[2][pat] = 0;
+        for (int ch = 0; ch < ch_count; ch++) {
+            song->order_table[ch][pat] = 0;
+        }
     }
 
     // Default instrument settings for freshly created instrument.
@@ -459,9 +459,9 @@ int main(int argc, char *argv[]) {
     cur_cursor.chip_mode = true; // 8580 SID
     cur_cursor.dragging = false;
     cur_cursor.already_dragged = false;
-    cur_cursor.is_muted[0] = false;
-    cur_cursor.is_muted[1] = false;
-    cur_cursor.is_muted[2] = false;
+    for (int ch = 0; ch < 6; ch++) {
+        cur_cursor.is_muted[ch] = false;
+    }
 
     cur_cursor.pattern_copy_buffer.row_len = 0;
     cur_cursor.pattern_copy_buffer.col_start = 0;

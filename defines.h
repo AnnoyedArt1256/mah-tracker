@@ -58,7 +58,7 @@ struct pattern_data {
 
 // undo properties
 #define MAX_UNDO_LEVELS 50
-#define UNDO_CHANNELS 3
+#define UNDO_CHANNELS 6
 
 struct undo_chunk {
     pattern_data ch_rows[UNDO_CHANNELS];
@@ -71,7 +71,7 @@ struct undo_chunk {
 };
 
 struct pattern_chunk_copy {
-    pattern_data ch_rows[3];
+    pattern_data ch_rows[6];
     //int row_start;
     int row_len;
     int col_start;
@@ -106,7 +106,7 @@ struct cursor {
     bool already_dragged;
     // TODO: make this less memory-intensive :P
     pattern_chunk_copy pattern_copy_buffer;
-    bool is_muted[3];
+    bool is_muted[6];
     int undo_pos;
 };
 
