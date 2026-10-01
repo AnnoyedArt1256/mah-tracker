@@ -37,6 +37,9 @@ void load_file(char *filename, song *song) {
         return;
     }
 
+    // TODO: add 2SID support in the .mah file format
+    song->n_sids = false;
+
     init_default_song(song);
     init_player_freq_table(song->a_frequency);
 

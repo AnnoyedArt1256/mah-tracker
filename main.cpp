@@ -69,6 +69,7 @@ std::vector<undo_chunk> undo_total;
 extern bool audio_paused;
 
 void init_default_song(song *song) {
+    int ch_count = song->n_sids ? 6 : 3; // for 2SID support
     for (int pat = 0; pat < 256; pat++) {
         for (int row = 0; row < 256; row++) {
             song->pattern[pat].rows[row].note = NOTE_EMPTY;
@@ -90,6 +91,7 @@ void init_default_song(song *song) {
         char ins_name_preview[32];
         snprintf(ins_name_preview,32,"Instrument %d",ins);
         song->instr[ins].name = ins_name_preview;
+
         // ADSR
         song->instr[ins].a = 0x0;
         song->instr[ins].d = 0x8;
@@ -126,9 +128,9 @@ void init_default_song(song *song) {
 
     //                      00 01
     // initial order table: 00 END
-    song->order_table[0][0] = 0x00;
-    song->order_table[1][0] = 0x01;
-    song->order_table[2][0] = 0x02;
+    for (int ch = 0; ch < ch_count; ch++) {
+        song->order_table[ch][0] = ch;
+    }
     song->order_len = 1;
     song->order_loop = 0;
     song->row_length = 64;
@@ -464,7 +466,7 @@ int main(int argc, char *argv[]) {
     cur_cursor.pattern_copy_buffer.row_len = 0;
     cur_cursor.pattern_copy_buffer.col_start = 0;
     cur_cursor.pattern_copy_buffer.col_len = 0;
-    for (int ch = 0; ch < 3; ch++) {
+    for (int ch = 0; ch < 6; ch++) {
         for (int row = 0; row < 256; row++) {
             cur_cursor.pattern_copy_buffer.ch_rows[ch].rows[row].note = NOTE_EMPTY;
             cur_cursor.pattern_copy_buffer.ch_rows[ch].rows[row].instr = 0;
@@ -477,6 +479,7 @@ int main(int argc, char *argv[]) {
     // Main loop
     bool done = false;
     int cur_frame = 0;
+    c_song.n_sids = false;
     init_default_song(&c_song);
 
     // process args in argv
@@ -570,11 +573,6 @@ int main(int argc, char *argv[]) {
                 ImGui::TextUnformatted("Are you sure you want to create a new song?");
                 if (ImGui::Button("Yes")) {
                     cur_cursor.new_file_init = true;
-                    init_default_song(&c_song);
-                    init_routine(&c_song);
-                    cur_cursor.latch = 0;
-                    cur_cursor.chip_mode = true;
-                    SID_set_chip(cur_cursor.chip_mode);
                     cur_cursor.new_file_popup = false;
                     ImGui::CloseCurrentPopup();
                 }
@@ -588,7 +586,27 @@ int main(int argc, char *argv[]) {
         }
 
         if (cur_cursor.new_file_init) {
-            cur_cursor.new_file_init = false;
+            ImGui::OpenPopup("New Song");
+            if (ImGui::BeginPopupModal("New Song")) {
+                ImGui::SetItemDefaultFocus();
+                ImGui::TextUnformatted("Choose your module settings");
+                ImGui::Checkbox("Use 2 SIDs", (bool *)&c_song.n_sids);
+                if (ImGui::Button("OK")) {
+                    cur_cursor.new_file_init = false;
+                    init_default_song(&c_song);
+                    init_routine(&c_song);
+                    cur_cursor.latch = 0;
+                    cur_cursor.chip_mode = true;
+                    SID_set_chip(cur_cursor.chip_mode);
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel")) {
+                    cur_cursor.new_file_init = false;
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
+            }
         }
 
         if (visible_windows.settings) {

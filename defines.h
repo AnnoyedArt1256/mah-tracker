@@ -147,6 +147,9 @@ struct song {
     uint16_t a_frequency;
     uint8_t order_loop;
     uint16_t row_length;
+    // TODO: add 3SID, etc. support, thus requiring this
+    // variable to be an int, not a bool.
+    bool n_sids;
 };
 
 extern void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_chunks, bool *enable);
