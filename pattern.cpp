@@ -112,7 +112,7 @@ void copy_pat(song *song, cursor *cur_cursor) {
     cur_cursor->pattern_copy_buffer.col_start = col_start;
     cur_cursor->pattern_copy_buffer.col_len = col_len;
 
-    for (int ch = 0; ch < 3; ch++) {
+    for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
         memcpy(cur_cursor->pattern_copy_buffer.ch_rows[ch].rows,
                &song->pattern[song->order_table[ch][cur_cursor->order]].rows[row_start],
                sizeof(pat_row)*row_len);
@@ -131,7 +131,7 @@ void paste_pat(song *song, cursor *cur_cursor) {
         for (int col = copy_buffer->col_start; col < copy_buffer->col_start+copy_buffer->col_len; col++) {
             // i could use memcpy, but just in case someone's using big-endian or smth...
             int rel_col = col-copy_buffer->col_start;
-            if ((cur_cursor->ch+(rel_col>>2)) >= 3) continue;
+            if ((cur_cursor->ch+(rel_col>>2)) >= SONG_CH_COUNT(song)) continue;
             pat_row *cur_pat_rows = song->pattern[song->order_table[cur_cursor->ch+(rel_col>>2)][cur_cursor->order]].rows;
             switch (col&3) {
                 case 0: cur_pat_rows[row+cursor_row].note = copy_buffer->ch_rows[col>>2].rows[row].note; break;
@@ -176,6 +176,7 @@ void clear_pat_selection(song *song, cursor *cur_cursor) {
         for (int col = col_start; col < col_start+col_len; col++) {
             // i could use memcpy, but just in case someone's using big-endian or something...
             int rel_col = col-col_start;
+            if ((start_ch+(rel_col>>2)) >= SONG_CH_COUNT(song)) continue;
             pat_row *cur_pat_rows = song->pattern[song->order_table[start_ch+(rel_col>>2)][cur_cursor->order]].rows;
             switch (col&3) {
                 case 0: cur_pat_rows[row+cursor_row].note = NOTE_EMPTY; break;
@@ -215,7 +216,7 @@ void transpose_pat_notes(song *song, cursor *cur_cursor, int delta) {
         for (int col = col_start; col <= col_end; col++) {
             if ((col&3) != 0) continue; // only note columns
             int ch = col>>2;
-            if (ch < 0 || ch >= 12) continue;
+            if (ch < 0 || ch >= SONG_CH_COUNT(song)) continue;
             pat_row *cur_pat_rows = song->pattern[song->order_table[ch][cur_cursor->order]].rows;
             uint8_t note = cur_pat_rows[row].note;
             if (note == NOTE_EMPTY || note == NOTE_OFF) continue;
@@ -391,7 +392,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
             }
             case eff_arg: {
                 cur_cursor->selection = note;
-                cur_cursor->ch = (cur_cursor->ch+1)%3;
+                cur_cursor->ch = (cur_cursor->ch+1)%SONG_CH_COUNT(song);
                 break;
             }
             default: break;
@@ -407,7 +408,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
             case note: {
                 cur_cursor->selection = eff_arg;
                 if (--cur_cursor->ch < 0) {
-                    cur_cursor->ch = 3-1;
+                    cur_cursor->ch = SONG_CH_COUNT(song)-1;
                 }
                 break;
             }
@@ -611,9 +612,13 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
     ImGuiIO& io = ImGui::GetIO();
     ImGui::Begin("Pattern", enable);
 
+    // This is run so that ImGui doesn't fuck up whenever the column count changes
+    // (e.g. when switching from 1SID to 2SIDs)
+    ImGui::PushID(SONG_CH_COUNT(song));
+
     ImGui::PushStyleVar(ImGuiStyleVar_CellPadding,ImVec2(0.0f,0.0f));
     // only render the table if it's on screen...
-    bool render_table = ImGui::BeginTable("patview",3+2,ImGuiTableFlags_BordersInnerV|ImGuiTableFlags_ScrollX|ImGuiTableFlags_ScrollY|ImGuiTableFlags_NoPadInnerX); 
+    bool render_table = ImGui::BeginTable("patview",SONG_CH_COUNT(song)+2,ImGuiTableFlags_BordersInnerV|ImGuiTableFlags_ScrollX|ImGuiTableFlags_ScrollY|ImGuiTableFlags_NoPadInnerX); 
     ImVec2 char_size_xy = ImGui::CalcTextSize("A");
     float char_size = char_size_xy.x; // from furnace
     char_size_xy.y += io.FontGlobalScale+2;
@@ -623,12 +628,13 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
     if (!render_table) {
         // this is so the program doesn't crash when the pattern window is a hidden tab
         ImGui::PopStyleVar();
+        ImGui::PopID();
         ImGui::End();
         return;
     }
 
     ImGui::TableSetupColumn("row_pos",ImGuiTableColumnFlags_WidthFixed,4.0*char_size);
-    for (int ch = 0; ch < 3; ch++) {
+    for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
         char ch_id[16];
         snprintf(ch_id,16,"ch%d",ch);
         ImGui::TableSetupColumn(ch_id,ImGuiTableColumnFlags_WidthFixed,ch_row_len*char_size-1);
@@ -643,7 +649,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
     ImGui::TableNextRow(ImGuiTableRowFlags_Headers, char_size_xy.y);
     ImGui::TableNextColumn();
     ImGui::TableNextColumn();
-    for (int ch = 0; ch < 3; ch++) {
+    for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
         char label[16];
         snprintf(label, sizeof(label), "SID%d", ch + 1);
 
@@ -661,7 +667,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
         }
         if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
             bool any_muted = false;
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < SONG_CH_COUNT(song); i++) {
                 if (cur_cursor->is_muted[i]) {
                     any_muted = true;
                     break;
@@ -669,7 +675,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
             }
             if (any_muted) {
                 // unsolo: unmute all channels
-                for (int i = 0; i < 3; i++) {
+                for (int i = 0; i < SONG_CH_COUNT(song); i++) {
                     if (cur_cursor->is_muted[i]) {
                         cur_cursor->is_muted[i] = false;
                         set_channel_mute(i, false);
@@ -677,7 +683,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
                 }
             } else {
                 // solo: mute every channel except the one clicked
-                for (int i = 0; i < 3; i++) {
+                for (int i = 0; i < SONG_CH_COUNT(song); i++) {
                     bool mute = (i != ch);
                     cur_cursor->is_muted[i] = mute;
                     set_channel_mute(i, mute);
@@ -703,7 +709,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
     ImGui::TableNextRow(0,char_size_xy.y);
     for (int row = 0; row < song->row_length; row += 4) {
         draw_list->AddRectFilled(ImVec2(c.x, c.y), 
-                                 ImVec2(c.x+char_size_xy.x*(ch_row_len*3.0),c.y+char_size_xy.y),
+                                 ImVec2(c.x+char_size_xy.x*(ch_row_len*((float)SONG_CH_COUNT(song))),c.y+char_size_xy.y),
                                  IM_COL32(0x20,0x2c,0x35,0xff));
         c.y += char_size_xy.y*4.0;
     }
@@ -719,7 +725,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
         }
 
         draw_list->AddRectFilled(ImVec2(c.x, c.y), 
-                                 ImVec2(c.x+char_size_xy.x*(ch_row_len*3.0),c.y+char_size_xy.y),
+                                 ImVec2(c.x+char_size_xy.x*(ch_row_len*((float)SONG_CH_COUNT(song))),c.y+char_size_xy.y),
                                  IM_COL32(0x40,0x4c,0x55,0xff));
     }
 
@@ -730,7 +736,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
         c.y += char_size_xy.y*cur_cursor->row;
 
         draw_list->AddRectFilled(ImVec2(c.x, c.y), 
-                                 ImVec2(c.x+char_size_xy.x*(ch_row_len*3.0),c.y+char_size_xy.y),
+                                 ImVec2(c.x+char_size_xy.x*(ch_row_len*((float)SONG_CH_COUNT(song))),c.y+char_size_xy.y),
                                  IM_COL32(0x30,0x1b,0x1b,0xff));
     }
 
@@ -801,7 +807,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
         }
 
         //printf("%02d %02d %d\n",ch,char_y,ch_select);
-        if (ch >= 0 && ch < 3 && char_y >= 0 && char_y < song->row_length
+        if (ch >= 0 && ch < SONG_CH_COUNT(song) && char_y >= 0 && char_y < song->row_length
             && ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows)) {
             if (ImGui::IsMouseClicked(0)) {
                 cur_cursor->ch = ch;
@@ -821,7 +827,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
                 if (cell_instr != 0) cur_cursor->instr = cell_instr;
 	        }
         }
-        // the mouse dragging code (eventually for copy+paste)
+        // the mouse dragging code (for copy+paste)
         if (ImGui::IsMouseDragging(0) && (!ImGui::IsMouseClicked(0))) {
             if (ch_select != nothing) {
                 cur_cursor->dragging = true;
@@ -830,8 +836,8 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
                 cur_cursor->drag_y_end = char_y;
                 cur_cursor->drag_x_end_sel = ch_select;  
                 // clamp the drag coords
-                if ((cur_cursor->drag_x_end/4) >= 3) {
-                    cur_cursor->drag_x_end = 4*3-1;
+                if ((cur_cursor->drag_x_end/4) >= SONG_CH_COUNT(song)) {
+                    cur_cursor->drag_x_end = 4*SONG_CH_COUNT(song)-1;
                     cur_cursor->drag_x_end_sel = eff_arg;
                 }
                 if ((cur_cursor->drag_x_end/4) < 0) { // just in case
@@ -864,7 +870,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
 
     if (ImGui::IsWindowFocused()) do_pat_keyboard(song, cur_cursor, undo_chunks);
 
-    if (cur_cursor->ch >= 0 && cur_cursor->ch < 3) {
+    if (cur_cursor->ch >= 0 && cur_cursor->ch < SONG_CH_COUNT(song)) {
         // render SELECTED cursor
         ImVec2 c = ImGui::GetCursorScreenPos();
         c.x = table_origin_x + char_size_xy.x*5.0; // offset it correctly
@@ -881,7 +887,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
     for (int dummy_row = 0; dummy_row < dummy_row_cnt; dummy_row++) {
         ImGui::TableNextColumn();
         ImGui::TableNextColumn();
-        for (int ch = 0; ch < 3; ch++) {
+        for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
             ImGui::TableNextColumn();
         }
         ImGui::TableNextRow(0,char_size_xy.y);
@@ -895,7 +901,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
             ImGui::Text(" %02X ", row);
         }
         ImGui::TableNextColumn();
-        for (int ch = 0; ch < 3; ch++) {
+        for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
             // C-4 01 4xx
             char cur_note[4] = "...";
             char cur_ins[3] = "..";
@@ -947,7 +953,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
     for (int dummy_row = 0; dummy_row < dummy_row_cnt; dummy_row++) {
         ImGui::TableNextColumn();
         ImGui::TableNextColumn();
-        for (int ch = 0; ch < 3; ch++) {
+        for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
             ImGui::TableNextColumn();
         }
         ImGui::TableNextRow(0,char_size_xy.y);
@@ -961,6 +967,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
 
     ImGui::EndTable();
     ImGui::PopStyleVar();
+    ImGui::PopID();
     ImGui::End();
 }
 
