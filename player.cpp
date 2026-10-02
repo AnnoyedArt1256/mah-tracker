@@ -33,6 +33,7 @@ along with this program; if not, see
 
 SDL_AudioDeviceID dev;
 reSIDfp::SID* sid_fp;
+reSIDfp::SID* sid_fp2;
 
 int16_t audio_buffer[BUFFER_SIZE*4];
 int16_t audio_buffer_temp[BUFFER_SIZE];
@@ -93,7 +94,11 @@ void reset_audio_buffer() {
 }
 
 void set_channel_mute(int ch, bool muted) {
-    if (sid_fp!=NULL) sid_fp->mute(ch, muted);
+    if (ch >= 3) {
+        if (sid_fp2!=NULL) sid_fp2->mute(ch%3, muted);
+    } else {
+        if (sid_fp!=NULL) sid_fp->mute(ch%3, muted);
+    }
 }
 
 bool audio_paused;
@@ -131,6 +136,12 @@ void init_sid() {
     sid_fp->reset();
     sid_fp->clockSilent(30000);
 
+    sid_fp2=new reSIDfp::SID;
+    sid_fp2->setChipModel(reSIDfp::MOS8580);
+    sid_fp2->setSamplingParameters(985248.0,reSIDfp::DECIMATE,985248.0,0.0);
+    sid_fp2->reset();
+    sid_fp2->clockSilent(30000);
+
     SDL_AudioSpec wanted;
     wanted.freq = SAMPLE_RATE;
     wanted.format = AUDIO_S16;
@@ -149,7 +160,8 @@ uint8_t sid_regs[0x40];
 // SID write
 void write_sid(uint8_t addr, uint8_t val) {
     sid_regs[addr&0x3f] = val;
-    if (addr < 0x20) sid_fp->write(addr,val);
+    if (addr < 0x20) sid_fp->write(addr&0x1f,val);
+    if (addr >= 0x20) sid_fp2->write(addr&0x1f,val);
 }
 
 // SID read
@@ -163,11 +175,18 @@ void free_sid() {
     SDL_PauseAudioDevice(dev, 1);
     SDL_CloseAudioDevice(dev);
     if (sid_fp!=NULL) delete sid_fp;
+    if (sid_fp2!=NULL) delete sid_fp2;
 }
 
 short sid_buf[8];
-void SID_advance_clock() {
-    sid_fp->clock(1,sid_buf);
+void SID_advance_clock(bool n_chip) {
+    if (n_chip) {
+        sid_fp->clock(1,sid_buf);
+        sid_fp2->clock(1,&sid_buf[1]);
+        sid_buf[0] += sid_buf[1];
+    } else {
+        sid_fp->clock(1,sid_buf);
+    }
 }
 
 short SID_advance_sample() {
@@ -176,6 +195,7 @@ short SID_advance_sample() {
 
 void SID_set_chip(bool mode) {
     sid_fp->setChipModel(mode?reSIDfp::MOS8580:reSIDfp::MOS6581);
+    sid_fp2->setChipModel(mode?reSIDfp::MOS8580:reSIDfp::MOS6581);
 }
 
 void advance_frame(song *song, cursor *cur_cursor);
@@ -184,7 +204,7 @@ extern float get_volume();
 void advance_audio(song *song, cursor *cur_cursor) {
     const static int sid_rate_inc = ((int)(((double)(985248)/(SAMPLE_RATE))*256));
     while (1) {
-        SID_advance_clock();
+        SID_advance_clock(song->n_sids);
         audio_cycles += 256;
         if (audio_cycles >= sid_rate_inc) {
             audio_cycles -= sid_rate_inc;
@@ -220,7 +240,7 @@ int advance_sample(song *song, cursor *cur_cursor, int16_t *buffer, int buffer_l
     const static int sid_rate_inc = ((int)(((double)(985248)/(SAMPLE_RATE))*256));
     int buf_pos = 0;
     while (buf_pos < buffer_length) {
-        SID_advance_clock();
+        SID_advance_clock(song->n_sids);
         audio_cycles += 256;
         if (audio_cycles >= sid_rate_inc) {
             audio_cycles -= sid_rate_inc;

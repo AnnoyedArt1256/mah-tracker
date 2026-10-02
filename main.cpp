@@ -480,7 +480,7 @@ int main(int argc, char *argv[]) {
     bool done = false;
     int cur_frame = 0;
     cur_cursor.n_sids = false;
-    c_song.n_sids = true;
+    c_song.n_sids = false;
     init_default_song(&c_song);
 
     // process args in argv
