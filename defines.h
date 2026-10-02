@@ -23,7 +23,7 @@ along with this program; if not, see
 #include <iostream>
 
 // the current .mah module file format version
-#define MAH_CURRENT_VERSION 8
+#define MAH_CURRENT_VERSION 9
 
 // Magic numbers for file format
 #define NOTE_OFF 0xfe // Note off in pattern

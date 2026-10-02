@@ -6,7 +6,7 @@ unless noted otherwise, each byte/word is treated as an **unsigned** value and i
 ## Header (128 bytes)
 - 8 byte magic string: `MAHTRACK` (\0 is null terminator or $00 in hex)
 - 1 byte: initial tick speed
-- 2 bytes: version (0-8 for now)
+- 2 bytes: version (0-9 for now)
 - IF VERSION >= 4:
     - 1 byte: pitch bend shift amount
 - ELSE:
@@ -27,12 +27,18 @@ unless noted otherwise, each byte/word is treated as an **unsigned** value and i
 - 32 bytes reserved for title (in the future)
 - 32 bytes reserved for author (in the future)
 - 32 bytes reserved for copyright/year (in the future)
-- 16 bytes reserved (currently only zeros)
+- IF VERSION >= 9:
+    - 1 byte: (number of SID chips) - 1
+        - e.g: a 1SID (3 channel) module should have a $00 byte here and a 2SID (6 channel) module should have the byte set to $01
+- ELSE:
+    - 1 byte reserved (currently only zeros)
+    - NOTE: Any .mah module file that uses a version number **SMALLER** than 9 is always a **1SID (3 channel) file.**
+- 15 bytes reserved (currently only zeros)
 
 ## Orders
 - 1 bytes: global order table length **MINUS** - 1
 
-- N*3 bytes: order table (NON-interleaved)
+- N\*3 (or N\*6 if using 2SID) bytes: order table (NON-interleaved)
     - in the file, the first channel's order table is laid out first, then the second's and then the third's
 
 ## Patterns

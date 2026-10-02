@@ -25,6 +25,7 @@ along with this program; if not, see
 const char magic_string[] = "MAHTRACK";
 
 extern void init_default_song(song *song);
+extern void init_default_pats(song *song);
 extern void init_player_freq_table(uint16_t a_freq);
 
 void load_file(char *filename, song *song) {
@@ -37,7 +38,6 @@ void load_file(char *filename, song *song) {
         return;
     }
 
-    // TODO: add 2SID support in the .mah file format
     song->n_sids = false;
 
     init_default_song(song);
@@ -80,11 +80,17 @@ void load_file(char *filename, song *song) {
     fseek(f, 32L, SEEK_CUR);
     fseek(f, 32L, SEEK_CUR);
 
-    fseek(f, 16L, SEEK_CUR);
+    if (version >= 9) {
+        song->n_sids = fgetc(f) ? true : false;
+        init_default_pats(song);
+    } else {
+        fseek(f, 1L, SEEK_CUR);
+    }
+    fseek(f, 15L, SEEK_CUR);
 
     // orders
     song->order_len = fgetc(f);
-    for (int ch = 0; ch < 3; ch++) {
+    for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
         for (int ord = 0; ord < song->order_len; ord++) {
             song->order_table[ch][ord] = fgetc(f);
         }
@@ -200,11 +206,13 @@ void save_file(char *filename, song *song) {
     for (int i = 0; i < 32; i++) fputc(0,f); // reserved
     for (int i = 0; i < 32; i++) fputc(0,f); // reserved
     
-    for (int i = 0; i < 16; i++) fputc(0,f); // reserved
+    // TODO: edit this line when n_sids becomes an int
+    fputc(song->n_sids ? 1 : 0, f); // SID count - 1
+    for (int i = 0; i < 15; i++) fputc(0,f); // reserved
 
     // orders
     fputc(song->order_len,f); // table length
-    for (int ch = 0; ch < 3; ch++) {
+    for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
         for (int ord = 0; ord < song->order_len; ord++) {
             fputc(song->order_table[ch][ord], f);
         }
@@ -212,7 +220,7 @@ void save_file(char *filename, song *song) {
 
     // patterns
     int max_pat = 0;
-    for (int ch = 0; ch < 3; ch++) {
+    for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
         for (int ord = 0; ord < song->order_len; ord++) {
             if (song->order_table[ch][ord] >= max_pat)
                 max_pat = song->order_table[ch][ord];

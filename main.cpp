@@ -68,7 +68,7 @@ song c_song; // current song
 std::vector<undo_chunk> undo_total;
 extern bool audio_paused;
 
-void init_default_song(song *song) {
+void init_default_pats(song *song) {
     int ch_count = SONG_CH_COUNT(song); // for 2SID support
     for (int pat = 0; pat < 256; pat++) {
         for (int row = 0; row < 256; row++) {
@@ -80,7 +80,19 @@ void init_default_song(song *song) {
         for (int ch = 0; ch < ch_count; ch++) {
             song->order_table[ch][pat] = 0;
         }
+    }    
+
+    //                      00 01
+    // initial order table: 00 END
+    for (int ch = 0; ch < ch_count; ch++) {
+        song->order_table[ch][0] = ch;
     }
+}
+
+
+void init_default_song(song *song) {
+    int ch_count = SONG_CH_COUNT(song); // for 2SID support
+    init_default_pats(song);
 
     // Default instrument settings for freshly created instrument.
     // 0xFF (128) instruments pre-populated in the editor list
@@ -126,11 +138,6 @@ void init_default_song(song *song) {
         song->instr[ins].duty_reset = true;
     }
 
-    //                      00 01
-    // initial order table: 00 END
-    for (int ch = 0; ch < ch_count; ch++) {
-        song->order_table[ch][0] = ch;
-    }
     song->order_len = 1;
     song->order_loop = 0;
     song->row_length = 64;
