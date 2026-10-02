@@ -28,7 +28,8 @@ along with this program; if not, see
 #include "siddefs-fp.h"
 #include "SID.h"
 
-#define GET_SID_CH_ADDR(ch) (((ch%3)*7)+((ch/3)*0x20))
+#define GET_SID_BASE_ADDR(chip_n) ((chip_n)*0x20)
+#define GET_SID_CH_ADDR(ch) (((ch%3)*7)+GET_SID_BASE_ADDR(ch/3))
 
 SDL_AudioDeviceID dev;
 reSIDfp::SID* sid_fp;
@@ -248,12 +249,12 @@ struct pvars {
     uint16_t bend_delta[MAX_SID_CHANNELS];
     uint16_t pw[MAX_SID_CHANNELS];
     uint16_t pw_speed[MAX_SID_CHANNELS];
-    uint8_t cur_filter_pos;
-    uint8_t filter_inst;
-    uint8_t filter_advance;
-    uint8_t resonance_ch_enable;
-    uint8_t cutoff;
-    uint8_t filt_mode;
+    uint8_t cur_filter_pos[MAX_SID_CHIPS];
+    uint8_t filter_inst[MAX_SID_CHIPS];
+    uint8_t filter_advance[MAX_SID_CHIPS];
+    uint8_t resonance_ch_enable[MAX_SID_CHIPS];
+    uint8_t cutoff[MAX_SID_CHIPS];
+    uint8_t filt_mode[MAX_SID_CHIPS];
     uint8_t vol;
     uint8_t gate_mask[MAX_SID_CHANNELS];
     uint8_t vib_arg[MAX_SID_CHANNELS];
@@ -264,7 +265,7 @@ struct pvars {
     uint16_t glide_limit[MAX_SID_CHANNELS];
     uint8_t glide_note[MAX_SID_CHANNELS];
     uint8_t looped;
-    bool row_has_9xx;
+    bool row_has_9xx[MAX_SID_CHIPS];
 };
 
 pvars player_vars;
@@ -280,7 +281,8 @@ void init_routine(song *song) {
     player_vars.speed[1] = song->init_speed;
     player_vars.tick = 1;
     player_vars.tick_sel = 0;
-    player_vars.row_has_9xx = false;
+    for (int chip_n = 0; chip_n < SONG_CH_COUNT(song)/3; chip_n++)
+        player_vars.row_has_9xx[chip_n] = false;
     memset(&player_vars.hr_delay,0xFF,MAX_SID_CHANNELS);
     memset(&player_vars.inst,0,MAX_SID_CHANNELS);
     memset(&player_vars.transpose,0,MAX_SID_CHANNELS);
@@ -291,7 +293,8 @@ void init_routine(song *song) {
     write_sid(0x18, 0x0F);
     write_sid(0x18+0x20, 0x0F);
     player_vars.vol = 0x0F;
-    player_vars.filt_mode = 0x00;
+    for (int chip_n = 0; chip_n < SONG_CH_COUNT(song)/3; chip_n++)
+        player_vars.filt_mode[chip_n] = 0x00;
     player_vars.looped = 0;
     reset_audio_buffer();
 }
@@ -325,7 +328,8 @@ void advance_frame(song *song, cursor *cur_cursor) {
             bool did_order_skip = false;
             player_vars.tick = player_vars.speed[player_vars.tick_sel];
             uint8_t row = cur_cursor->play_row;
-            for (int ch = 0; ch < MAX_SID_CHANNELS; ch++) {
+            for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
+                uint8_t chip_n = ch/3;
                 uint8_t note     = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].note;
                 uint8_t instr    = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].instr;
                 uint8_t eff_type = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].eff_type;
@@ -400,8 +404,8 @@ void advance_frame(song *song, cursor *cur_cursor) {
                             break;
                         }
                         case 0x9: {
-                            player_vars.cutoff = eff_arg;
-                            player_vars.row_has_9xx = true;
+                            player_vars.cutoff[chip_n] = eff_arg;
+                            player_vars.row_has_9xx[chip_n] = true;
                             break;
                         }
                         case 0xC: {
@@ -455,7 +459,8 @@ void advance_frame(song *song, cursor *cur_cursor) {
             }
         }
     }
-    for (int ch = 0; ch < MAX_SID_CHANNELS; ch++) {
+    for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
+        uint8_t chip_n = ch/3;
         uint8_t inst = player_vars.inst[ch];
         if (inst == 0) continue;
         if (player_vars.incoming_note_delay[ch] != 0xFF) {
@@ -485,21 +490,21 @@ void advance_frame(song *song, cursor *cur_cursor) {
 
                 if (song->instr[inst].filter_enable) {
                     uint8_t resonance = song->instr[inst].filter_res;
-                    player_vars.resonance_ch_enable = (player_vars.resonance_ch_enable&0x0f)|(resonance<<4);
-                    player_vars.resonance_ch_enable |= 1<<ch;
+                    player_vars.resonance_ch_enable[chip_n] = (player_vars.resonance_ch_enable[chip_n]&0x0f)|(resonance<<4);
+                    player_vars.resonance_ch_enable[chip_n] |= 1<<(ch%3);
                     if (song->instr[inst].filter_len != 0) {
-                        player_vars.filter_inst = inst;
-                        player_vars.cur_filter_pos = 0;
-                        player_vars.filter_advance = true;
+                        player_vars.filter_inst[chip_n] = inst;
+                        player_vars.cur_filter_pos[chip_n] = 0;
+                        player_vars.filter_advance[chip_n] = true;
                     }
                     // relative filter sweeps should set the cutoff 
                     // to the inital cutoff during note initialization
                     if (song->instr[inst].filter_sweep_mode) {
-                        if (!player_vars.row_has_9xx)
-                            player_vars.cutoff = song->instr[inst].filter_init_cutoff;
+                        if (!player_vars.row_has_9xx[chip_n])
+                            player_vars.cutoff[chip_n] = song->instr[inst].filter_init_cutoff;
                     }
                 } else {
-                    player_vars.resonance_ch_enable &= ~(1<<ch);
+                    player_vars.resonance_ch_enable[chip_n] &= ~(1<<(ch%3));
                 }
             }
         }
@@ -572,25 +577,27 @@ void advance_frame(song *song, cursor *cur_cursor) {
         write_sid(GET_SID_CH_ADDR(ch)+2,player_vars.pw[ch]&0xff);
         write_sid(GET_SID_CH_ADDR(ch)+3,player_vars.pw[ch]>>8);
     }
-    if (player_vars.filter_advance) {
-        // advance filter table
-        uint8_t inst = player_vars.filter_inst;
-        if (song->instr[inst].filter_sweep_mode) {
-            player_vars.cutoff += song->instr[inst].filter[player_vars.cur_filter_pos];
-        } else {
-            player_vars.cutoff = song->instr[inst].filter[player_vars.cur_filter_pos];
+    for (int chip_n = 0; chip_n < SONG_CH_COUNT(song)/3; chip_n++) {
+        if (player_vars.filter_advance[chip_n]) {
+            // advance filter table
+            uint8_t inst = player_vars.filter_inst[chip_n];
+            if (song->instr[inst].filter_sweep_mode) {
+                player_vars.cutoff[chip_n] += song->instr[inst].filter[player_vars.cur_filter_pos[chip_n]];
+            } else {
+                player_vars.cutoff[chip_n] = song->instr[inst].filter[player_vars.cur_filter_pos[chip_n]];
+            }
+            player_vars.filt_mode[chip_n] = song->instr[inst].filter_mode[player_vars.cur_filter_pos[chip_n]]&0x70;
+            player_vars.cur_filter_pos[chip_n]++;
+            if (player_vars.cur_filter_pos[chip_n] >= song->instr[inst].filter_len) {
+                uint8_t loop_pos = song->instr[inst].filter_loop;
+                if (loop_pos == 0xFF) player_vars.filter_advance[chip_n] = false;
+                else player_vars.cur_filter_pos[chip_n] = loop_pos;
+            }
         }
-        player_vars.filt_mode = song->instr[inst].filter_mode[player_vars.cur_filter_pos]&0x70;
-        player_vars.cur_filter_pos++;
-        if (player_vars.cur_filter_pos >= song->instr[inst].filter_len) {
-            uint8_t loop_pos = song->instr[inst].filter_loop;
-            if (loop_pos == 0xFF) player_vars.filter_advance = false;
-            else player_vars.cur_filter_pos = loop_pos;
-        }
+        write_sid(0x16+GET_SID_BASE_ADDR(chip_n),player_vars.cutoff[chip_n]);
+        write_sid(0x17+GET_SID_BASE_ADDR(chip_n),player_vars.resonance_ch_enable[chip_n]);
+        write_sid(0x18+GET_SID_BASE_ADDR(chip_n),player_vars.filt_mode[chip_n]|player_vars.vol);
     }
-    write_sid(0x16,player_vars.cutoff);
-    write_sid(0x17,player_vars.resonance_ch_enable);
-    write_sid(0x18,player_vars.filt_mode|player_vars.vol);
 }
 
 void register_view(song *song, bool *open) {
@@ -620,9 +627,9 @@ void display_filter_info(cursor *cur_cursor, bool *open) {
     for (int i = 0; i < 3; i++) {
         char ch_id[32];
         snprintf(ch_id,32,"Channel %d",i+1);
-        ImGui::Text("Channel %d: %s ", i+1, player_vars.resonance_ch_enable&(1<<i)?"FILTER":"      ");
+        ImGui::Text("Channel %d: %s ", i+1, player_vars.resonance_ch_enable[0]&(1<<i)?"FILTER":"      ");
         ImGui::SameLine();
     }
-    ImGui::Text("Filter: %s",filt_modes[player_vars.filt_mode>>4&7]);
+    ImGui::Text("Filter: %s",filt_modes[player_vars.filt_mode[0]>>4&7]);
     ImGui::End();
 }

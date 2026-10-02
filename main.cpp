@@ -480,7 +480,7 @@ int main(int argc, char *argv[]) {
     bool done = false;
     int cur_frame = 0;
     cur_cursor.n_sids = false;
-    c_song.n_sids = false;
+    c_song.n_sids = true;
     init_default_song(&c_song);
 
     // process args in argv
@@ -596,6 +596,7 @@ int main(int argc, char *argv[]) {
                     cur_cursor.new_file_init = false;
                     c_song.n_sids = cur_cursor.n_sids;
                     init_default_song(&c_song);
+                    init_player_freq_table(c_song.a_frequency);
                     init_routine(&c_song);
                     cur_cursor.latch = 0;
                     cur_cursor.chip_mode = true;

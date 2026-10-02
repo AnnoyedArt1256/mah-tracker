@@ -34,7 +34,8 @@ along with this program; if not, see
 // audio properties
 #define SAMPLE_RATE 48000
 #define BUFFER_SIZE (960) // 44100/60
-#define MAX_SID_CHANNELS (6)
+#define MAX_SID_CHANNELS (6) // for 2SID
+#define MAX_SID_CHIPS (2) // 2SID chips == 6 channels
 
 // Pattern editor, for the column cursor position
 enum channel_mode {
