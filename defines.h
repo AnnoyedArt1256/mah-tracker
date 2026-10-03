@@ -23,7 +23,7 @@ along with this program; if not, see
 #include <iostream>
 
 // the current .mah module file format version
-#define MAH_CURRENT_VERSION 8
+#define MAH_CURRENT_VERSION 9
 
 // Magic numbers for file format
 #define NOTE_OFF 0xfe // Note off in pattern
@@ -34,6 +34,8 @@ along with this program; if not, see
 // audio properties
 #define SAMPLE_RATE 48000
 #define BUFFER_SIZE (960) // 44100/60
+#define MAX_SID_CHANNELS (6) // for 2SID
+#define MAX_SID_CHIPS (2) // 2SID chips == 6 channels
 
 // Pattern editor, for the column cursor position
 enum channel_mode {
@@ -58,7 +60,7 @@ struct pattern_data {
 
 // undo properties
 #define MAX_UNDO_LEVELS 50
-#define UNDO_CHANNELS 3
+#define UNDO_CHANNELS 6
 
 struct undo_chunk {
     pattern_data ch_rows[UNDO_CHANNELS];
@@ -71,7 +73,7 @@ struct undo_chunk {
 };
 
 struct pattern_chunk_copy {
-    pattern_data ch_rows[3];
+    pattern_data ch_rows[MAX_SID_CHANNELS];
     //int row_start;
     int row_len;
     int col_start;
@@ -93,6 +95,7 @@ struct cursor {
     bool do_follow;
     bool do_record;
     bool new_file_popup;
+    bool new_file_init;
     bool chip_mode;
     int drag_pat;
     int drag_x_start;
@@ -105,8 +108,11 @@ struct cursor {
     bool already_dragged;
     // TODO: make this less memory-intensive :P
     pattern_chunk_copy pattern_copy_buffer;
-    bool is_muted[3];
+    bool is_muted[MAX_SID_CHANNELS];
     int undo_pos;
+    // TODO: add 3SID, etc. support, thus requiring this
+    // variable to be an int, not a bool.
+    bool n_sids;
 };
 
 
@@ -138,7 +144,7 @@ struct instrument {
 // Pattern, order table, order length, 128 instruments, and initial speed
 struct song {
     pattern_data pattern[256];
-    uint16_t order_table[3][256];
+    uint16_t order_table[MAX_SID_CHANNELS][256];
     uint8_t order_len;
     instrument instr[128];
     uint8_t init_speed;
@@ -146,7 +152,13 @@ struct song {
     uint16_t a_frequency;
     uint8_t order_loop;
     uint16_t row_length;
+    // TODO: add 3SID, etc. support, thus requiring this
+    // variable to be an int, not a bool.
+    bool n_sids;
 };
+
+// a macro for getting the channel count of a song struct
+#define SONG_CH_COUNT(song) (song->n_sids ? 6 : 3)
 
 extern void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_chunks, bool *enable);
 extern void render_orders(song *song, cursor *cur_cursor, bool *enable);

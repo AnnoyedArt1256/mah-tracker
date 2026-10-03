@@ -83,12 +83,15 @@ play:
     lda #0
     sta do_patend
     sta row_has_9xx
+    .if sid_chip_cnt >= 2
+        sta row_has_9xx+1
+    .endif
 
     ldx #0
 ch_loop:
     jsr do_ch
     inx
-    cpx #3
+    cpx #3*sid_chip_cnt
     bne ch_loop
 
     lda do_patend
@@ -133,14 +136,38 @@ skipseq:
 @skip_freq:
     .endif
     inx
-    cpx #3
+    cpx #3*sid_chip_cnt
     bne :-
 
-    ;jsr do_filt
-    ;rts
+    .if sid_chip_cnt >= 2
+filt_ch_temp = glide_temp
+filt_base_temp = last_eff
+        lda #0
+        sta filt_ch_temp
+        jsr do_filt
+        lda #1
+        sta filt_ch_temp
+        jsr do_filt
+        rts
+    .endif
 
 do_filt:
-    ldx filt_inst
+    .if sid_chip_cnt >= 2
+        ldy filt_ch_temp
+
+        tya
+        asl
+        clc
+        adc filt_ch_temp
+        tax
+        lda chip_base_tabl, x
+        sta filt_base_temp
+
+        ldx filt_inst, y
+        stx filt_ch_temp+1
+    .else
+        ldx filt_inst
+    .endif
     bne :+
     rts
 :
@@ -150,13 +177,26 @@ do_filt:
     sta temp+1
 
 @redo_wave:
-    ldy filter_pos
+    .if sid_chip_cnt >= 2
+        ldx filt_ch_temp
+        ldy filter_pos, x
+        ldx filt_ch_temp+1
+    .else
+        ldy filter_pos
+    .endif
     lda (temp), y ; filter mode
     cmp #$ff
     beq @do_jump
 
-    ora #$0f
-    sta $d418
+    .if sid_chip_cnt >= 2
+        ldx filt_base_temp
+        ora #$0f
+        sta $d418, x
+        ldx filt_ch_temp+1
+    .else
+        ora #$0f
+        sta $d418
+    .endif
 
     tya
     clc
@@ -164,32 +204,59 @@ do_filt:
     tay
 
     lda ins_filter_enable, x
+    .if sid_chip_cnt >= 2
+        ldx filt_ch_temp
+    .endif
     and #$20
     beq :+
     lda (temp), y ; filter cutoff
     clc
-    adc cur_cutoff
+    .if sid_chip_cnt >= 2
+        adc cur_cutoff, x
+    .else
+        adc cur_cutoff
+    .endif
     jmp :++
 :
     lda (temp), y ; filter cutoff
 :
 
-    sta cur_cutoff
-   
-    inc filter_pos
+    .if sid_chip_cnt >= 2
+        sta cur_cutoff, x
+        inc filter_pos, x
+        lda cur_cutoff, x
+        ldx filt_base_temp
+        sta $d416, x
+        ldx filt_ch_temp+1
+    .else
+        sta cur_cutoff
+        inc filter_pos
+        lda cur_cutoff
+        sta $d416
+    .endif
 
-    lda cur_cutoff
-    sta $d416
     rts
 
 @do_jump:
-    ldy filt_inst
-    lda filter_pos
-    clc
-    adc ins_filter_len, y
-    tay
-    lda (temp), y
-    sta filter_pos
+    .if sid_chip_cnt >= 2
+        ldx filt_ch_temp
+        ldy filt_inst, x
+        lda filter_pos, x
+        clc
+        adc ins_filter_len, y
+        tay
+        lda (temp), y
+        sta filter_pos, x
+        ldx filt_ch_temp+1
+    .else
+        ldy filt_inst
+        lda filter_pos
+        clc
+        adc ins_filter_len, y
+        tay
+        lda (temp), y
+        sta filter_pos
+    .endif
     jmp @redo_wave
 
 do_pulse_sweep:
@@ -295,43 +362,100 @@ init_note_macros:
     sta duty_hi, x
 :
 
-    lda ins_filter_enable, y
-    and #$20
-    beq :+
-    lda row_has_9xx
-    bne :+
-    lda ins_filter_init_cut, y
-    sta cur_cutoff
-:
+    .if sid_chip_cnt >= 2
+        lda ins_filter_enable, y
+        and #$20
+        beq :+
+        ldy chip_num_tabl, x
+        lda row_has_9xx, y
+        bne :+
+        ldy ins, x
+        lda ins_filter_init_cut, y
+        ldy chip_num_tabl, x
+        sta cur_cutoff, y
+    :
+        ldy ins, x
 
-    lda filt_resonance_temp
-    and bit_mask_inv, x
-    sta filt_resonance_temp
-    and #7
-    sta temp
+        ldy chip_num_tabl, x
+        lda filt_resonance_temp, y
+        and bit_mask_inv, x
+        sta filt_resonance_temp, y
+        and #7
+        sta temp
+        ldy ins, x
+    .else
+        lda ins_filter_enable, y
+        and #$20
+        beq :+
+        lda row_has_9xx
+        bne :+
+        lda ins_filter_init_cut, y
+        sta cur_cutoff
+    :
 
-    lda ins_filter_enable, y
-    asl
-    asl
-    asl
-    asl
-    bcc :+
-    ora bit_mask, x
-    ora temp
-    sta filt_resonance_temp
-:
-    lda filt_resonance_temp
-    sta $d417
+        lda filt_resonance_temp
+        and bit_mask_inv, x
+        sta filt_resonance_temp
+        and #7
+        sta temp
+    .endif
 
-    lda ins_filter_len, y
-    beq :+
-    lda ins_filter_enable, y
-    and #$10
-    beq :+
-    lda #0
-    sta filter_pos
-    sty filt_inst
-:
+    .if sid_chip_cnt >= 2
+        lda ins_filter_enable, y
+        asl
+        asl
+        asl
+        asl
+        bcc :+
+        ora bit_mask, x
+        ora temp
+        ldy chip_num_tabl, x
+        sta filt_resonance_temp, y
+    :
+        ldy chip_num_tabl, x
+        lda filt_resonance_temp, y
+        ldy chip_base_tabl, x
+        sta $d417, y
+        ldy ins, x
+    .else
+        lda ins_filter_enable, y
+        asl
+        asl
+        asl
+        asl
+        bcc :+
+        ora bit_mask, x
+        ora temp
+        sta filt_resonance_temp
+    :
+        lda filt_resonance_temp
+        sta $d417
+    .endif
+
+    .if sid_chip_cnt >= 2
+        lda ins_filter_len, y
+        beq :+
+        lda ins_filter_enable, y
+        and #$10
+        beq :+
+        tya
+        ldy chip_num_tabl, x
+        sta filt_inst, y
+        lda #0
+        sta filter_pos, y
+        ldy ins, x
+    :
+    .else
+        lda ins_filter_len, y
+        beq :+
+        lda ins_filter_enable, y
+        and #$10
+        beq :+
+        lda #0
+        sta filter_pos
+        sty filt_inst
+    :
+    .endif
 
     lda #$ff
     sta hr_delay, x
@@ -521,7 +645,13 @@ pattern_rel_ptr = *+1
     lda eff_type, x
     cmp #$09
     bne :+
-    sta row_has_9xx
+    .if sid_chip_cnt >= 2
+        ldy chip_num_tabl, x
+        sta row_has_9xx, y
+        ; ldy #1
+    .else
+        sta row_has_9xx
+    .endif
 :
     inc pattern_rel_ptr
     inc pattern_rel_ptr
@@ -667,9 +797,31 @@ reinit_note_inst:
     .endif
     rts
 
-sid_mul: .byte 0, 7, 14
-bit_mask: .byte 1, 2, 4
-bit_mask_inv: .byte 1^$ff, 2^$ff, 4^$ff
+sid_mul:
+    .byte 0, 7, 14
+    .if sid_chip_cnt >= 2
+        .byte $20+0, $20+7, $20+14
+    .endif
+bit_mask:
+    .byte 1, 2, 4
+    .if sid_chip_cnt >= 2
+        .byte 1, 2, 4
+    .endif
+bit_mask_inv:
+    .byte 1^$ff, 2^$ff, 4^$ff
+    .if sid_chip_cnt >= 2
+        .byte 1^$ff, 2^$ff, 4^$ff
+    .endif
+.if sid_chip_cnt >= 2
+chip_num_tabl:
+    .repeat sid_chip_cnt, I
+        .res 3, I
+    .endrepeat
+chip_base_tabl:
+    .repeat sid_chip_cnt, I
+        .res 3, I*$20
+    .endrepeat
+.endif
 
 init:
     ldx #$18
@@ -684,7 +836,7 @@ init:
     dex
     bpl :-
     lda #$ff
-    ldx #2
+    ldx #(3*sid_chip_cnt)-1
 :
     sta hr_delay, x
     sta gate_mask, x
@@ -693,6 +845,10 @@ init:
     bpl :-
     lda #$0f
     sta $d418
+    .if sid_chip_cnt >= 2
+        lda #$0f
+        sta $d418+$20
+    .endif
     lda init_speed
     sta speed
     sta speed+1
@@ -700,16 +856,24 @@ init:
     sta tick
     lda #0
     sta order
-    sta ins
-    sta ins+1
-    sta ins+2
+    .if sid_chip_cnt >= 2
+        ldx #(3*sid_chip_cnt)-1
+    :
+        sta ins, x
+        dex
+        bpl :-
+    .else
+        sta ins
+        sta ins+1
+        sta ins+2
+    .endif
     ;jsr set_pat
     ;rts
 
 ; Y = pattern
 set_pat:
     sta @set_pat_smc+1
-    ldx #2
+    ldx #(3*sid_chip_cnt)-1
 @loop:
     lda order_lo, x
     sta temp
@@ -729,13 +893,19 @@ set_pat:
     sta pat_ptr_lo, x
     lda pat_hi, y
     sta pat_ptr_hi, x
+    .if sid_chip_cnt >= 2
+        lda #1
+        sta dur, x
+    .endif
     dex
     bpl @loop
 
-    lda #1
-    sta dur
-    sta dur+1
-    sta dur+2
+    .if sid_chip_cnt < 2
+        lda #1
+        sta dur
+        sta dur+1
+        sta dur+2
+    .endif
     rts
 
 do_eff_cut:
@@ -744,10 +914,18 @@ do_eff_cut:
     lda tick
     cmp tick_cur
     bne :+
-    lda eff_arg, x
-    sta cur_cutoff
-    lda #$09
-    sta row_has_9xx
+    .if sid_chip_cnt >= 2
+        ldy chip_num_tabl, x
+        lda eff_arg, x
+        sta cur_cutoff, y
+        lda #$09
+        sta row_has_9xx, y
+    .else
+        lda eff_arg, x
+        sta cur_cutoff
+        lda #$09
+        sta row_has_9xx
+    .endif
 :
     ldy temp
     rts
@@ -922,54 +1100,60 @@ vib_add:
 
 order_lo:
     .lobytes order_ch0, order_ch1, order_ch2
+    .if sid_chip_cnt >= 2
+        .lobytes order_ch3, order_ch4, order_ch5
+    .endif
 
 order_hi:
     .hibytes order_ch0, order_ch1, order_ch2
+    .if sid_chip_cnt >= 2
+        .hibytes order_ch3, order_ch4, order_ch5
+    .endif
 
 vars_start:
 speed: .byte 0, 0
 tick: .byte 0
 tick_cur: .byte 0
 tick_sel: .byte 0
-dur: .res 3, 0
-ins: .res 3, 0
-gate_mask: .res 3,0
-pat_ptr_lo: .res 3, 0
-pat_ptr_hi: .res 3, 0
-eff_type: .res 3, 0
-eff_arg: .res 3, 0
-cur_note: .res 3, 0
-incoming_note: .res 3, 0
-incoming_note_delay: .res 3, 0
-arp_pos: .res 3, 0
-arp_addr_lo: .res 3, 0
-arp_addr_hi: .res 3, 0
-hr_delay: .res 3, 0
+dur: .res 3*sid_chip_cnt, 0
+ins: .res 3*sid_chip_cnt, 0
+gate_mask: .res 3*sid_chip_cnt,0
+pat_ptr_lo: .res 3*sid_chip_cnt, 0
+pat_ptr_hi: .res 3*sid_chip_cnt, 0
+eff_type: .res 3*sid_chip_cnt, 0
+eff_arg: .res 3*sid_chip_cnt, 0
+cur_note: .res 3*sid_chip_cnt, 0
+incoming_note: .res 3*sid_chip_cnt, 0
+incoming_note_delay: .res 3*sid_chip_cnt, 0
+arp_pos: .res 3*sid_chip_cnt, 0
+arp_addr_lo: .res 3*sid_chip_cnt, 0
+arp_addr_hi: .res 3*sid_chip_cnt, 0
+hr_delay: .res 3*sid_chip_cnt, 0
 do_patend: .byte 0
 order: .byte 0
 final_freq: .word 0
-duty_lo: .res 3, 0
-duty_hi: .res 3, 0
-duty_speed_lo: .res 3, 0
-duty_speed_hi: .res 3, 0
-filt_resonance_temp: .byte 0
-filt_inst: .byte 0
-filter_pos: .byte 0
-cur_cutoff: .byte 0
-vib_tim: .res 3, 0
-bend_lo: .res 3, 0
-bend_hi: .res 3, 0
+duty_lo: .res 3*sid_chip_cnt, 0
+duty_hi: .res 3*sid_chip_cnt, 0
+duty_speed_lo: .res 3*sid_chip_cnt, 0
+duty_speed_hi: .res 3*sid_chip_cnt, 0
+filt_resonance_temp: .res sid_chip_cnt, 0
+filt_inst: .res sid_chip_cnt, 0
+filter_pos: .res sid_chip_cnt, 0
+cur_cutoff: .res sid_chip_cnt, 0
+vib_tim: .res 3*sid_chip_cnt, 0
+bend_lo: .res 3*sid_chip_cnt, 0
+bend_hi: .res 3*sid_chip_cnt, 0
 last_eff: .byte 0
-transpose: .res 3, 0
+transpose: .res 3*sid_chip_cnt, 0
 .if HR_MODE = 1
-    wave_temp: .res 3, 0
+    wave_temp: .res 3*sid_chip_cnt, 0
 .endif
-glide_limit_lo: .res 3, 0
-glide_limit_hi: .res 3, 0
-glide_note: .res 3, 0
-glide_speed: .res 3, 0
+glide_limit_lo: .res 3*sid_chip_cnt, 0
+glide_limit_hi: .res 3*sid_chip_cnt, 0
+glide_note: .res 3*sid_chip_cnt, 0
+glide_speed: .res 3*sid_chip_cnt, 0
 glide_temp: .word 0
-row_has_9xx: .byte 0
+row_has_9xx: .res sid_chip_cnt, 0
 vars_end:
 
 freq_lo:

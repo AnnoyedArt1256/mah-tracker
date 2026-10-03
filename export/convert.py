@@ -44,21 +44,27 @@ def convert(filename):
     if pattern_len == 0:
         pattern_len = 256
 
+    file.read(32)
+    file.read(32)
+    file.read(32)
+
+    sid_count = 1
+    if version >= 9:
+        sid_count = file.read(1)[0]+1
+    else:
+        file.read(1)
+    file.read(15) # MOAR PADDING MOAR
+
     out_file_props = open("music_props.asm","w")
     out_file_props.write(f"pitch_shift_amt .set {pitch_bend_shift}\n")
     out_file_props.write(f"order_loop .set {order_loop}\n")
+    out_file_props.write(f"sid_chip_cnt .set {sid_count}\n")
     out_file_props.close()
-
-    file.read(32)
-    file.read(32)
-    file.read(32)
-
-    file.read(16) # MOAR PADDING MOAR
 
     # TODO: what to do for patterns $FF?
     order_len = file.read(1)[0]
     pats_used = []
-    for ch in range(3):
+    for ch in range(3*sid_count):
         order_line = f"order_ch{ch}: .byte "
         for ord in range(order_len):
             pat = file.read(1)[0]

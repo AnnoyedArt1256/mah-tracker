@@ -27,7 +27,7 @@ int get_unused_pattern(song *song) {
     int pat_val = 0;
     for (int i = 0; i < 256; i++) {
         bool used = false;
-        for (int ch = 0; ch < 3; ch++) {
+        for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
             for (int j = 0; j < song->order_len; j++) {
                 if (song->order_table[ch][j] == i) {
                     used = true;
@@ -52,9 +52,9 @@ void clamp_pattern_loop(song *song) {
 
 // Remove pattern from module
 void remove_pattern(song *song, int pat_ind) {
-    for (int ch = 0; ch < 3; ch++) {
+    for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
         int len = song->order_len-(pat_ind+1)-1;
-        printf("%d\n",len);
+        //printf("%d\n",len);
         for (int pat = pat_ind; pat < song->order_len; pat++) {
             song->order_table[ch][pat] = song->order_table[ch][pat+1];
         }
@@ -74,7 +74,7 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
         if (song->order_len < 255) {
             song->order_len++;
             int pat_ind = cur_cursor->order+1;
-            for (int ch = 0; ch < 3; ch++) {
+            for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
                 for (int pat = song->order_len-1; pat > pat_ind; pat--) {
                     song->order_table[ch][pat] = song->order_table[ch][pat-1];
                 }
@@ -95,7 +95,7 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
     if (ImGui::Button("Duplicate")) {
         if (song->order_len < 255) {
             int pat_ind = cur_cursor->order+1;
-            for (int ch = 0; ch < 3; ch++) {
+            for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
                 for (int pat = song->order_len; pat > pat_ind; pat--) {
                     song->order_table[ch][pat] = song->order_table[ch][pat-1];
                 }
@@ -111,7 +111,7 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
     if (ImGui::Button("Append")) {
         if (song->order_len < 255) {
             int order_ind = song->order_len++;
-            for (int ch = 0; ch < 3; ch++) {
+            for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
                 song->order_table[ch][order_ind] = get_unused_pattern(song);
             }
             clamp_pattern_loop(song);
@@ -124,7 +124,7 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
         if (song->order_len < 255) {
             int pat_ind_cursor = cur_cursor->order;
             int order_ind = song->order_len++;
-            for (int ch = 0; ch < 3; ch++) {
+            for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
                 song->order_table[ch][order_ind] = song->order_table[ch][pat_ind_cursor];
             }
             clamp_pattern_loop(song);
@@ -137,7 +137,7 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
         if (song->order_len < 255) {
             int pat_ind_cursor = cur_cursor->order;
             int order_ind = song->order_len++;
-            for (int ch = 0; ch < 3; ch++) {
+            for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
                 uint8_t cur_order = get_unused_pattern(song);
                 song->order_table[ch][order_ind] = cur_order;
                 memcpy(&song->pattern[cur_order], &song->pattern[song->order_table[ch][pat_ind_cursor]], sizeof(pattern_data));
@@ -149,7 +149,7 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
 
     if (ImGui::Button("^")) {
         if (cur_cursor->order > 0) {
-            for (int ch = 0; ch < 3; ch++) {
+            for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
                 uint16_t temp = song->order_table[ch][cur_cursor->order-1];
                 song->order_table[ch][cur_cursor->order-1] = song->order_table[ch][cur_cursor->order];
                 song->order_table[ch][cur_cursor->order] = temp;
@@ -161,7 +161,7 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
 
     if (ImGui::Button("v")) {
         if (cur_cursor->order < (song->order_len-1)) {
-            for (int ch = 0; ch < 3; ch++) {
+            for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
                 uint16_t temp = song->order_table[ch][cur_cursor->order+1];
                 song->order_table[ch][cur_cursor->order+1] = song->order_table[ch][cur_cursor->order];
                 song->order_table[ch][cur_cursor->order] = temp;
@@ -174,11 +174,11 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
     ImGui::PushStyleVar(ImGuiStyleVar_CellPadding,ImVec2(0.0f,0.0f));
 
     // Make the "orderview" table
-    bool render_table = ImGui::BeginTable("orderview",3+1,ImGuiTableFlags_BordersInnerV|ImGuiTableFlags_ScrollX|ImGuiTableFlags_ScrollY|ImGuiTableFlags_NoPadInnerX);
+    bool render_table = ImGui::BeginTable("orderview",SONG_CH_COUNT(song)+1,ImGuiTableFlags_BordersInnerV|ImGuiTableFlags_ScrollX|ImGuiTableFlags_ScrollY|ImGuiTableFlags_NoPadInnerX);
     ImVec2 char_size_xy = ImGui::CalcTextSize("A"); // uses A as the base size for the font?
     float char_size = char_size_xy.x; // from foiniss
     char_size_xy.y += io.FontGlobalScale+2;
-    float order_ch_size = (ImGui::GetWindowSize().x-(4.0*char_size))/3;
+    float order_ch_size = (ImGui::GetWindowSize().x-(4.0*char_size))/SONG_CH_COUNT(song);
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
     if (!render_table) {
@@ -189,7 +189,7 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
 
     // Setup for order position 
     ImGui::TableSetupColumn("ord_pos",ImGuiTableColumnFlags_WidthFixed,4.0*char_size);
-    for (int ch = 0; ch < 3; ch++) {
+    for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
         char ch_id[16];
         snprintf(ch_id,16,"och%d",ch);
         ImGui::TableSetupColumn(ch_id,ImGuiTableColumnFlags_WidthFixed,order_ch_size-1);
@@ -228,7 +228,7 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
     
         if (ch == -1 && ImGui::IsMouseClicked(0) && order_row < song->order_len) {
             cur_cursor->order = order_row;
-        } else if (ch >= 0 && ch < 3) {
+        } else if (ch >= 0 && ch < SONG_CH_COUNT(song)) {
             if (ImGui::IsMouseClicked(0) && song->order_table[ch][order_row] < 255)
                 song->order_table[ch][order_row]++;
             if (ImGui::IsMouseClicked(1) && song->order_table[ch][order_row] > 0)
@@ -242,7 +242,7 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
         ImGui::TableNextColumn();
         ImGui::Text(" %02X", order);
         ImGui::TableNextColumn();
-        for (int ch = 0; ch < 3; ch++) {
+        for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
             ImGui::SameLine(order_ch_size/2.0-char_size);
             ImGui::Text("%02X", song->order_table[ch][order]);
             ImGui::TableNextColumn();

@@ -68,7 +68,8 @@ song c_song; // current song
 std::vector<undo_chunk> undo_total;
 extern bool audio_paused;
 
-void init_default_song(song *song) {
+void init_default_pats(song *song) {
+    int ch_count = SONG_CH_COUNT(song); // for 2SID support
     for (int pat = 0; pat < 256; pat++) {
         for (int row = 0; row < 256; row++) {
             song->pattern[pat].rows[row].note = NOTE_EMPTY;
@@ -76,10 +77,22 @@ void init_default_song(song *song) {
             song->pattern[pat].rows[row].eff_type = 0;
             song->pattern[pat].rows[row].eff_arg = 0;
         }
-        song->order_table[0][pat] = 0;
-        song->order_table[1][pat] = 0;
-        song->order_table[2][pat] = 0;
+        for (int ch = 0; ch < ch_count; ch++) {
+            song->order_table[ch][pat] = 0;
+        }
+    }    
+
+    //                      00 01
+    // initial order table: 00 END
+    for (int ch = 0; ch < ch_count; ch++) {
+        song->order_table[ch][0] = ch;
     }
+}
+
+
+void init_default_song(song *song) {
+    int ch_count = SONG_CH_COUNT(song); // for 2SID support
+    init_default_pats(song);
 
     // Default instrument settings for freshly created instrument.
     // 0xFF (128) instruments pre-populated in the editor list
@@ -90,6 +103,7 @@ void init_default_song(song *song) {
         char ins_name_preview[32];
         snprintf(ins_name_preview,32,"Instrument %d",ins);
         song->instr[ins].name = ins_name_preview;
+
         // ADSR
         song->instr[ins].a = 0x0;
         song->instr[ins].d = 0x8;
@@ -124,11 +138,6 @@ void init_default_song(song *song) {
         song->instr[ins].duty_reset = true;
     }
 
-    //                      00 01
-    // initial order table: 00 END
-    song->order_table[0][0] = 0x00;
-    song->order_table[1][0] = 0x01;
-    song->order_table[2][0] = 0x02;
     song->order_len = 1;
     song->order_loop = 0;
     song->row_length = 64;
@@ -322,7 +331,7 @@ extern void advance_audio(song *song, cursor *cur_cursor); // player.cpp
 extern int advance_sample(song *song, cursor *cur_cursor, int16_t *buffer, int buffer_length); // player.cpp
 extern int player_get_loop_cnt(); // player.cpp
 extern void init_routine(song *song); // player.cpp
-extern void register_view(bool *open);
+extern void register_view(song *song, bool *open);
 extern void display_filter_info(cursor *cur_cursor, bool *open);
 extern void SID_set_chip(bool mode); // player.cpp
 
@@ -453,17 +462,18 @@ int main(int argc, char *argv[]) {
     cur_cursor.do_record = false; // jam
     cur_cursor.do_follow = true; // enable follow-play
     cur_cursor.new_file_popup = false;
+    cur_cursor.new_file_init = false;
     cur_cursor.chip_mode = true; // 8580 SID
     cur_cursor.dragging = false;
     cur_cursor.already_dragged = false;
-    cur_cursor.is_muted[0] = false;
-    cur_cursor.is_muted[1] = false;
-    cur_cursor.is_muted[2] = false;
+    for (int ch = 0; ch < MAX_SID_CHANNELS; ch++) {
+        cur_cursor.is_muted[ch] = false;
+    }
 
     cur_cursor.pattern_copy_buffer.row_len = 0;
     cur_cursor.pattern_copy_buffer.col_start = 0;
     cur_cursor.pattern_copy_buffer.col_len = 0;
-    for (int ch = 0; ch < 3; ch++) {
+    for (int ch = 0; ch < MAX_SID_CHANNELS; ch++) {
         for (int row = 0; row < 256; row++) {
             cur_cursor.pattern_copy_buffer.ch_rows[ch].rows[row].note = NOTE_EMPTY;
             cur_cursor.pattern_copy_buffer.ch_rows[ch].rows[row].instr = 0;
@@ -476,6 +486,8 @@ int main(int argc, char *argv[]) {
     // Main loop
     bool done = false;
     int cur_frame = 0;
+    cur_cursor.n_sids = false;
+    c_song.n_sids = false;
     init_default_song(&c_song);
 
     // process args in argv
@@ -553,6 +565,12 @@ int main(int argc, char *argv[]) {
 
         ShowExampleAppDockSpace((bool*)false);
 
+        bool ctrl_pressed = ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl);
+        if (ctrl_pressed && ImGui::IsKeyDown(ImGuiKey_N)) { // ctrl+n: new song
+            cur_cursor.new_file_popup = true;
+            reset_audio_buffer();
+        }
+    
         if (cur_cursor.order >= c_song.order_len)
             cur_cursor.order = c_song.order_len-1;
 
@@ -562,17 +580,39 @@ int main(int argc, char *argv[]) {
                 ImGui::SetItemDefaultFocus();
                 ImGui::TextUnformatted("Are you sure you want to create a new song?");
                 if (ImGui::Button("Yes")) {
-                    init_default_song(&c_song);
-                    init_routine(&c_song);
-                    cur_cursor.latch = 0;
-                    cur_cursor.chip_mode = true;
-                    SID_set_chip(cur_cursor.chip_mode);
+                    cur_cursor.new_file_init = true;
                     cur_cursor.new_file_popup = false;
                     ImGui::CloseCurrentPopup();
                 }
                 ImGui::SameLine();
                 if (ImGui::Button("No")) {
                     cur_cursor.new_file_popup = false;
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
+            }
+        }
+
+        if (cur_cursor.new_file_init) {
+            ImGui::OpenPopup("New Song");
+            if (ImGui::BeginPopupModal("New Song")) {
+                ImGui::SetItemDefaultFocus();
+                ImGui::TextUnformatted("Choose your module settings");
+                ImGui::Checkbox("Use 2 SIDs", (bool *)&cur_cursor.n_sids);
+                if (ImGui::Button("OK")) {
+                    cur_cursor.new_file_init = false;
+                    c_song.n_sids = cur_cursor.n_sids;
+                    init_default_song(&c_song);
+                    init_player_freq_table(c_song.a_frequency);
+                    init_routine(&c_song);
+                    cur_cursor.latch = 0;
+                    cur_cursor.chip_mode = true;
+                    SID_set_chip(cur_cursor.chip_mode);
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel")) {
+                    cur_cursor.new_file_init = false;
                     ImGui::CloseCurrentPopup();
                 }
                 ImGui::EndPopup();
@@ -716,7 +756,7 @@ int main(int argc, char *argv[]) {
         }
 
         if (visible_windows.reg_view) {
-            register_view(&visible_windows.reg_view);
+            register_view(&c_song, &visible_windows.reg_view);
         }
 
         if (visible_windows.filter_view) {
