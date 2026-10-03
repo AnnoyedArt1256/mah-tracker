@@ -88,7 +88,7 @@ play:
 ch_loop:
     jsr do_ch
     inx
-    cpx #3
+    cpx #3*sid_chip_cnt
     bne ch_loop
 
     lda do_patend
@@ -133,7 +133,7 @@ skipseq:
 @skip_freq:
     .endif
     inx
-    cpx #3
+    cpx #3*sid_chip_cnt
     bne :-
 
     ;jsr do_filt
@@ -667,9 +667,21 @@ reinit_note_inst:
     .endif
     rts
 
-sid_mul: .byte 0, 7, 14
-bit_mask: .byte 1, 2, 4
-bit_mask_inv: .byte 1^$ff, 2^$ff, 4^$ff
+sid_mul:
+    .byte 0, 7, 14
+    .if sid_chip_cnt >= 2
+        .byte $20+0, $20+7, $20+14
+    .endif
+bit_mask:
+    .byte 1, 2, 4
+    .if sid_chip_cnt >= 2
+        .byte 1, 2, 4
+    .endif
+bit_mask_inv:
+    .byte 1^$ff, 2^$ff, 4^$ff
+    .if sid_chip_cnt >= 2
+        .byte 1^$ff, 2^$ff, 4^$ff
+    .endif
 
 init:
     ldx #$18
@@ -684,7 +696,7 @@ init:
     dex
     bpl :-
     lda #$ff
-    ldx #2
+    ldx #(3*sid_chip_cnt)-1
 :
     sta hr_delay, x
     sta gate_mask, x
@@ -693,6 +705,10 @@ init:
     bpl :-
     lda #$0f
     sta $d418
+    .if sid_chip_cnt >= 2
+        lda #$0f
+        sta $d418+$20
+    .endif
     lda init_speed
     sta speed
     sta speed+1
@@ -700,16 +716,24 @@ init:
     sta tick
     lda #0
     sta order
-    sta ins
-    sta ins+1
-    sta ins+2
+    .if sid_chip_cnt >= 2
+        ldx #(3*sid_chip_cnt)-1
+    :
+        sta ins, x
+        dex
+        bpl :-
+    .else
+        sta ins
+        sta ins+1
+        sta ins+2
+    .endif
     ;jsr set_pat
     ;rts
 
 ; Y = pattern
 set_pat:
     sta @set_pat_smc+1
-    ldx #2
+    ldx #(3*sid_chip_cnt)-1
 @loop:
     lda order_lo, x
     sta temp
@@ -729,13 +753,19 @@ set_pat:
     sta pat_ptr_lo, x
     lda pat_hi, y
     sta pat_ptr_hi, x
+    .if sid_chip_cnt >= 2
+        lda #1
+        sta dur, x
+    .endif
     dex
     bpl @loop
 
-    lda #1
-    sta dur
-    sta dur+1
-    sta dur+2
+    .if sid_chip_cnt < 2
+        lda #1
+        sta dur
+        sta dur+1
+        sta dur+2
+    .endif
     rts
 
 do_eff_cut:
@@ -922,52 +952,58 @@ vib_add:
 
 order_lo:
     .lobytes order_ch0, order_ch1, order_ch2
+    .if sid_chip_cnt >= 2
+        .lobytes order_ch3, order_ch4, order_ch5
+    .endif
 
 order_hi:
     .hibytes order_ch0, order_ch1, order_ch2
+    .if sid_chip_cnt >= 2
+        .hibytes order_ch3, order_ch4, order_ch5
+    .endif
 
 vars_start:
 speed: .byte 0, 0
 tick: .byte 0
 tick_cur: .byte 0
 tick_sel: .byte 0
-dur: .res 3, 0
-ins: .res 3, 0
-gate_mask: .res 3,0
-pat_ptr_lo: .res 3, 0
-pat_ptr_hi: .res 3, 0
-eff_type: .res 3, 0
-eff_arg: .res 3, 0
-cur_note: .res 3, 0
-incoming_note: .res 3, 0
-incoming_note_delay: .res 3, 0
-arp_pos: .res 3, 0
-arp_addr_lo: .res 3, 0
-arp_addr_hi: .res 3, 0
-hr_delay: .res 3, 0
+dur: .res 3*sid_chip_cnt, 0
+ins: .res 3*sid_chip_cnt, 0
+gate_mask: .res 3*sid_chip_cnt,0
+pat_ptr_lo: .res 3*sid_chip_cnt, 0
+pat_ptr_hi: .res 3*sid_chip_cnt, 0
+eff_type: .res 3*sid_chip_cnt, 0
+eff_arg: .res 3*sid_chip_cnt, 0
+cur_note: .res 3*sid_chip_cnt, 0
+incoming_note: .res 3*sid_chip_cnt, 0
+incoming_note_delay: .res 3*sid_chip_cnt, 0
+arp_pos: .res 3*sid_chip_cnt, 0
+arp_addr_lo: .res 3*sid_chip_cnt, 0
+arp_addr_hi: .res 3*sid_chip_cnt, 0
+hr_delay: .res 3*sid_chip_cnt, 0
 do_patend: .byte 0
 order: .byte 0
 final_freq: .word 0
-duty_lo: .res 3, 0
-duty_hi: .res 3, 0
-duty_speed_lo: .res 3, 0
-duty_speed_hi: .res 3, 0
+duty_lo: .res 3*sid_chip_cnt, 0
+duty_hi: .res 3*sid_chip_cnt, 0
+duty_speed_lo: .res 3*sid_chip_cnt, 0
+duty_speed_hi: .res 3*sid_chip_cnt, 0
 filt_resonance_temp: .byte 0
 filt_inst: .byte 0
 filter_pos: .byte 0
 cur_cutoff: .byte 0
-vib_tim: .res 3, 0
-bend_lo: .res 3, 0
-bend_hi: .res 3, 0
+vib_tim: .res 3*sid_chip_cnt, 0
+bend_lo: .res 3*sid_chip_cnt, 0
+bend_hi: .res 3*sid_chip_cnt, 0
 last_eff: .byte 0
-transpose: .res 3, 0
+transpose: .res 3*sid_chip_cnt, 0
 .if HR_MODE = 1
-    wave_temp: .res 3, 0
+    wave_temp: .res 3*sid_chip_cnt, 0
 .endif
-glide_limit_lo: .res 3, 0
-glide_limit_hi: .res 3, 0
-glide_note: .res 3, 0
-glide_speed: .res 3, 0
+glide_limit_lo: .res 3*sid_chip_cnt, 0
+glide_limit_hi: .res 3*sid_chip_cnt, 0
+glide_note: .res 3*sid_chip_cnt, 0
+glide_speed: .res 3*sid_chip_cnt, 0
 glide_temp: .word 0
 row_has_9xx: .byte 0
 vars_end:
