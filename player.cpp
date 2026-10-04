@@ -637,19 +637,33 @@ void register_view(song *song, bool *open) {
     ImGui::End();
 }
 
-void display_filter_info(cursor *cur_cursor, bool *open) {
+void display_filter_info(song *song, cursor *cur_cursor, bool *open) {
     const char *filt_modes[8] = {
         "", "LP", "BP", "LP+BP",
         "HP", "LP+HP", "BP+HP", "LP+BP+HP",        
     };
 
+    const char *filt_modes_nsid[8] = {
+        "     ", "L    ", "B    ", "L+B  ",
+        "H    ", "L+H  ", "B+H  ", "L+B+H",        
+    };
+
     ImGui::Begin("Filter & Channel Info", open, ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoScrollWithMouse);
-    for (int i = 0; i < 3; i++) {
-        char ch_id[32];
-        snprintf(ch_id,32,"Channel %d",i+1);
-        ImGui::Text("Channel %d: %s ", i+1, player_vars.resonance_ch_enable[0]&(1<<i)?"FILTER":"      ");
-        ImGui::SameLine();
+    if (song->n_sids) {
+        for (int i = 0; i < SONG_CH_COUNT(song); i++) {
+            ImGui::Text("CH%d: %s ", i+1, player_vars.resonance_ch_enable[i/3]&(1<<(i%3))?"FL":"  ");
+            ImGui::SameLine();
+            if ((i%3) == 2) {
+                ImGui::Text("FILT: %s ",filt_modes_nsid[player_vars.filt_mode[i/3]>>4&7]);
+                ImGui::SameLine();
+            }
+        }
+    } else {
+        for (int i = 0; i < 3; i++) {
+            ImGui::Text("Channel %d: %s ", i+1, player_vars.resonance_ch_enable[0]&(1<<i)?"FILTER":"      ");
+            ImGui::SameLine();
+        }
+        ImGui::Text("Filter: %s",filt_modes[player_vars.filt_mode[0]>>4&7]);
     }
-    ImGui::Text("Filter: %s",filt_modes[player_vars.filt_mode[0]>>4&7]);
     ImGui::End();
 }
