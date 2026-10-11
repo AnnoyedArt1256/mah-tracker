@@ -61,11 +61,12 @@ make
 
 ### global:
 ctrl+n: **create** new song
+- enter: play the song beginning from the current **pattern**
+- shift+enter: play the song beginning from the current **cursor**
 
 ### pattern editor:
 - up/down/left/right: move the cursor in that direction
 - space: switch between read-only ("Jam") and read-write ("Record") modes. this can also be done through the Jam/Record button in the Controls window.
-- enter: play the song beginning from the current pattern
 - **1**: put a note cut/off in the selected channel's row (IF the cursor is over a note)
 <br><br>
 - ctrl+c: **copy** note/selection

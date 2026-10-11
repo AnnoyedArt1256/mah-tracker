@@ -553,12 +553,6 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
             register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
         }
     }
-    if (ImGui::IsKeyPressed(ImGuiKey_Enter)) {
-        cur_cursor->playing ^= 1;
-        cur_cursor->play_row = 0;
-        cur_cursor->latch = 0;
-        init_routine(song);
-    }
 }
 
 // effect color palette directly yoinked from furnace :)

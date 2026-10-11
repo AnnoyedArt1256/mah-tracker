@@ -563,6 +563,21 @@ int main(int argc, char *argv[]) {
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
+        if (!io.WantTextInput && !(cur_cursor.new_file_popup || cur_cursor.new_file_init)) {
+            if (ImGui::IsKeyPressed(ImGuiKey_Enter)) {
+                if (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift)) {
+                    cur_cursor.playing ^= 1;
+                    cur_cursor.play_row = cur_cursor.row;
+                    cur_cursor.latch = 0;
+                    init_routine(&c_song);
+                } else {
+                    cur_cursor.playing ^= 1;
+                    cur_cursor.play_row = 0;
+                    cur_cursor.latch = 0;
+                    init_routine(&c_song);
+                }
+            }
+        }
         ShowExampleAppDockSpace((bool*)false);
 
         bool ctrl_pressed = ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl);
@@ -690,6 +705,13 @@ int main(int argc, char *argv[]) {
             }
             
             ImGui::SameLine();
+
+            if (ImGui::Button("From Cursor")) {
+                cur_cursor.playing = 1;
+                cur_cursor.play_row = cur_cursor.row;
+                cur_cursor.latch = 0;
+                init_routine(&c_song);
+            }
 
             if (cur_cursor.playing) {
                 uint8_t *speeds = get_player_speeds();
