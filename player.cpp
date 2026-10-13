@@ -194,8 +194,8 @@ short SID_advance_sample() {
 }
 
 void SID_set_chip(bool mode) {
-    sid_fp->setChipModel(mode?reSIDfp::MOS8580:reSIDfp::MOS6581);
-    sid_fp2->setChipModel(mode?reSIDfp::MOS8580:reSIDfp::MOS6581);
+    if (sid_fp!=NULL) sid_fp->setChipModel(mode?reSIDfp::MOS8580:reSIDfp::MOS6581);
+    if (sid_fp!=NULL) sid_fp2->setChipModel(mode?reSIDfp::MOS8580:reSIDfp::MOS6581);
 }
 
 void advance_frame(song *song, cursor *cur_cursor);

@@ -518,6 +518,7 @@ int main(int argc, char *argv[]) {
 
     init_sid();
     init_routine(&c_song);
+    SID_set_chip(c_song.chip_mode);    
 
     if (save_wav_args) {
         SndfileHandle wav_file = SndfileHandle(save_wav_str, SFM_WRITE, SF_FORMAT_WAV | SF_FORMAT_PCM_16, 1, SAMPLE_RATE);
