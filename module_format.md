@@ -33,7 +33,15 @@ unless noted otherwise, each byte/word is treated as an **unsigned** value and i
 - ELSE:
     - 1 byte reserved (currently only zeros)
     - NOTE: Any .mah module file that uses a version number **SMALLER** than 9 is always a **1SID (3 channel) file.**
-- 15 bytes reserved (currently only zeros)
+- IF VERSION >= 10:
+    - 1 byte: SID chip mode
+        - 0: 6581
+        - 1: 8580
+        - 2-255: reserved(?)
+- ELSE:
+    - 1 byte reserved (currently only zeros)
+    - NOTE: Any .mah module file that uses a version number **SMALLER** than 10 defaults to using **an 8580 new SID chip.**
+- 14 bytes reserved (currently only zeros)
 
 ## Orders
 - 1 bytes: global order table length **MINUS** - 1

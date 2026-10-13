@@ -27,6 +27,7 @@ const char magic_string[] = "MAHTRACK";
 extern void init_default_song(song *song);
 extern void init_default_pats(song *song);
 extern void init_player_freq_table(uint16_t a_freq);
+extern void SID_set_chip(bool mode);
 
 void load_file(char *filename, song *song) {
     FILE *f = fopen(filename, "rb");
@@ -86,7 +87,14 @@ void load_file(char *filename, song *song) {
     } else {
         fseek(f, 1L, SEEK_CUR);
     }
-    fseek(f, 15L, SEEK_CUR);
+    if (version >= 10) {
+        song->chip_mode = fgetc(f) ? true : false;
+    } else {
+        song->chip_mode = true;
+        fseek(f, 1L, SEEK_CUR);
+    }
+    SID_set_chip(song->chip_mode);
+    fseek(f, 14L, SEEK_CUR);
 
     // orders
     song->order_len = fgetc(f);
@@ -208,7 +216,8 @@ void save_file(char *filename, song *song) {
     
     // TODO: edit this line when n_sids becomes an int
     fputc(song->n_sids ? 1 : 0, f); // SID count - 1
-    for (int i = 0; i < 15; i++) fputc(0,f); // reserved
+    fputc(song->chip_mode ? 1 : 0, f); // SID model (0: 6581, 1: 8580)
+    for (int i = 0; i < 14; i++) fputc(0,f); // reserved
 
     // orders
     fputc(song->order_len,f); // table length

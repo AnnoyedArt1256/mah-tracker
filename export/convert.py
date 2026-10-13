@@ -53,7 +53,12 @@ def convert(filename):
         sid_count = file.read(1)[0]+1
     else:
         file.read(1)
-    file.read(15) # MOAR PADDING MOAR
+    sid_model = 1
+    if version >= 10:
+        sid_model = file.read(1)[0]
+    else:
+        file.read(1)
+    file.read(14) # MOAR PADDING MOAR
 
     out_file_props = open("music_props.asm","w")
     out_file_props.write(f"pitch_shift_amt .set {pitch_bend_shift}\n")

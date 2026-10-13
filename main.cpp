@@ -463,7 +463,6 @@ int main(int argc, char *argv[]) {
     cur_cursor.do_follow = true; // enable follow-play
     cur_cursor.new_file_popup = false;
     cur_cursor.new_file_init = false;
-    cur_cursor.chip_mode = true; // 8580 SID
     cur_cursor.dragging = false;
     cur_cursor.already_dragged = false;
     for (int ch = 0; ch < MAX_SID_CHANNELS; ch++) {
@@ -488,6 +487,8 @@ int main(int argc, char *argv[]) {
     int cur_frame = 0;
     cur_cursor.n_sids = false;
     c_song.n_sids = false;
+    c_song.chip_mode = true; // 8580 SID
+    cur_cursor.chip_mode = true; // 8580 SID
     init_default_song(&c_song);
 
     // process args in argv
@@ -612,8 +613,18 @@ int main(int argc, char *argv[]) {
             ImGui::OpenPopup("New Song");
             if (ImGui::BeginPopupModal("New Song")) {
                 ImGui::SetItemDefaultFocus();
-                ImGui::TextUnformatted("Choose your module settings");
+                ImGui::TextUnformatted("Choose your module settings:");
+                ImGui::Separator();
                 ImGui::Checkbox("Use 2 SIDs", (bool *)&cur_cursor.n_sids);
+                ImGui::TextUnformatted("SID model:");
+                ImGui::Indent();
+                if (ImGui::RadioButton("6581 (old SID)", cur_cursor.chip_mode == false)) {
+                    cur_cursor.chip_mode = false;
+                }
+                if (ImGui::RadioButton("8580 (new SID)", cur_cursor.chip_mode == true)) {
+                    cur_cursor.chip_mode = true;
+                }    
+                ImGui::Unindent();
                 if (ImGui::Button("OK")) {
                     cur_cursor.new_file_init = false;
                     c_song.n_sids = cur_cursor.n_sids;
@@ -621,8 +632,8 @@ int main(int argc, char *argv[]) {
                     init_player_freq_table(c_song.a_frequency);
                     init_routine(&c_song);
                     cur_cursor.latch = 0;
-                    cur_cursor.chip_mode = true;
-                    SID_set_chip(cur_cursor.chip_mode);
+                    c_song.chip_mode = cur_cursor.chip_mode;
+                    SID_set_chip(c_song.chip_mode);
                     ImGui::CloseCurrentPopup();
                 }
                 ImGui::SameLine();
@@ -741,9 +752,10 @@ int main(int argc, char *argv[]) {
 
             ImGui::Text("SID model select");
             ImGui::SameLine();
-            if (ImGui::Button(cur_cursor.chip_mode?"8580 (new)":"6581 (old)")) {
-                cur_cursor.chip_mode = !cur_cursor.chip_mode;
-                SID_set_chip(cur_cursor.chip_mode);
+            if (ImGui::Button(c_song.chip_mode?"8580 (new)":"6581 (old)")) {
+                c_song.chip_mode = !c_song.chip_mode;
+                cur_cursor.chip_mode = c_song.chip_mode;
+                SID_set_chip(c_song.chip_mode);
             }
 
             ImGui::PushItemWidth(ImGui::GetWindowSize().x * 0.5f);
