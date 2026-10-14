@@ -60,7 +60,9 @@ make
 ## shortcuts
 
 ### global:
-ctrl+n: **create** new song
+- ctrl+n: **create** new song
+- ctrl+o: **load** song from file
+- ctrl+s: **save** song from file
 - enter: play the song beginning from the current **pattern**
 - shift+enter: play the song beginning from the current **cursor**
 

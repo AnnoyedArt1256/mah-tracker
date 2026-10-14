@@ -153,6 +153,36 @@ float get_bpm(float hz, int speed_a, int speed_b) {
     return 60.0f*hz/(4.0f*avg_speed);
 }
 
+void open_file_choose() {
+    audio_paused = true;
+    auto f = pfd::open_file("Choose a file to read", pfd::path::home(),
+                            { "Mah-Tracker Files", "*.mah" },
+                            pfd::opt::none).result();
+    if (!f.empty()) {
+        fs::path path_check = f[0];
+        if (path_check.extension() != ".mah")
+            path_check.replace_extension("mah");
+        load_file((char *)path_check.string().c_str(), &c_song);
+    } 
+    audio_paused = false;
+    reset_audio_buffer();
+}
+
+void save_file_choose() {
+    audio_paused = true;
+    auto f = pfd::save_file("Choose a file to write to", pfd::path::home(),
+                            { "Mah-Tracker Files", "*.mah" },
+                            pfd::opt::none).result();
+    if (!f.empty()) {
+        fs::path path_check = f;
+        if (path_check.extension() != ".mah")
+            path_check.replace_extension("mah");
+        save_file((char *)path_check.string().c_str(), &c_song);
+    }
+    audio_paused = false;
+    reset_audio_buffer();
+}
+
 void ShowExampleAppDockSpace(bool* p_open) {
 
     ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true; // Don't know if there's a better way to do this right now
@@ -237,33 +267,10 @@ void ShowExampleAppDockSpace(bool* p_open) {
                 reset_audio_buffer();
             }
             if (ImGui::MenuItem("open file")) {
-                audio_paused = true;
-                auto f = pfd::open_file("Choose a file to read", pfd::path::home(),
-                            { "Mah-Tracker Files", "*.mah" },
-                            pfd::opt::none).result();
-                if (!f.empty()) {
-                    fs::path path_check = f[0];
-                    if (path_check.extension() != ".mah")
-                        path_check.replace_extension("mah");
-                    load_file((char *)path_check.string().c_str(), &c_song);
-                } 
-                audio_paused = false;
-                reset_audio_buffer();
+                open_file_choose();
             }
             if (ImGui::MenuItem("save file")) {
-                audio_paused = true;
-                auto f = pfd::save_file("Choose a file to write to", pfd::path::home(),
-                            { "Mah-Tracker Files", "*.mah" },
-                            pfd::opt::none).result();
-
-                if (!f.empty()) {
-                    fs::path path_check = f;
-                    if (path_check.extension() != ".mah")
-                        path_check.replace_extension("mah");
-                    save_file((char *)path_check.string().c_str(), &c_song);
-                }
-                audio_paused = false;
-                reset_audio_buffer();
+                save_file_choose();
             }
 
             ImGui::EndMenu();
@@ -583,9 +590,15 @@ int main(int argc, char *argv[]) {
         ShowExampleAppDockSpace((bool*)false);
 
         bool ctrl_pressed = ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl);
-        if (ctrl_pressed && ImGui::IsKeyDown(ImGuiKey_N)) { // ctrl+n: new song
-            cur_cursor.new_file_popup = true;
-            reset_audio_buffer();
+        if (ctrl_pressed) {
+            if (ImGui::IsKeyDown(ImGuiKey_N)) { // ctrl+n: new song
+                cur_cursor.new_file_popup = true;
+                reset_audio_buffer();
+            } else if (ImGui::IsKeyDown(ImGuiKey_O)) { // ctrl+o: load song
+                open_file_choose();
+            } else if (ImGui::IsKeyDown(ImGuiKey_S)) { // ctrl+s: save song
+                save_file_choose();
+            }
         }
     
         if (cur_cursor.order >= c_song.order_len)
