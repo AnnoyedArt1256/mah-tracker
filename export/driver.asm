@@ -505,6 +505,18 @@ do_wav:
 @skip_to_wav:
 
     ldy ins, x
+
+    lda arp_pos, x
+    clc
+    adc #1
+    cmp ins_wave_len, y
+    bcc :+
+    lda ins_wave_len, y
+    sec
+    sbc #1
+    sta arp_pos, x   
+:
+
     lda ins_wav_lo, y
     sta temp
     lda ins_wav_hi, y

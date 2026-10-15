@@ -122,7 +122,7 @@ def convert(filename):
                 cur_eff_type = 0
                 write_buffer.append(0xE0) # stop effects
 
-            if instr != 0 and (cur_ins != instr or row == 0):
+            if instr != 0 and (cur_ins != instr or note == 0xFF or row == 0):
                 cur_ins = instr
                 if instr >= max_ins: max_ins = instr
                 if instr < 0x40: 
