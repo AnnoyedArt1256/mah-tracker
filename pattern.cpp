@@ -188,6 +188,83 @@ void clear_pat_selection(song *song, cursor *cur_cursor) {
     }
 }
 
+void select_all_pat(song *song, cursor *cur_cursor) {
+    // skip if the cursor has not already dragged an area at the moment
+    int row_start = cur_cursor->drag_y_start;
+    int row_end = cur_cursor->drag_y_end;
+    if (row_start > row_end) {
+        int temp = row_end;
+        row_end = row_start;
+        row_start = temp;
+    }
+    int row_len = (row_end-row_start)+1;
+
+    int col_start = cur_cursor->drag_x_start;
+    int col_end = cur_cursor->drag_x_end;
+    if (col_start > col_end) {
+        int temp = col_end;
+        col_end = col_start;
+        col_start = temp;
+    }
+    int col_len = (col_end-col_start)+1;
+
+    if (cur_cursor->already_dragged) {
+        cur_cursor->latch = 0;
+        if ((col_start%4) == note && (col_end%4) == eff_arg) {
+            if (cur_cursor->drag_y_start == 0 && cur_cursor->drag_y_end == song->row_length-1) {
+                // fill the entire pattern
+                cur_cursor->drag_x_start = 0;
+                cur_cursor->drag_x_end = 4*SONG_CH_COUNT(song)-1;
+                cur_cursor->drag_x_start_sel = note;
+                cur_cursor->drag_x_end_sel = eff_arg;
+            } else {
+                // fill the entire column
+                cur_cursor->drag_y_start = 0;
+                cur_cursor->drag_y_end = song->row_length-1;
+            }
+        } else {
+            // try to fill the column positions to the leftmost or rightmost columns of a channel
+            float aspect_ratio = float(col_len)/float(row_len);
+            bool fill_every_row = cur_cursor->drag_y_start == 0 && cur_cursor->drag_y_end == song->row_length-1;
+            if (aspect_ratio <= 1.0f && !fill_every_row) {
+                // vertical filling
+                cur_cursor->drag_y_start = 0;
+                cur_cursor->drag_y_end = song->row_length-1;
+            } else {
+                // horizontal filling
+                cur_cursor->drag_x_start &= ~3; // move it to the note column
+                // move it to the eff. arg column
+                cur_cursor->drag_x_end &= ~3; 
+                cur_cursor->drag_x_end |= 3; 
+                cur_cursor->drag_x_start_sel = note;
+                cur_cursor->drag_x_end_sel = eff_arg;
+            }
+        }
+    } else {
+        cur_cursor->latch = 0;
+
+        enum channel_mode ch_select = cur_cursor->selection;
+        cur_cursor->dragging = true;
+        cur_cursor->already_dragged = true;
+        cur_cursor->drag_x_end = cur_cursor->ch*4+((int)ch_select);
+        cur_cursor->drag_y_start = 0;
+        cur_cursor->drag_y_end = song->row_length-1;
+        cur_cursor->drag_x_end_sel = ch_select;
+    }
+
+    // clamp the drag coords
+    if ((cur_cursor->drag_x_end/4) >= SONG_CH_COUNT(song)) {
+        cur_cursor->drag_x_end = 4*SONG_CH_COUNT(song)-1;
+        cur_cursor->drag_x_end_sel = eff_arg;
+    }
+    if ((cur_cursor->drag_x_end/4) < 0) { // just in case
+        cur_cursor->drag_x_end = 0;
+        cur_cursor->drag_x_end_sel = note;
+    }
+    if (cur_cursor->drag_y_end >= song->row_length-1) cur_cursor->drag_y_end = song->row_length-1;
+    if (cur_cursor->drag_y_end < 0) cur_cursor->drag_y_end = 0;
+}
+
 // transpose notes in the selection (or the note under the cursor) by delta semitones
 void transpose_pat_notes(song *song, cursor *cur_cursor, int delta) {
     int row_start, row_end, col_start, col_end;
@@ -291,22 +368,22 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
 
     // Copy-paste functions
     if (ctrl_pressed) {
-        if (ImGui::IsKeyPressed(ImGuiKey_C)) {
+        if (ImGui::IsKeyPressed(ImGuiKey_A)) {
+            // select all (ctrl+a)
+            select_all_pat(song, cur_cursor);
+        } else if (ImGui::IsKeyPressed(ImGuiKey_C)) {
             // copy (ctrl+c)
             copy_pat(song, cur_cursor);
-        }
-        if (ImGui::IsKeyPressed(ImGuiKey_V)) {
+        } else if (ImGui::IsKeyPressed(ImGuiKey_V)) {
             // paste (ctrl+v)
             paste_pat(song, cur_cursor);
             register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
-        }
-        if (ImGui::IsKeyPressed(ImGuiKey_X) && cur_cursor->already_dragged) {
+        } else if (ImGui::IsKeyPressed(ImGuiKey_X) && cur_cursor->already_dragged) {
             // cut (ctrl+x)
             copy_pat(song, cur_cursor);
             clear_pat_selection(song, cur_cursor);
             register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
-        }
-        if (ImGui::IsKeyPressed(ImGuiKey_Z)) {
+        } else if (ImGui::IsKeyPressed(ImGuiKey_Z)) {
             // undo (ctrl+z)
             if (cur_cursor->undo_pos != 0) {
                 undo_chunk cur_undo_chunk = undo_chunks->at(cur_cursor->undo_pos-1);
@@ -319,8 +396,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
                 ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
                 cur_cursor->undo_pos--;
             }
-        }
-        if (ImGui::IsKeyPressed(ImGuiKey_Y)) {
+        } else if (ImGui::IsKeyPressed(ImGuiKey_Y)) {
             // undo (ctrl+z)
             if (cur_cursor->undo_pos != undo_chunks->size()) {
                 undo_chunk cur_undo_chunk = undo_chunks->at(cur_cursor->undo_pos);

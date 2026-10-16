@@ -71,6 +71,8 @@ make
 - space: switch between read-only ("Jam") and read-write ("Record") modes. this can also be done through the Jam/Record button in the Controls window.
 - **1**: put a note cut/off in the selected channel's row (IF the cursor is over a note)
 <br><br>
+- ctrl+a: auto-expand the current selection (**select all**)
+<br><br>
 - ctrl+c: **copy** note/selection
 - ctrl+x: **cut** note/selection
 - ctrl+v: **paste** note/selection
