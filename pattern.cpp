@@ -617,7 +617,6 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
     float char_size = char_size_xy.x; // from furnace
     char_size_xy.y += io.FontGlobalScale+2;
     const float ch_row_len = 12.0; // C-4 69 420
-    ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
     if (!render_table) {
         // this is so the program doesn't crash when the pattern window is a hidden tab
@@ -696,68 +695,10 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
     // get the amount of dummy rows
     int dummy_row_cnt = (int)(ImGui::GetWindowSize().y/(2.0*char_size_xy.y));
 
-    // draw row highlights
-    ImVec2 c = ImGui::GetCursorScreenPos();
-    c.x = table_origin_x + char_size_xy.x*4.0;
-    c.y += char_size_xy.y*dummy_row_cnt;
     ImGui::TableNextRow(0,char_size_xy.y);
-    for (int row = 0; row < song->row_length; row += 4) {
-        draw_list->AddRectFilled(ImVec2(c.x, c.y), 
-                                 ImVec2(c.x+char_size_xy.x*(ch_row_len*((float)SONG_CH_COUNT(song))),c.y+char_size_xy.y),
-                                 IM_COL32(0x20,0x2c,0x35,0xff));
-        c.y += char_size_xy.y*4.0;
-    }
-
-    if (cur_cursor->playing) {
-        c = ImGui::GetCursorScreenPos();
-        c.x = table_origin_x + char_size_xy.x*4.0;
-        c.y += char_size_xy.y*dummy_row_cnt;
-        if (cur_cursor->do_follow && cur_cursor->playing) {
-            c.y += char_size_xy.y*cur_cursor->row;
-        } else {
-            c.y += char_size_xy.y*cur_cursor->play_row;
-        }
-
-        draw_list->AddRectFilled(ImVec2(c.x, c.y), 
-                                 ImVec2(c.x+char_size_xy.x*(ch_row_len*((float)SONG_CH_COUNT(song))),c.y+char_size_xy.y),
-                                 IM_COL32(0x40,0x4c,0x55,0xff));
-    }
-
-    if (cur_cursor->do_record) {
-        c = ImGui::GetCursorScreenPos();
-        c.x = table_origin_x + char_size_xy.x*4.0;
-        c.y += char_size_xy.y*dummy_row_cnt;
-        c.y += char_size_xy.y*cur_cursor->row;
-
-        draw_list->AddRectFilled(ImVec2(c.x, c.y), 
-                                 ImVec2(c.x+char_size_xy.x*(ch_row_len*((float)SONG_CH_COUNT(song))),c.y+char_size_xy.y),
-                                 IM_COL32(0x30,0x1b,0x1b,0xff));
-    }
-
-    if (cur_cursor->already_dragged) {
-        ImVec2 c_start = ImGui::GetCursorScreenPos();
-        c_start.x = table_origin_x + char_size_xy.x*5.0; // offset it correctly
-        c_start.x += get_select_offset(cur_cursor->drag_x_start_sel)*char_size_xy.x+1.0;
-        c_start.x += floorf(cur_cursor->drag_x_start/4)*12*char_size_xy.x;
-        c_start.y += cur_cursor->drag_y_start*char_size_xy.y;
-        c_start.y += dummy_row_cnt*char_size_xy.y;
-        if (cur_cursor->drag_x_start > cur_cursor->drag_x_end)
-            c_start += ImVec2(get_select_width(cur_cursor->drag_x_start_sel)*char_size_xy.x, 0.0f);
-        if (cur_cursor->drag_y_start > cur_cursor->drag_y_end)
-            c_start += ImVec2(0.0f, char_size_xy.y);
-
-        ImVec2 c_end = ImGui::GetCursorScreenPos();
-        c_end.x = table_origin_x + char_size_xy.x*5.0; // offset it correctly
-        c_end.x += get_select_offset(cur_cursor->drag_x_end_sel)*char_size_xy.x+1.0;
-        c_end.x += floorf(cur_cursor->drag_x_end/4)*12*char_size_xy.x;
-        c_end.y += cur_cursor->drag_y_end*char_size_xy.y;
-        c_end.y += dummy_row_cnt*char_size_xy.y;
-        if (cur_cursor->drag_x_start <= cur_cursor->drag_x_end)
-            c_end += ImVec2(get_select_width(cur_cursor->drag_x_end_sel)*char_size_xy.x, char_size_xy.y);
-    
-        draw_list->AddRectFilled(c_start, c_end,
-                                 IM_COL32(0x66,0x66,0x72,0x67));
-    }
+    ImVec2 body_origin = ImGui::GetCursorScreenPos();
+    body_origin.x = table_origin_x;
+    const float body_y0 = body_origin.y + char_size_xy.y * dummy_row_cnt;
 
     // get mouse
     if (ImGui::IsWindowFocused()) {
@@ -864,20 +805,6 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
 
     if (ImGui::IsWindowFocused()) do_pat_keyboard(song, cur_cursor, undo_chunks);
 
-    if (cur_cursor->ch >= 0 && cur_cursor->ch < SONG_CH_COUNT(song)) {
-        // render SELECTED cursor
-        ImVec2 c = ImGui::GetCursorScreenPos();
-        c.x = table_origin_x + char_size_xy.x*5.0; // offset it correctly
-        c.x += get_select_offset(cur_cursor->selection)*char_size_xy.x+1.0;
-        c.x += (cur_cursor->ch*12)*char_size_xy.x;
-        c.y += cur_cursor->row*char_size_xy.y;
-        c.y += dummy_row_cnt*char_size_xy.y;
-        draw_list->AddRectFilled(ImVec2(c.x, c.y), 
-                                 ImVec2(c.x+get_select_width(cur_cursor->selection)*char_size_xy.x,
-                                        c.y+char_size_xy.y),
-                                 IM_COL32(0x28,0x4c,0x7c,0xff));
-    }
-
     for (int dummy_row = 0; dummy_row < dummy_row_cnt; dummy_row++) {
         ImGui::TableNextColumn();
         ImGui::TableNextColumn();
@@ -962,6 +889,82 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
     ImGui::EndTable();
     ImGui::PopStyleVar();
     ImGui::PopID();
+
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+    // draw row highlights
+    ImVec2 c = ImVec2(body_origin.x + char_size_xy.x*4.0f, body_y0);
+    for (int row = 0; row < song->row_length; row += 4) {
+        draw_list->AddRectFilled(ImVec2(c.x, c.y), 
+                                 ImVec2(c.x+char_size_xy.x*(ch_row_len*((float)SONG_CH_COUNT(song))),c.y+char_size_xy.y),
+                                 IM_COL32(0x20,0x2c,0x35,0xff));
+        c.y += char_size_xy.y*4.0;
+    }
+
+    if (cur_cursor->playing) {
+        c = ImVec2(body_origin.x + char_size_xy.x*4.0f, body_y0);
+        if (cur_cursor->do_follow && cur_cursor->playing) {
+            c.y += char_size_xy.y*cur_cursor->row;
+        } else {
+            c.y += char_size_xy.y*cur_cursor->play_row;
+        }
+
+        draw_list->AddRectFilled(ImVec2(c.x, c.y), 
+                                 ImVec2(c.x+char_size_xy.x*(ch_row_len*((float)SONG_CH_COUNT(song))),c.y+char_size_xy.y),
+                                 IM_COL32(0x40,0x4c,0x55,0xff));
+    }
+
+    if (cur_cursor->do_record) {
+        c = ImVec2(body_origin.x + char_size_xy.x*4.0f, body_y0);
+        c.y += char_size_xy.y*cur_cursor->row;
+
+        draw_list->AddRectFilled(ImVec2(c.x, c.y), 
+                                 ImVec2(c.x+char_size_xy.x*(ch_row_len*((float)SONG_CH_COUNT(song))),c.y+char_size_xy.y),
+                                 IM_COL32(0x30,0x1b,0x1b,0xff));
+    }
+
+    if (cur_cursor->already_dragged) {
+        // Normalize to min/max so every drag direction covers the full rectangle.
+        int drag_x0 = cur_cursor->drag_x_start;
+        int drag_x1 = cur_cursor->drag_x_end;
+        int drag_y0 = cur_cursor->drag_y_start;
+        int drag_y1 = cur_cursor->drag_y_end;
+        enum channel_mode sel0 = cur_cursor->drag_x_start_sel;
+        enum channel_mode sel1 = cur_cursor->drag_x_end_sel;
+        if (drag_x0 > drag_x1) {
+            int tmp = drag_x0; drag_x0 = drag_x1; drag_x1 = tmp;
+            enum channel_mode tmp_sel = sel0; sel0 = sel1; sel1 = tmp_sel;
+        }
+        if (drag_y0 > drag_y1) {
+            int tmp = drag_y0; drag_y0 = drag_y1; drag_y1 = tmp;
+        }
+
+        ImVec2 c_min = ImVec2(body_origin.x + char_size_xy.x*5.0f, body_y0);
+        c_min.x += get_select_offset(sel0)*char_size_xy.x+1.0;
+        c_min.x += floorf(drag_x0/4)*12*char_size_xy.x;
+        c_min.y += drag_y0*char_size_xy.y;
+
+        ImVec2 c_max = ImVec2(body_origin.x + char_size_xy.x*5.0f, body_y0);
+        c_max.x += get_select_offset(sel1)*char_size_xy.x+1.0;
+        c_max.x += floorf(drag_x1/4)*12*char_size_xy.x;
+        c_max += ImVec2(get_select_width(sel1)*char_size_xy.x, (drag_y1+1)*char_size_xy.y);
+
+        draw_list->AddRectFilled(c_min, c_max,
+                                 IM_COL32(0x66,0x66,0x72,0x67));
+    }
+
+    if (cur_cursor->ch >= 0 && cur_cursor->ch < SONG_CH_COUNT(song)) {
+        // render SELECTED cursor
+        ImVec2 c = ImVec2(body_origin.x + char_size_xy.x*5.0f, body_y0);
+        c.x += get_select_offset(cur_cursor->selection)*char_size_xy.x+1.0;
+        c.x += (cur_cursor->ch*12)*char_size_xy.x;
+        c.y += cur_cursor->row*char_size_xy.y;
+        draw_list->AddRectFilled(ImVec2(c.x, c.y), 
+                                 ImVec2(c.x+get_select_width(cur_cursor->selection)*char_size_xy.x,
+                                        c.y+char_size_xy.y),
+                                 IM_COL32(0x28,0x4c,0x7c,0xff));
+    }
+
     ImGui::End();
 }
 
