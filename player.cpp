@@ -348,6 +348,11 @@ void advance_frame(song *song, cursor *cur_cursor) {
             bool did_order_skip = false;
             player_vars.tick = player_vars.speed[player_vars.tick_sel];
             uint8_t row = cur_cursor->play_row;
+    
+            // reset the 9xx latches before row processing
+            for (int chip_n = 0; chip_n < SONG_CH_COUNT(song)/3; chip_n++)
+                player_vars.row_has_9xx[chip_n] = false;
+
             for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
                 uint8_t chip_n = ch/3;
                 uint8_t note     = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].note;
