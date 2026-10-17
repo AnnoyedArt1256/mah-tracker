@@ -319,10 +319,11 @@ void init_routine(song *song) {
     reset_audio_buffer();
 }
 
-
+int last_note_on_ch = 0;
 
 // Live note playback
 void play_note_live(song *song, uint8_t ch, uint8_t note, uint8_t instr) {
+    last_note_on_ch = ch;
     player_vars.inst[ch] = instr;
     player_vars.cur_note[ch] = note;
     player_vars.cur_arpwave_pos[ch] = 0;
@@ -333,8 +334,9 @@ void play_note_live(song *song, uint8_t ch, uint8_t note, uint8_t instr) {
 }
 
 void note_off_live(uint8_t ch) {
-    player_vars.hr_delay[ch] = 0xFF;
-    player_vars.gate_mask[ch] = 0xFE;
+    (void)ch;
+    player_vars.hr_delay[last_note_on_ch] = 0xFF;
+    player_vars.gate_mask[last_note_on_ch] = 0xFE;
 }
 
 int player_get_loop_cnt() {

@@ -590,10 +590,10 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
                 cur_cursor->latch = 0;
                 cur_cursor->already_dragged = false;
                 cur_cursor->dragging = false;
-                play_note_live(song,0,cur_cursor->octave*12+key_ind,cur_cursor->instr);
+                play_note_live(song,cur_cursor->ch,cur_cursor->octave*12+key_ind,cur_cursor->instr);
             }
             if (ImGui::IsKeyReleased(piano_keys[key_ind])) {
-                note_off_live(0);
+                note_off_live(cur_cursor->ch);
             }
         }
         if (ImGui::IsKeyPressed(ImGuiKey_1)) {
