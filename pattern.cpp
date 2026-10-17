@@ -246,10 +246,12 @@ void select_all_pat(song *song, cursor *cur_cursor) {
         enum channel_mode ch_select = cur_cursor->selection;
         cur_cursor->dragging = true;
         cur_cursor->already_dragged = true;
+        cur_cursor->drag_x_start = cur_cursor->ch*4+((int)ch_select);
+        cur_cursor->drag_x_start_sel = ch_select;
         cur_cursor->drag_x_end = cur_cursor->ch*4+((int)ch_select);
+        cur_cursor->drag_x_end_sel = ch_select;
         cur_cursor->drag_y_start = 0;
         cur_cursor->drag_y_end = song->row_length-1;
-        cur_cursor->drag_x_end_sel = ch_select;
     }
 
     // clamp the drag coords
@@ -301,6 +303,61 @@ void transpose_pat_notes(song *song, cursor *cur_cursor, int delta) {
             if (final_note < 0) final_note = 0;
             if (final_note > 127) final_note = 127;
             cur_pat_rows[row].note = (uint8_t)final_note;
+        }
+    }
+}
+
+// transpose values in the selection (or the value under the cursor) by delta
+void transpose_pat_values(song *song, cursor *cur_cursor, int delta) {
+    int row_start, row_end, col_start, col_end;
+    if (cur_cursor->already_dragged) {
+        row_start = cur_cursor->drag_y_start;
+        row_end = cur_cursor->drag_y_end;
+        if (row_start > row_end) {
+            int temp = row_end;
+            row_end = row_start;
+            row_start = temp;
+        }
+        col_start = cur_cursor->drag_x_start;
+        col_end = cur_cursor->drag_x_end;
+        if (col_start > col_end) {
+            int temp = col_end;
+            col_end = col_start;
+            col_start = temp;
+        }
+    } else {
+        row_start = row_end = cur_cursor->row;
+        col_start = col_end = cur_cursor->ch*4; // note column of current channel
+    }
+
+    for (int row = row_start; row <= row_end; row++) {
+        if (row < 0 || row >= song->row_length) continue;
+        for (int col = col_start; col <= col_end; col++) {
+            if ((col&3) == 0 || (col&3) == 2) continue; // skip note and eff. type columns
+            int ch = col>>2;
+            if (ch < 0 || ch >= SONG_CH_COUNT(song)) continue;
+            pat_row *cur_pat_rows = song->pattern[song->order_table[ch][cur_cursor->order]].rows;
+            uint8_t value = (col&3) == 1 ? cur_pat_rows[row].instr : cur_pat_rows[row].eff_arg;
+            int final_value = (int)value + delta;
+            // instruments values should range between $01-$7F
+            // while eff. args should range from $00-$FF (a full byte)
+            if ((col&3) == 1) {
+                if (value != 0) {
+                    if (final_value < 0x01) final_value = 0x01;
+                    if (final_value > 0x7F) final_value = 0x7F;
+                } else {
+                    final_value = 0;
+                }
+                cur_pat_rows[row].instr = (uint8_t)final_value;
+            } else {
+                if (cur_pat_rows[row].eff_type != 0) {
+                    if (final_value < 0x00) final_value = 0x00;
+                    if (final_value > 0xFF) final_value = 0xFF;
+                } else {
+                    final_value = 0;
+                }
+                cur_pat_rows[row].eff_arg = (uint8_t)final_value;
+            }
         }
     }
 }
@@ -365,6 +422,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
     bool delete_pressed = ImGui::IsKeyPressed(ImGuiKey_Backspace) || ImGui::IsKeyPressed(ImGuiKey_Delete);
  	bool super_pressed = ImGui::IsKeyDown(ImGuiKey_LeftSuper) || ImGui::IsKeyDown(ImGuiKey_RightSuper);
 	bool mod_pressed = ctrl_pressed || super_pressed; // Ctrl on Win/Linux, Cmd or Ctrl on macOS
+    bool shift_pressed = ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift);
 
     // Copy-paste functions
     if (ctrl_pressed) {
@@ -412,19 +470,24 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
         }
     }
 
-    // Transpose notes
+    // Transpose notes (and values)
     // Ctrl/Cmd + F1: +1 semitone
     // Ctrl/Cmd + F2: -1 semitone
     // Ctrl/Cmd + F3: +1 octave (+12 semitones)
     // Ctrl/Cmd + F4: -1 octave (-12 semitones)
+    // Ctrl/Cmd + Shift + F1/2/3/4: Change values (instrument idx and eff. args) by delta
     if (mod_pressed) {
 	    int transpose_delta = 0;
 	    if (ImGui::IsKeyPressed(ImGuiKey_F1)) transpose_delta = -1;
         else if (ImGui::IsKeyPressed(ImGuiKey_F2)) transpose_delta = 1;
-	    else if (ImGui::IsKeyPressed(ImGuiKey_F3)) transpose_delta = -12;
-	    else if (ImGui::IsKeyPressed(ImGuiKey_F4)) transpose_delta = 12;
+	    else if (ImGui::IsKeyPressed(ImGuiKey_F3)) transpose_delta = shift_pressed ? -16 : -12;
+	    else if (ImGui::IsKeyPressed(ImGuiKey_F4)) transpose_delta = shift_pressed ? 16 : 12;
 	    if (transpose_delta != 0) {
-	        transpose_pat_notes(song, cur_cursor, transpose_delta);
+            if (shift_pressed) {
+	            transpose_pat_values(song, cur_cursor, transpose_delta);
+            } else {
+	            transpose_pat_notes(song, cur_cursor, transpose_delta);
+            }
 	        register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
 	    }
     }

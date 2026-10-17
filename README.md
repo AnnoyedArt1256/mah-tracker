@@ -85,6 +85,11 @@ make
 - ctrl/cmd+f2: transpose note/selection by -1 semitone
 - ctrl/cmd+f3: transpose note/selection by +1 octave (+12 semitones)
 - ctrl/cmd+f4: transpose note/selection by -1 octave (-12 semitones)
+<br><br>
+- ctrl+**shift**+f1: increment values by +1
+- ctrl+**shift**+f2: decrement values by -1
+- ctrl+**shift**+f3: increment values by +16
+- ctrl+**shift**+f4: decrement values by -16
 
 ### controls:
 - **octave:** current base octave for note input with the keyboard
