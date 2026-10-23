@@ -660,12 +660,12 @@ int main(int argc, char *argv[]) {
 
         bool ctrl_pressed = ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl);
         if (ctrl_pressed) {
-            if (ImGui::IsKeyDown(ImGuiKey_N)) { // ctrl+n: new song
+            if (ImGui::IsKeyPressed(ImGuiKey_N)) { // ctrl+n: new song
                 cur_cursor.new_file_popup = true;
                 reset_audio_buffer();
-            } else if (ImGui::IsKeyDown(ImGuiKey_O)) { // ctrl+o: load song
+            } else if (ImGui::IsKeyPressed(ImGuiKey_O)) { // ctrl+o: load song
                 open_file_choose();
-            } else if (ImGui::IsKeyDown(ImGuiKey_S)) { // ctrl+s: save song
+            } else if (ImGui::IsKeyPressed(ImGuiKey_S)) { // ctrl+s: save song
                 save_file_choose();
             }
         }
