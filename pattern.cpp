@@ -119,7 +119,7 @@ void copy_pat(song *song, cursor *cur_cursor) {
     }
 }
 
-void paste_pat(song *song, cursor *cur_cursor) {
+void paste_pat(song *song, cursor *cur_cursor, bool overlap) {
     ImGuiIO& io = ImGui::GetIO();
     ImVec2 char_size_xy = ImGui::CalcTextSize("A");
     char_size_xy.y += io.FontGlobalScale+2;
@@ -134,10 +134,34 @@ void paste_pat(song *song, cursor *cur_cursor) {
             if ((cur_cursor->ch+(rel_col>>2)) >= SONG_CH_COUNT(song)) continue;
             pat_row *cur_pat_rows = song->pattern[song->order_table[cur_cursor->ch+(rel_col>>2)][cur_cursor->order]].rows;
             switch (col&3) {
-                case 0: cur_pat_rows[row+cursor_row].note = copy_buffer->ch_rows[col>>2].rows[row].note; break;
-                case 1: cur_pat_rows[row+cursor_row].instr = copy_buffer->ch_rows[col>>2].rows[row].instr; break;
-                case 2: cur_pat_rows[row+cursor_row].eff_type = copy_buffer->ch_rows[col>>2].rows[row].eff_type; break;
-                case 3: cur_pat_rows[row+cursor_row].eff_arg = copy_buffer->ch_rows[col>>2].rows[row].eff_arg; break;
+                case 0: {
+                    uint8_t note = copy_buffer->ch_rows[col>>2].rows[row].note;
+                    if (!overlap || note != NOTE_EMPTY) {
+                        cur_pat_rows[row+cursor_row].note = note;
+                    }
+                    break;
+                }
+                case 1: {
+                    uint8_t instr = copy_buffer->ch_rows[col>>2].rows[row].instr;
+                    if (!overlap || instr != 0) {
+                        cur_pat_rows[row+cursor_row].instr = instr;
+                    }
+                    break;
+                }
+                case 2: {
+                    uint8_t eff_type = copy_buffer->ch_rows[col>>2].rows[row].eff_type;
+                    if (!overlap || eff_type != 0) {
+                        cur_pat_rows[row+cursor_row].eff_type = eff_type; 
+                    }
+                    break;
+                }
+                case 3: {
+                    uint8_t eff_arg = copy_buffer->ch_rows[col>>2].rows[row].eff_arg;
+                    if (!overlap || eff_arg != 0) {
+                        cur_pat_rows[row+cursor_row].eff_arg = eff_arg;
+                    }
+                    break;
+                }
             }
         }
         cur_cursor->row++;
@@ -434,7 +458,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
             copy_pat(song, cur_cursor);
         } else if (ImGui::IsKeyPressed(ImGuiKey_V)) {
             // paste (ctrl+v)
-            paste_pat(song, cur_cursor);
+            paste_pat(song, cur_cursor, shift_pressed);
             register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
         } else if (ImGui::IsKeyPressed(ImGuiKey_X) && cur_cursor->already_dragged) {
             // cut (ctrl+x)

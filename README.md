@@ -76,6 +76,7 @@ make
 - ctrl+c: **copy** note/selection
 - ctrl+x: **cut** note/selection
 - ctrl+v: **paste** note/selection
+- ctrl+**shift**+v: **insert** selection data ON TOP of the already occupied notes (paste mix/overlap)
 - ctrl+z: **undo** note/selection
 - ctrl+y: **redo** note/selection
 <br><br>
