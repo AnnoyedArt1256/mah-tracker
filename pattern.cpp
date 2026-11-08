@@ -114,7 +114,7 @@ void copy_pat(song *song, cursor *cur_cursor) {
 
     for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
         memcpy(cur_cursor->pattern_copy_buffer.ch_rows[ch].rows,
-               &song->pattern[song->order_table[ch][cur_cursor->order]].rows[row_start],
+               &song->pattern[ch][song->order_table[ch][cur_cursor->order]].rows[row_start],
                sizeof(pat_row)*row_len);
     }
 }
@@ -132,7 +132,7 @@ void paste_pat(song *song, cursor *cur_cursor, bool overlap) {
             // i could use memcpy, but just in case someone's using big-endian or smth...
             int rel_col = col-copy_buffer->col_start;
             if ((cur_cursor->ch+(rel_col>>2)) >= SONG_CH_COUNT(song)) continue;
-            pat_row *cur_pat_rows = song->pattern[song->order_table[cur_cursor->ch+(rel_col>>2)][cur_cursor->order]].rows;
+            pat_row *cur_pat_rows = song->pattern[cur_cursor->ch+(rel_col>>2)][song->order_table[cur_cursor->ch+(rel_col>>2)][cur_cursor->order]].rows;
             switch (col&3) {
                 case 0: {
                     uint8_t note = copy_buffer->ch_rows[col>>2].rows[row].note;
@@ -201,7 +201,7 @@ void clear_pat_selection(song *song, cursor *cur_cursor) {
             // i could use memcpy, but just in case someone's using big-endian or something...
             int rel_col = col-col_start;
             if ((start_ch+(rel_col>>2)) >= SONG_CH_COUNT(song)) continue;
-            pat_row *cur_pat_rows = song->pattern[song->order_table[start_ch+(rel_col>>2)][cur_cursor->order]].rows;
+            pat_row *cur_pat_rows = song->pattern[cur_cursor->ch+(rel_col>>2)][song->order_table[start_ch+(rel_col>>2)][cur_cursor->order]].rows;
             switch (col&3) {
                 case 0: cur_pat_rows[row+cursor_row].note = NOTE_EMPTY; break;
                 case 1: cur_pat_rows[row+cursor_row].instr = 0; break;
@@ -320,7 +320,7 @@ void transpose_pat_notes(song *song, cursor *cur_cursor, int delta) {
             if ((col&3) != 0) continue; // only note columns
             int ch = col>>2;
             if (ch < 0 || ch >= SONG_CH_COUNT(song)) continue;
-            pat_row *cur_pat_rows = song->pattern[song->order_table[ch][cur_cursor->order]].rows;
+            pat_row *cur_pat_rows = song->pattern[ch][song->order_table[ch][cur_cursor->order]].rows;
             uint8_t note = cur_pat_rows[row].note;
             if (note == NOTE_EMPTY || note == NOTE_OFF) continue;
             int final_note = (int)note + delta;
@@ -360,7 +360,7 @@ void transpose_pat_values(song *song, cursor *cur_cursor, int delta) {
             if ((col&3) == 0 || (col&3) == 2) continue; // skip note and eff. type columns
             int ch = col>>2;
             if (ch < 0 || ch >= SONG_CH_COUNT(song)) continue;
-            pat_row *cur_pat_rows = song->pattern[song->order_table[ch][cur_cursor->order]].rows;
+            pat_row *cur_pat_rows = song->pattern[ch][song->order_table[ch][cur_cursor->order]].rows;
             uint8_t value = (col&3) == 1 ? cur_pat_rows[row].instr : cur_pat_rows[row].eff_arg;
             int final_value = (int)value + delta;
             // instruments values should range between $01-$7F
@@ -392,9 +392,11 @@ void register_undo(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo
     // then save it in the undo buffer
     cur_undo->order_cur = cur_cursor->order;
     cur_undo->row_cur = cur_cursor->row;
+    cur_undo->ch_cur = cur_cursor->ch;
+    cur_undo->selection_cur = cur_cursor->selection;
     for (int ch = 0; ch < UNDO_CHANNELS; ch++) {
         int cur_pat = song->order_table[ch][cur_cursor->order];
-        memcpy(&cur_undo->ch_rows[ch], &song->pattern[cur_pat], sizeof(pattern_data));
+        memcpy(&cur_undo->ch_rows[ch], &song->pattern[ch][cur_pat], sizeof(pattern_data));
         cur_undo->changed_patterns[ch] = cur_pat;
     }
     int cur_size = undo_chunks->size();
@@ -410,11 +412,13 @@ void register_undo(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo
     // update cur_undo for subsequent undo buffer writes
     for (int ch = 0; ch < UNDO_CHANNELS; ch++) {
         int cur_pat = song->order_table[ch][cur_cursor->order];
-        memcpy(&cur_undo->ch_rows_old[ch], &song->pattern[cur_pat], sizeof(pattern_data));
+        memcpy(&cur_undo->ch_rows_old[ch], &song->pattern[ch][cur_pat], sizeof(pattern_data));
         cur_undo->changed_patterns[ch] = cur_pat;
     }
     cur_undo->order_old = cur_cursor->order;
     cur_undo->row_old = cur_cursor->row;
+    cur_undo->ch_old = cur_cursor->ch;
+    cur_undo->selection_old = cur_cursor->selection;
 }
 
 // Row/column controls
@@ -427,9 +431,11 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
     bool pats_changed = false;
     cur_undo.order_old = cur_cursor->order;
     cur_undo.row_old = cur_cursor->row;
+    cur_undo.ch_old = cur_cursor->ch;
+    cur_undo.selection_old = cur_cursor->selection;
     for (int ch = 0; ch < UNDO_CHANNELS; ch++) {
         int cur_pat = song->order_table[ch][cur_cursor->order];
-        memcpy(&cur_undo.ch_rows_old[ch], &song->pattern[cur_pat], sizeof(pattern_data));
+        memcpy(&cur_undo.ch_rows_old[ch], &song->pattern[ch][cur_pat], sizeof(pattern_data));
         cur_undo.changed_patterns[ch] = cur_pat;
     }
 
@@ -471,23 +477,27 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
                 undo_chunk cur_undo_chunk = undo_chunks->at(cur_cursor->undo_pos-1);
                 for (int ch = 0; ch < UNDO_CHANNELS; ch++) {
                     int cur_pat = cur_undo_chunk.changed_patterns[ch];
-                    memcpy(&song->pattern[cur_pat], &cur_undo_chunk.ch_rows_old[ch], sizeof(pattern_data));
+                    memcpy(&song->pattern[ch][cur_pat], &cur_undo_chunk.ch_rows_old[ch], sizeof(pattern_data));
                 }
                 cur_cursor->row = cur_undo_chunk.row_old;
                 cur_cursor->order = cur_undo_chunk.order_old;
+                cur_cursor->ch = cur_undo_chunk.ch_old;
+                cur_cursor->selection = cur_undo_chunk.selection_old;
                 ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
                 cur_cursor->undo_pos--;
             }
         } else if (ImGui::IsKeyPressed(ImGuiKey_Y)) {
-            // undo (ctrl+z)
+            // redo (ctrl+y)
             if (cur_cursor->undo_pos != undo_chunks->size()) {
                 undo_chunk cur_undo_chunk = undo_chunks->at(cur_cursor->undo_pos);
                 for (int ch = 0; ch < UNDO_CHANNELS; ch++) {
                     int cur_pat = cur_undo_chunk.changed_patterns[ch];
-                    memcpy(&song->pattern[cur_pat], &cur_undo_chunk.ch_rows[ch], sizeof(pattern_data));
+                    memcpy(&song->pattern[ch][cur_pat], &cur_undo_chunk.ch_rows[ch], sizeof(pattern_data));
                 }
                 cur_cursor->row = cur_undo_chunk.row_cur;
                 cur_cursor->order = cur_undo_chunk.order_cur;
+                cur_cursor->ch = cur_undo_chunk.ch_cur;
+                cur_cursor->selection = cur_undo_chunk.selection_cur;
                 ImGui::SetScrollY(cur_cursor->row*char_size_xy.y);
                 cur_cursor->undo_pos++;
             }
@@ -597,7 +607,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
         register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
     }
 
-    pat_row *cur_pattern_rows = song->pattern[song->order_table[cur_cursor->ch][cur_cursor->order]].rows;
+    pat_row *cur_pattern_rows = song->pattern[cur_cursor->ch][song->order_table[cur_cursor->ch][cur_cursor->order]].rows;
 
     if (cur_cursor->selection == note) {
         for (int key_ind = 0; key_ind < sizeof(piano_keys)/sizeof(ImGuiKey); key_ind++) {
@@ -921,7 +931,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
             }
  	        // double-click instrument column to select it in the instrument editor
 	        if (ImGui::IsMouseDoubleClicked(0) && ch_select == instr) {
-	            uint8_t cell_instr = song->pattern[song->order_table[ch][cur_cursor->order]].rows[char_y].instr;
+	            uint8_t cell_instr = song->pattern[ch][song->order_table[ch][cur_cursor->order]].rows[char_y].instr;
                 if (cell_instr != 0) cur_cursor->instr = cell_instr;
 	        }
         }
@@ -990,10 +1000,10 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
             char cur_note[4] = "...";
             char cur_ins[3] = "..";
             char cur_eff[4] = "...";
-            uint8_t note     = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].note;
-            uint8_t instr    = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].instr;
-            uint8_t eff_type = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].eff_type;
-            uint8_t eff_arg  = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].eff_arg;
+            uint8_t note     = song->pattern[ch][song->order_table[ch][cur_cursor->order]].rows[row].note;
+            uint8_t instr    = song->pattern[ch][song->order_table[ch][cur_cursor->order]].rows[row].instr;
+            uint8_t eff_type = song->pattern[ch][song->order_table[ch][cur_cursor->order]].rows[row].eff_type;
+            uint8_t eff_arg  = song->pattern[ch][song->order_table[ch][cur_cursor->order]].rows[row].eff_arg;
             if (note != NOTE_EMPTY) {
                 if (note != NOTE_OFF) {
                     memcpy(cur_note,note_str[note%12],2);

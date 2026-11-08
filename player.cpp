@@ -357,10 +357,10 @@ void advance_frame(song *song, cursor *cur_cursor) {
 
             for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
                 uint8_t chip_n = ch/3;
-                uint8_t note     = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].note;
-                uint8_t instr    = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].instr;
-                uint8_t eff_type = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].eff_type;
-                uint8_t eff_arg  = song->pattern[song->order_table[ch][cur_cursor->order]].rows[row].eff_arg;
+                uint8_t note     = song->pattern[ch][song->order_table[ch][cur_cursor->order]].rows[row].note;
+                uint8_t instr    = song->pattern[ch][song->order_table[ch][cur_cursor->order]].rows[row].instr;
+                uint8_t eff_type = song->pattern[ch][song->order_table[ch][cur_cursor->order]].rows[row].eff_type;
+                uint8_t eff_arg  = song->pattern[ch][song->order_table[ch][cur_cursor->order]].rows[row].eff_arg;
                 if (note != NOTE_EMPTY) {
                     if (note == NOTE_OFF) {
                         player_vars.gate_mask[ch] = 0xFE; // gate off

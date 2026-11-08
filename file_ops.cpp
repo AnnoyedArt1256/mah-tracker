@@ -114,20 +114,45 @@ void load_file(char *filename, song *song, cursor *cur_cursor) {
     }
 
     // patterns
-    int max_pat = fgetc(f);
-    for (int pat = 0; pat < max_pat+1; pat++) {
-        for (int row = 0; row < song->row_length; row++) {
-            song->pattern[pat].rows[row].note = fgetc(f);
-            song->pattern[pat].rows[row].instr = fgetc(f);
-            song->pattern[pat].rows[row].eff_type = fgetc(f);
-            song->pattern[pat].rows[row].eff_arg = fgetc(f);
-            if (version == 0) {
-                // in version 0 modules, all 3xx effects are TIE NOTES (aka 300 / 3..)
-                if (song->pattern[pat].rows[row].eff_type == 3)
-                    song->pattern[pat].rows[row].eff_arg = 0;
+    if (version >= 11) {
+        // patterns are global, so read a pattern block per channel
+        for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
+            int max_pat = fgetc(f);
+            for (int pat = 0; pat < max_pat+1; pat++) {
+                for (int row = 0; row < song->row_length; row++) {
+                    song->pattern[ch][pat].rows[row].note = fgetc(f);
+                    song->pattern[ch][pat].rows[row].instr = fgetc(f);
+                    song->pattern[ch][pat].rows[row].eff_type = fgetc(f);
+                    song->pattern[ch][pat].rows[row].eff_arg = fgetc(f);
+                    if (version == 0) {
+                        // in version 0 modules, all 3xx effects are TIE NOTES (aka 300 / 3..)
+                        if (song->pattern[ch][pat].rows[row].eff_type == 3)
+                            song->pattern[ch][pat].rows[row].eff_arg = 0;
+                    }  
+                }
             }
         }
-    }  
+    } else {
+        // patterns are global, so read a pattern block only once
+        int max_pat = fgetc(f);
+        for (int pat = 0; pat < max_pat+1; pat++) {
+            for (int row = 0; row < song->row_length; row++) {
+                song->pattern[0][pat].rows[row].note = fgetc(f);
+                song->pattern[0][pat].rows[row].instr = fgetc(f);
+                song->pattern[0][pat].rows[row].eff_type = fgetc(f);
+                song->pattern[0][pat].rows[row].eff_arg = fgetc(f);
+                if (version == 0) {
+                    // in version 0 modules, all 3xx effects are TIE NOTES (aka 300 / 3..)
+                    if (song->pattern[0][pat].rows[row].eff_type == 3)
+                        song->pattern[0][pat].rows[row].eff_arg = 0;
+                }
+                // copy the patterns from ch1 (1-based indexing) into the other channels
+                for (int ch = 1; ch < SONG_CH_COUNT(song); ch++) {
+                    memcpy(&song->pattern[ch][pat].rows[row], &song->pattern[0][pat].rows[row], sizeof(pat_row));
+                }     
+            }
+        }  
+    }
     
     // instruments
     for (int inst = 0; inst < 128; inst++) {
@@ -237,23 +262,23 @@ void save_file(char *filename, song *song) {
     }
 
     // patterns
-    int max_pat = 0;
     for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
+        int max_pat = 0;
         for (int ord = 0; ord < song->order_len; ord++) {
             if (song->order_table[ch][ord] >= max_pat)
                 max_pat = song->order_table[ch][ord];
         }
+        fputc(max_pat&0xff, f);
+        // write the patterns (for each channel)
+        for (int pat = 0; pat < max_pat+1; pat++) {
+            for (int row = 0; row < song->row_length; row++) {
+                fputc(song->pattern[ch][pat].rows[row].note, f);
+                fputc(song->pattern[ch][pat].rows[row].instr, f);
+                fputc(song->pattern[ch][pat].rows[row].eff_type, f);
+                fputc(song->pattern[ch][pat].rows[row].eff_arg, f);
+            }
+        }  
     }
-    fputc(max_pat&0xff, f);
-    // write the patterns
-    for (int pat = 0; pat < max_pat+1; pat++) {
-        for (int row = 0; row < song->row_length; row++) {
-            fputc(song->pattern[pat].rows[row].note, f);
-            fputc(song->pattern[pat].rows[row].instr, f);
-            fputc(song->pattern[pat].rows[row].eff_type, f);
-            fputc(song->pattern[pat].rows[row].eff_arg, f);
-        }
-    }   
 
     // instruments
     for (int inst = 0; inst < 128; inst++) {

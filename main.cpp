@@ -71,21 +71,21 @@ extern bool audio_paused;
 void init_default_pats(song *song) {
     int ch_count = SONG_CH_COUNT(song); // for 2SID support
     for (int pat = 0; pat < 256; pat++) {
-        for (int row = 0; row < 256; row++) {
-            song->pattern[pat].rows[row].note = NOTE_EMPTY;
-            song->pattern[pat].rows[row].instr = 0;
-            song->pattern[pat].rows[row].eff_type = 0;
-            song->pattern[pat].rows[row].eff_arg = 0;
-        }
         for (int ch = 0; ch < ch_count; ch++) {
             song->order_table[ch][pat] = 0;
+            for (int row = 0; row < 256; row++) {
+                song->pattern[ch][pat].rows[row].note = NOTE_EMPTY;
+                song->pattern[ch][pat].rows[row].instr = 0;
+                song->pattern[ch][pat].rows[row].eff_type = 0;
+                song->pattern[ch][pat].rows[row].eff_arg = 0;
+            }
         }
     }    
 
     //                      00 01
     // initial order table: 00 END
     for (int ch = 0; ch < ch_count; ch++) {
-        song->order_table[ch][0] = ch;
+        song->order_table[ch][0] = 0;
     }
 }
 
@@ -729,6 +729,22 @@ int main(int argc, char *argv[]) {
                     init_default_song(&c_song);
                     init_player_freq_table(c_song.a_frequency);
                     init_routine(&c_song);
+
+                    // init parts of the cursor struct when
+                    // creating a new file...
+                    cur_cursor.ch = 0;
+                    cur_cursor.row = 0;
+                    cur_cursor.selection = note;
+                    cur_cursor.octave = 3;
+                    cur_cursor.edit_step = 1;
+                    cur_cursor.order = 0;
+                    cur_cursor.instr = 1;
+                    cur_cursor.playing = 0;
+                    cur_cursor.play_row = 0;
+                    cur_cursor.loop = false;
+                    cur_cursor.do_record = false; // jam
+                    cur_cursor.do_follow = true; // enable follow-play
+
                     cur_cursor.latch = 0;
                     c_song.chip_mode = cur_cursor.chip_mode;
                     SID_set_chip(c_song.chip_mode);

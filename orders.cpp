@@ -23,16 +23,14 @@ along with this program; if not, see
 #include "defines.h"
 
 // Get unused pattern
-int get_unused_pattern(song *song) {
+int get_unused_pattern(song *song, int ch) {
     int pat_val = 0;
     for (int i = 0; i < 256; i++) {
         bool used = false;
-        for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
-            for (int j = 0; j < song->order_len; j++) {
-                if (song->order_table[ch][j] == i) {
-                    used = true;
-                    break;
-                }
+        for (int j = 0; j < song->order_len; j++) {
+            if (song->order_table[ch][j] == i) {
+                used = true;
+                break;
             }
         }
         if (!used) {
@@ -78,7 +76,7 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
                 for (int pat = song->order_len-1; pat > pat_ind; pat--) {
                     song->order_table[ch][pat] = song->order_table[ch][pat-1];
                 }
-                song->order_table[ch][pat_ind] = get_unused_pattern(song);
+                song->order_table[ch][pat_ind] = get_unused_pattern(song, ch);
             }
             clamp_pattern_loop(song);
         }
@@ -112,7 +110,7 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
         if (song->order_len < 255) {
             int order_ind = song->order_len++;
             for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
-                song->order_table[ch][order_ind] = get_unused_pattern(song);
+                song->order_table[ch][order_ind] = get_unused_pattern(song, ch);
             }
             clamp_pattern_loop(song);
         }
@@ -138,9 +136,9 @@ void render_orders(song *song, cursor *cur_cursor, bool *enable) {
             int pat_ind_cursor = cur_cursor->order;
             int order_ind = song->order_len++;
             for (int ch = 0; ch < SONG_CH_COUNT(song); ch++) {
-                uint8_t cur_order = get_unused_pattern(song);
+                uint8_t cur_order = get_unused_pattern(song, ch);
                 song->order_table[ch][order_ind] = cur_order;
-                memcpy(&song->pattern[cur_order], &song->pattern[song->order_table[ch][pat_ind_cursor]], sizeof(pattern_data));
+                memcpy(&song->pattern[ch][cur_order], &song->pattern[ch][song->order_table[ch][pat_ind_cursor]], sizeof(pattern_data));
             }
             clamp_pattern_loop(song);
         }

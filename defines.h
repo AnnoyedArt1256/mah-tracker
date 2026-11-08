@@ -23,7 +23,7 @@ along with this program; if not, see
 #include <iostream>
 
 // the current .mah module file format version
-#define MAH_CURRENT_VERSION 10
+#define MAH_CURRENT_VERSION 11
 
 // Magic numbers for file format
 #define NOTE_OFF 0xfe // Note off in pattern
@@ -70,6 +70,10 @@ struct undo_chunk {
     int row_old;
     int order_cur;
     int order_old;
+    int ch_cur;
+    int ch_old;
+    enum channel_mode selection_cur;
+    enum channel_mode selection_old;
 };
 
 struct pattern_chunk_copy {
@@ -145,7 +149,7 @@ struct instrument {
 // Song
 // Pattern, order table, order length, 128 instruments, and initial speed
 struct song {
-    pattern_data pattern[256];
+    pattern_data pattern[MAX_SID_CHANNELS][256];
     uint16_t order_table[MAX_SID_CHANNELS][256];
     uint8_t order_len;
     instrument instr[128];
