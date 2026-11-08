@@ -29,13 +29,15 @@ extern void init_default_pats(song *song);
 extern void init_player_freq_table(uint16_t a_freq);
 extern void SID_set_chip(bool mode);
 
-void load_file(char *filename, song *song) {
+void load_file(char *filename, song *song, cursor *cur_cursor) {
     FILE *f = fopen(filename, "rb");
 
     char magic_string_file[8];
     fread(magic_string_file, 1, 8, f);
     if (strncmp(magic_string_file, magic_string, 8) != 0) {
         fclose(f);
+        cur_cursor->alert_popup = true;
+        cur_cursor->alert_str = "Error while loading file! (invalid magic string)";
         return;
     }
 
@@ -47,6 +49,13 @@ void load_file(char *filename, song *song) {
     song->init_speed = fgetc(f);
     uint16_t version = fgetc(f);
     version |= fgetc(f)<<8;
+
+    if (version > MAH_CURRENT_VERSION) {
+        fclose(f);
+        cur_cursor->alert_popup = true;
+        cur_cursor->alert_str = "Error while loading file! (module version too new)";
+        return;
+    }
 
     if (version >= 4) {
         song->pitch_bend_shift = fgetc(f);
@@ -246,7 +255,7 @@ void save_file(char *filename, song *song) {
         }
     }   
 
-    // instruments (WIP)
+    // instruments
     for (int inst = 0; inst < 128; inst++) {
         instrument *instr = &song->instr[inst];
 

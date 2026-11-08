@@ -96,6 +96,8 @@ struct cursor {
     bool do_record;
     bool new_file_popup;
     bool new_file_init;
+    bool alert_popup;
+    std::string alert_str;
     bool chip_mode;
     int drag_pat;
     int drag_x_start;

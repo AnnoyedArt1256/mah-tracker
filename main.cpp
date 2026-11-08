@@ -58,7 +58,7 @@ window_bool visible_windows;
 static bool opt_padding = false; // Is there padding (a blank space) between the window edge and the Dockspace?
 
 extern void init_player_freq_table(uint16_t a_freq);
-extern void load_file(char *filename, song *song);
+extern void load_file(char *filename, song *song, cursor *cur_cursor);
 extern void save_file(char *filename, song *song);
 extern void reset_audio_buffer();
 extern uint8_t *get_player_speeds();
@@ -162,7 +162,7 @@ void open_file_choose() {
         fs::path path_check = f[0];
         if (path_check.extension() != ".mah")
             path_check.replace_extension("mah");
-        load_file((char *)path_check.string().c_str(), &c_song);
+        load_file((char *)path_check.string().c_str(), &c_song, &cur_cursor);
     } 
     audio_paused = false;
     reset_audio_buffer();
@@ -539,6 +539,8 @@ int main(int argc, char *argv[]) {
     cur_cursor.do_follow = true; // enable follow-play
     cur_cursor.new_file_popup = false;
     cur_cursor.new_file_init = false;
+    cur_cursor.alert_popup = false;
+    cur_cursor.alert_str = "";
     cur_cursor.dragging = false;
     cur_cursor.already_dragged = false;
     for (int ch = 0; ch < MAX_SID_CHANNELS; ch++) {
@@ -585,7 +587,7 @@ int main(int argc, char *argv[]) {
         } else if (!file_opened_args) {
             file_opened_args = true;
             printf("loaded file %s\n",argv[argc_pos]);
-            load_file(argv[argc_pos], &c_song);
+            load_file(argv[argc_pos], &c_song, &cur_cursor);
         }
         argc_pos++;
     }
@@ -673,6 +675,19 @@ int main(int argc, char *argv[]) {
         if (cur_cursor.order >= c_song.order_len)
             cur_cursor.order = c_song.order_len-1;
 
+        if (cur_cursor.alert_popup && !cur_cursor.alert_str.empty()) {
+            ImGui::OpenPopup("Alert");
+            if (ImGui::BeginPopupModal("Alert")) {
+                ImGui::SetItemDefaultFocus();
+                ImGui::TextUnformatted(cur_cursor.alert_str.c_str());
+                if (ImGui::Button("OK")) {
+                    cur_cursor.alert_popup = false;
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
+            }
+        }
+    
         if (cur_cursor.new_file_popup) {
             ImGui::OpenPopup("Warning");
             if (ImGui::BeginPopupModal("Warning")) {
