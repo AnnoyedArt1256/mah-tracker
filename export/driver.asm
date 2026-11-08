@@ -887,6 +887,16 @@ set_pat:
     sta @set_pat_smc+1
     ldx #(3*sid_chip_cnt)-1
 @loop:
+    lda pat_lo_lo, x
+    sta @set_pat_lo_smc+1
+    lda pat_lo_hi, x
+    sta @set_pat_lo_smc+2
+
+    lda pat_hi_lo, x
+    sta @set_pat_hi_smc+1
+    lda pat_hi_hi, x
+    sta @set_pat_hi_smc+2
+
     lda order_lo, x
     sta temp
     lda order_hi, x
@@ -901,9 +911,11 @@ set_pat:
     jmp set_pat
 :
     tay
-    lda pat_lo, y
+@set_pat_lo_smc:
+    lda pat_lo0, y
     sta pat_ptr_lo, x
-    lda pat_hi, y
+@set_pat_hi_smc:
+    lda pat_hi0, y
     sta pat_ptr_hi, x
     .if sid_chip_cnt >= 2
         lda #1
@@ -1120,6 +1132,30 @@ order_hi:
     .hibytes order_ch0, order_ch1, order_ch2
     .if sid_chip_cnt >= 2
         .hibytes order_ch3, order_ch4, order_ch5
+    .endif
+
+pat_lo_lo:
+    .lobytes pat_lo0, pat_lo1, pat_lo2
+    .if sid_chip_cnt >= 2
+        .lobytes pat_lo3, pat_lo4, pat_lo5
+    .endif
+
+pat_lo_hi:
+    .hibytes pat_lo0, pat_lo1, pat_lo2
+    .if sid_chip_cnt >= 2
+        .hibytes pat_lo3, pat_lo4, pat_lo5
+    .endif
+
+pat_hi_lo:
+    .lobytes pat_hi0, pat_hi1, pat_hi2
+    .if sid_chip_cnt >= 2
+        .lobytes pat_hi3, pat_hi4, pat_hi5
+    .endif
+
+pat_hi_hi:
+    .hibytes pat_hi0, pat_hi1, pat_hi2
+    .if sid_chip_cnt >= 2
+        .hibytes pat_hi3, pat_hi4, pat_hi5
     .endif
 
 vars_start:

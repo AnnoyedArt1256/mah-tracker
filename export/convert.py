@@ -79,85 +79,110 @@ def convert(filename):
             else: order_line += ","
         out += order_line
 
-    max_pat = file.read(1)[0]
-
-    out += f"pat_lo: .lobytes"
-    for pat in range(max_pat+1):
-        out += f" pattern{pat}"
-        if pat == max_pat: out += "\n"
-        else: out += ","
-
-    out += f"pat_hi: .hibytes"
-    for pat in range(max_pat+1):
-        out += f" pattern{pat}"
-        if pat == max_pat: out += "\n"
-        else: out += ","
+    pat_block_amt = 1
+    if version >= 11: pat_block_amt = 3*sid_count
 
     max_ins = 0
     pat_dict = {}
-    for pat in range(max_pat+1):
-        cur_eff_type = 0xff
-        cur_eff_arg = 0
-        pattern_data = []
-        last_write = 0
-        cur_ins = 0
-        write_buffer = []
-        is_dxx = False
-        for row in range(pattern_len):
-            note, instr, eff_type, eff_arg = file.read(4)
-            if version == 0 and eff_type == 3: # workaround for tie notes in older modules
-                eff_arg = 0
+    
+    for ch in range(pat_block_amt):
+        max_pat = file.read(1)[0]
 
+        for pat in range(max_pat+1):
+            cur_eff_type = 0xff
+            cur_eff_arg = 0
+            pattern_data = []
+            last_write = 0
+            cur_ins = 0
             write_buffer = []
+            is_dxx = False
+            for row in range(pattern_len):
+                note, instr, eff_type, eff_arg = file.read(4)
+                if version == 0 and eff_type == 3: # workaround for tie notes in older modules
+                    eff_arg = 0
 
-            if is_dxx:
-                continue
+                write_buffer = []
 
-            is_dxx |= eff_type == 0x0D
+                if is_dxx:
+                    continue
 
-            if eff_type > 0 and not is_dxx and (eff_type != cur_eff_type or eff_arg != cur_eff_arg):
-                cur_eff_type, cur_eff_arg = eff_type, eff_arg
-                write_buffer.extend([0xE0|(eff_type&0xf), eff_arg]) # do effect
-            elif eff_type == 0 and eff_type != cur_eff_type:
-                cur_eff_type = 0
-                write_buffer.append(0xE0) # stop effects
+                is_dxx |= eff_type == 0x0D
 
-            if instr != 0 and (cur_ins != instr or note == 0xFF or row == 0):
-                cur_ins = instr
-                if instr >= max_ins: max_ins = instr
-                if instr < 0x40: 
-                    write_buffer.append(instr+0x40)
-                else:
-                    write_buffer.extend([0xFD, instr])
+                if eff_type > 0 and not is_dxx and (eff_type != cur_eff_type or eff_arg != cur_eff_arg):
+                    cur_eff_type, cur_eff_arg = eff_type, eff_arg
+                    write_buffer.extend([0xE0|(eff_type&0xf), eff_arg]) # do effect
+                elif eff_type == 0 and eff_type != cur_eff_type:
+                    cur_eff_type = 0
+                    write_buffer.append(0xE0) # stop effects
 
-            if note != 0xFF: # if note is NOT empty
-                if note == 0xFE: # note OFF
-                    write_buffer.append(0xFE)
-                else:
-                    write_buffer.append(note|0x80)
-                
-            if last_write >= 63 or len(write_buffer) > 0:
-                if last_write > 0: pattern_data.append(last_write)
-                pattern_data.extend(write_buffer)
-                last_write = 0
+                if instr != 0 and (cur_ins != instr or note == 0xFF or row == 0):
+                    cur_ins = instr
+                    if instr >= max_ins: max_ins = instr
+                    if instr < 0x40: 
+                        write_buffer.append(instr+0x40)
+                    else:
+                        write_buffer.extend([0xFD, instr])
 
-            if not is_dxx and row != (pattern_len-1): last_write += 1
+                if note != 0xFF: # if note is NOT empty
+                    if note == 0xFE: # note OFF
+                        write_buffer.append(0xFE)
+                    else:
+                        write_buffer.append(note|0x80)
+                    
+                if last_write >= 63 or len(write_buffer) > 0:
+                    if last_write > 0: pattern_data.append(last_write)
+                    pattern_data.extend(write_buffer)
+                    last_write = 0
 
-        # write the remaining waits
-        if last_write > 0: pattern_data.append(last_write)
-        last_write = 0
+                if not is_dxx and row != (pattern_len-1): last_write += 1
 
-        pattern_data.append(0xFF)
+            # write the remaining waits
+            if last_write > 0: pattern_data.append(last_write)
+            last_write = 0
 
-        if pat not in pats_used: pattern_data = [0xFF] # unused pattern
+            pattern_data.append(0xFF)
 
-        pat_data = str(pattern_data)[1:-1]
-        if pat_data in pat_dict:
-            out += f"pattern{pat} = {pat_dict[pat_data]}\n"
+            if pat not in pats_used: pattern_data = [0xFF] # unused pattern
+
+            pat_data = str(pattern_data)[1:-1]
+            if pat_data in pat_dict:
+                out += f"pattern_{ch}_{pat} = {pat_dict[pat_data]}\n"
+            else:
+                out += f"pattern_{ch}_{pat}: .byte {str(pattern_data)[1:-1]}\n"
+                pat_dict[pat_data] = f"pattern_{ch}_{pat}"
+
+        if version < 11 and pat_block_amt == 1:
+            # convert the global-based pattern addrs
+            # into per-channel based ones
+            for ch in range(3*sid_count):
+                out += f"pat_lo{ch}:\n"
+            out += f"pat_lo: .lobytes"
+            for pat in range(max_pat+1):
+                out += f" pattern_0_{pat}"
+                if pat == max_pat: out += "\n"
+                else: out += ","
+
+            for ch in range(3*sid_count):
+                out += f"pat_hi{ch}:\n"
+            out += f"pat_hi: .hibytes"
+            for pat in range(max_pat+1):
+                out += f" pattern_0_{pat}"
+                if pat == max_pat: out += "\n"
+                else: out += ","
         else:
-            out += f"pattern{pat}: .byte {str(pattern_data)[1:-1]}\n"
-            pat_dict[pat_data] = f"pattern{pat}"
+            # per-channel patterns
+            out += f"pat_lo{ch}: .lobytes"
+            for pat in range(max_pat+1):
+                out += f" pattern_{ch}_{pat}"
+                if pat == max_pat: out += "\n"
+                else: out += ","
 
+            out += f"pat_hi{ch}: .hibytes"
+            for pat in range(max_pat+1):
+                out += f" pattern_{ch}_{pat}"
+                if pat == max_pat: out += "\n"
+                else: out += ","
+                
     ins_properties = []
     init_cutoffs_rel = []
     ins_wave_dict = {}
