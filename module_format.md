@@ -44,14 +44,19 @@ unless noted otherwise, each byte/word is treated as an **unsigned** value and i
 - 14 bytes reserved (currently only zeros)
 
 ## Orders
-- 1 bytes: global order table length **MINUS** - 1
+- 1 bytes: global (or per-channel if VERSION >= 11) order table length **MINUS** - 1
 
 - N\*3 (or N\*6 if using 2SID) bytes: order table (NON-interleaved)
     - in the file, the first channel's order table is laid out first, then the second's and then the third's
 
 ## Patterns
+- IF VERSION >= 11
+    - This data block will repeat for each channel, since patterns are per-channel in this module version.
+
 - 1 byte: amount of patterns
-    - NOTE: the same pattern can be shared across multiple channels, so eg. if channel 1 and channel 2 use pattern $02 then they will play the same pattern and notes
+    - NOTE: IN VERSIONS < 11, the same pattern can be shared across multiple channels, so eg. if channel 1 and channel 2 use pattern $02 then they will play the same pattern and notes
+    - HOWEVER in module versions 11 and up (>= 11), patterns are now per-channel, meaning that eg. pattern $00 on channel 1 is different from pattern $00 on channel 2.
+
 - for each pattern:
   - there are 64 (or custom row length if VERSION >= 7) rows and for each row
     - there are 4 bytes
