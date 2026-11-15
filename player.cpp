@@ -31,15 +31,12 @@ along with this program; if not, see
 #define GET_SID_BASE_ADDR(chip_n) ((chip_n)*0x20)
 #define GET_SID_CH_ADDR(ch) (((ch%3)*7)+GET_SID_BASE_ADDR(ch/3))
 
-SDL_AudioDeviceID dev;
 reSIDfp::SID* sid_fp;
 reSIDfp::SID* sid_fp2;
 
-int16_t audio_buffer[BUFFER_SIZE*4];
-int16_t audio_buffer_temp[BUFFER_SIZE];
-int audio_buffer_read, audio_buffer_ind, audio_buffer_write;
+extern void reset_audio_buffer();
+
 int frame_cnt;
-uint32_t time_cur;
 #define CLAMP(x,y,z) ((x)>(z)?(z):((x)<(y)?(y):(x)))
 
 // Frequency table LOW
@@ -86,41 +83,12 @@ void init_player_freq_table(uint16_t a_freq) {
     }
 }
 
-// Reset audio buffer
-void reset_audio_buffer() {
-    audio_buffer_read = 0;
-    audio_buffer_write = BUFFER_SIZE;
-    time_cur = SDL_GetTicks();
-}
-
 void set_channel_mute(int ch, bool muted) {
     if (ch >= 3) {
         if (sid_fp2!=NULL) sid_fp2->mute(ch%3, muted);
     } else {
         if (sid_fp!=NULL) sid_fp->mute(ch%3, muted);
     }
-}
-
-bool audio_paused;
-
-void callback(void *udata, uint8_t *stream, int len) {
-    SDL_memset(stream, 0, len);
-
-    if (audio_paused) return;
-
-    if (len > ((BUFFER_SIZE)*sizeof(short))) len = (BUFFER_SIZE)*sizeof(short); // clamp length
-
-    SDL_MixAudioFormat(
-        stream, 
-        (const Uint8 *)(&audio_buffer[audio_buffer_read]), 
-        AUDIO_S16SYS, 
-        len, 
-        SDL_MIX_MAXVOLUME
-    );
-
-    audio_buffer_read += len>>1;
-    if (audio_buffer_read >= (BUFFER_SIZE*4))
-        audio_buffer_read -= (BUFFER_SIZE*4);
 }
 
 int audio_cycles = 0;
@@ -141,18 +109,6 @@ void init_sid() {
     sid_fp2->setSamplingParameters(985248.0,reSIDfp::DECIMATE,985248.0,0.0);
     sid_fp2->reset();
     sid_fp2->clockSilent(30000);
-
-    SDL_AudioSpec wanted;
-    wanted.freq = SAMPLE_RATE;
-    wanted.format = AUDIO_S16;
-    wanted.channels = 1;
-    wanted.samples = BUFFER_SIZE;
-    wanted.callback = callback;
-    wanted.userdata = NULL;
-
-    dev = SDL_OpenAudio(&wanted, NULL);
-    SDL_PauseAudio(0);
-    reset_audio_buffer();
 }
 
 uint8_t sid_regs[0x40];
@@ -172,8 +128,6 @@ uint8_t read_sid(uint8_t addr) {
 */
 
 void free_sid() {
-    SDL_PauseAudioDevice(dev, 1);
-    SDL_CloseAudioDevice(dev);
     if (sid_fp!=NULL) delete sid_fp;
     if (sid_fp2!=NULL) delete sid_fp2;
 }
@@ -199,44 +153,8 @@ void SID_set_chip(bool mode) {
 }
 
 void advance_frame(song *song, cursor *cur_cursor);
-extern float get_volume();
 
-void advance_audio(song *song, cursor *cur_cursor) {
-    const static int sid_rate_inc = ((int)(((double)(985248)/(SAMPLE_RATE))*256));
-    while (1) {
-        SID_advance_clock(song->n_sids);
-        audio_cycles += 256;
-        if (audio_cycles >= sid_rate_inc) {
-            audio_cycles -= sid_rate_inc;
-            if (++frame_cnt == (SAMPLE_RATE/50)) {
-                frame_cnt = 0;
-                advance_frame(song, cur_cursor);
-            }
-            audio_buffer_temp[audio_buffer_ind++] = CLAMP(SID_advance_sample()*get_volume(),-32767,32767);
-            if (audio_buffer_ind == BUFFER_SIZE) {
-                audio_buffer_ind = 0;
-                memcpy(&audio_buffer[audio_buffer_write], 
-                    audio_buffer_temp,
-                    BUFFER_SIZE*sizeof(short));
-            
-                audio_buffer_write += BUFFER_SIZE;
-            
-                if (audio_buffer_write >= (BUFFER_SIZE*4))
-                audio_buffer_write -= (BUFFER_SIZE*4);
-            
-                int now = SDL_GetTicks();
-                if (time_cur > now) {
-                    now = time_cur - now;
-                    SDL_Delay(now);
-                }
-                time_cur += 1000/50;
-                return;
-            }
-        }
-    } 
-}
-
-int advance_sample(song *song, cursor *cur_cursor, int16_t *buffer, int buffer_length) {
+int advance_sample(song *song, cursor *cur_cursor, int16_t *buffer, int buffer_length, float volume) {
     const static int sid_rate_inc = ((int)(((double)(985248)/(SAMPLE_RATE))*256));
     int buf_pos = 0;
     while (buf_pos < buffer_length) {
@@ -248,7 +166,7 @@ int advance_sample(song *song, cursor *cur_cursor, int16_t *buffer, int buffer_l
                 frame_cnt = 0;
                 advance_frame(song, cur_cursor);
             }
-            buffer[buf_pos++] = CLAMP(SID_advance_sample()*2.5f,-32767,32767);
+            buffer[buf_pos++] = CLAMP(SID_advance_sample()*volume,-32767,32767);
         }
     }
     return buf_pos;

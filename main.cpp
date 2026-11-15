@@ -356,17 +356,16 @@ void load_settings() {
 }
 
 extern void init_sid(); // player.cpp
-extern void advance_audio(song *song, cursor *cur_cursor); // player.cpp
-extern int advance_sample(song *song, cursor *cur_cursor, int16_t *buffer, int buffer_length); // player.cpp
+extern void init_audio(); // audio.cpp
+extern void advance_audio(song *song, cursor *cur_cursor); // audio.cpp
+extern void free_audio(); // audio.cpp
+
+extern int advance_sample(song *song, cursor *cur_cursor, int16_t *buffer, int buffer_length, float volume); // player.cpp
 extern int player_get_loop_cnt(); // player.cpp
 extern void init_routine(song *song); // player.cpp
 extern void register_view(song *song, bool *open);
 extern void display_filter_info(song *song, cursor *cur_cursor, bool *open);
 extern void SID_set_chip(bool mode); // player.cpp
-
-float get_volume() { // for player.cpp
-    return visible_windows.audio_volume;
-}
 
 // this is basically just ImGui::StyleColorsDark()
 // from before they made the dark theme more grey :p
@@ -617,6 +616,7 @@ int main(int argc, char *argv[]) {
     audio_paused = false;
 
     init_sid();
+    init_audio();
     init_routine(&c_song);
     SID_set_chip(c_song.chip_mode);    
 
@@ -628,7 +628,7 @@ int main(int argc, char *argv[]) {
         int16_t sample_buf[1024];
         while (player_get_loop_cnt() < 1) {
             memset(sample_buf, 0, 1024*sizeof(int16_t));
-            int samp_len = advance_sample(&c_song, &cur_cursor, sample_buf, 1024);
+            int samp_len = advance_sample(&c_song, &cur_cursor, sample_buf, 1024, 2.5f);
             wav_file.write(sample_buf, samp_len);
         }
         done = true;
@@ -954,6 +954,7 @@ int main(int argc, char *argv[]) {
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
 
+    free_audio();
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
     SDL_Quit();

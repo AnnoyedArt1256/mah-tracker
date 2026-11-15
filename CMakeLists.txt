@@ -102,6 +102,7 @@ add_executable(
 	instrument_edit.cpp
 	player.cpp
     file_ops.cpp
+    audio.cpp
 )
 
 if(SDL2_VENDORED)
