@@ -97,6 +97,12 @@ Collapsed=0\n\
 DockId=0x00000008,1\n\
 LastUsed=20260927\n\
 \n\
+[Window][Alert]\n\
+Pos=446,315\n\
+Size=582,193\n\
+Collapsed=0\n\
+LastUsed=20261115\n\
+\n\
 [Docking][Data]\n\
 DockSpace           ID=0xC0DFADC4 Window=0xD0388BC8 Pos=0,26 Size=1470,789 Split=Y\n\
   DockNode          ID=0x00000003 Parent=0xC0DFADC4 SizeRef=1470,295 Split=X Selected=0xA0C159B7\n\

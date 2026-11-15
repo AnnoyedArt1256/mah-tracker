@@ -158,12 +158,23 @@ void open_file_choose() {
     auto f = pfd::open_file("Choose a file to read", pfd::path::home(),
                             { "Mah-Tracker Files", "*.mah" },
                             pfd::opt::none).result();
-    if (!f.empty()) {
+
+    if (!pfd::settings::available()) {
+        // error out if the file picker doesn't work
+#if defined(_WIN32) || defined(__APPLE__)
+        cur_cursor.alert_popup = true;
+        cur_cursor.alert_str = "There are was an error while setting up the file dialog.\n\nPlease report this issue to https://github.com/AnnoyedArt1256/mah-tracker/issues";
+#else
+        cur_cursor.alert_popup = true;
+        cur_cursor.alert_str = "Cannot find Zenity or KDialog! Install either one of these to load/save files.\n\nIf you do have Zenity/KDialog installed please report this issue to https://github.com/AnnoyedArt1256/mah-tracker/issues";
+#endif
+    } else if (!f.empty()) {
         fs::path path_check = f[0];
         if (path_check.extension() != ".mah")
             path_check.replace_extension("mah");
         load_file((char *)path_check.string().c_str(), &c_song, &cur_cursor);
     } 
+
     audio_paused = false;
     reset_audio_buffer();
 }
@@ -173,12 +184,23 @@ void save_file_choose() {
     auto f = pfd::save_file("Choose a file to write to", pfd::path::home(),
                             { "Mah-Tracker Files", "*.mah" },
                             pfd::opt::none).result();
-    if (!f.empty()) {
+
+    if (!pfd::settings::available()) {
+        // error out if the file picker doesn't work
+#if defined(_WIN32) || defined(__APPLE__)
+        cur_cursor.alert_popup = true;
+        cur_cursor.alert_str = "There are was an error while setting up the file dialog.\n\nPlease report this issue to https://github.com/AnnoyedArt1256/mah-tracker/issues";
+#else
+        cur_cursor.alert_popup = true;
+        cur_cursor.alert_str = "Cannot find Zenity or KDialog! Install either one of these to load/save files.\n\nIf you do have Zenity/KDialog installed please report this issue to https://github.com/AnnoyedArt1256/mah-tracker/issues";
+#endif
+    } else if (!f.empty()) {
         fs::path path_check = f;
         if (path_check.extension() != ".mah")
             path_check.replace_extension("mah");
         save_file((char *)path_check.string().c_str(), &c_song);
     }
+
     audio_paused = false;
     reset_audio_buffer();
 }
@@ -679,7 +701,7 @@ int main(int argc, char *argv[]) {
             ImGui::OpenPopup("Alert");
             if (ImGui::BeginPopupModal("Alert")) {
                 ImGui::SetItemDefaultFocus();
-                ImGui::TextUnformatted(cur_cursor.alert_str.c_str());
+                ImGui::TextWrapped("%s",cur_cursor.alert_str.c_str());
                 if (ImGui::Button("OK")) {
                     cur_cursor.alert_popup = false;
                     ImGui::CloseCurrentPopup();
