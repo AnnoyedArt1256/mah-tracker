@@ -202,6 +202,7 @@ struct pvars {
     uint8_t transpose[MAX_SID_CHANNELS];
     uint16_t glide_limit[MAX_SID_CHANNELS];
     uint8_t glide_note[MAX_SID_CHANNELS];
+    bool loop_row;
     uint8_t looped;
     bool row_has_9xx[MAX_SID_CHIPS];
 };
@@ -234,6 +235,7 @@ void init_routine(song *song) {
     for (int chip_n = 0; chip_n < SONG_CH_COUNT(song)/3; chip_n++)
         player_vars.filt_mode[chip_n] = 0x00;
     player_vars.looped = 0;
+    player_vars.loop_row = false;
     reset_audio_buffer();
 }
 
@@ -380,6 +382,10 @@ void advance_frame(song *song, cursor *cur_cursor) {
                 player_vars.last_arg[ch] = eff_arg;
             }
             player_vars.tick_sel ^= 1;
+            if (player_vars.loop_row) {
+                player_vars.loop_row = false;
+                player_vars.looped++;
+            }
             cur_cursor->play_row++;
             if (cur_cursor->play_row == song->row_length) {
                 cur_cursor->play_row = 0;
@@ -387,7 +393,7 @@ void advance_frame(song *song, cursor *cur_cursor) {
                     cur_cursor->order++;
                     if (cur_cursor->order >= song->order_len) {
                         cur_cursor->order = song->order_loop;
-                        player_vars.looped++;
+                        player_vars.loop_row = true;
                     }
                     did_order_skip = true;
                 }
