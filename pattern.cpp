@@ -125,14 +125,15 @@ void paste_pat(song *song, cursor *cur_cursor, bool overlap) {
     char_size_xy.y += io.FontGlobalScale+2;
 
     pattern_chunk_copy *copy_buffer = &cur_cursor->pattern_copy_buffer;
+    int start_ch = copy_buffer->col_start>>2;
     int cursor_row = cur_cursor->row;
     for (int row = 0; row < copy_buffer->row_len; row++) {
         if ((row+cursor_row) >= song->row_length) break;
         for (int col = copy_buffer->col_start; col < copy_buffer->col_start+copy_buffer->col_len; col++) {
             // i could use memcpy, but just in case someone's using big-endian or smth...
             int rel_col = col-copy_buffer->col_start;
-            if ((cur_cursor->ch+(rel_col>>2)) >= SONG_CH_COUNT(song)) continue;
-            pat_row *cur_pat_rows = song->pattern[cur_cursor->ch+(rel_col>>2)][song->order_table[cur_cursor->ch+(rel_col>>2)][cur_cursor->order]].rows;
+            if ((start_ch+(rel_col>>2)) >= SONG_CH_COUNT(song)) continue;
+            pat_row *cur_pat_rows = song->pattern[start_ch+(rel_col>>2)][song->order_table[start_ch+(rel_col>>2)][cur_cursor->order]].rows;
             switch (col&3) {
                 case 0: {
                     uint8_t note = copy_buffer->ch_rows[col>>2].rows[row].note;
@@ -201,7 +202,7 @@ void clear_pat_selection(song *song, cursor *cur_cursor) {
             // i could use memcpy, but just in case someone's using big-endian or something...
             int rel_col = col-col_start;
             if ((start_ch+(rel_col>>2)) >= SONG_CH_COUNT(song)) continue;
-            pat_row *cur_pat_rows = song->pattern[cur_cursor->ch+(rel_col>>2)][song->order_table[start_ch+(rel_col>>2)][cur_cursor->order]].rows;
+            pat_row *cur_pat_rows = song->pattern[start_ch+(rel_col>>2)][song->order_table[start_ch+(rel_col>>2)][cur_cursor->order]].rows;
             switch (col&3) {
                 case 0: cur_pat_rows[row+cursor_row].note = NOTE_EMPTY; break;
                 case 1: cur_pat_rows[row+cursor_row].instr = 0; break;
