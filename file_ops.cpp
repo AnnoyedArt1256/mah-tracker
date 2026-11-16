@@ -222,6 +222,17 @@ void load_file(char *filename, song *song, cursor *cur_cursor) {
     }
 
     fclose(f);
+
+    // init parts of the cursor struct when
+    // loading a new module...
+    cur_cursor->ch = 0;
+    cur_cursor->row = 0;
+    cur_cursor->selection = note;
+    cur_cursor->order = 0;
+    cur_cursor->instr = 1;
+    cur_cursor->playing = 0;
+    cur_cursor->play_row = 0;
+    cur_cursor->do_record = false; // jam
 }
 
 void save_file(char *filename, song *song) {
