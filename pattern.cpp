@@ -125,7 +125,7 @@ void paste_pat(song *song, cursor *cur_cursor, bool overlap) {
     char_size_xy.y += io.FontGlobalScale+2;
 
     pattern_chunk_copy *copy_buffer = &cur_cursor->pattern_copy_buffer;
-    int start_ch = copy_buffer->col_start>>2;
+    int start_ch = cur_cursor->ch;
     int cursor_row = cur_cursor->row;
     for (int row = 0; row < copy_buffer->row_len; row++) {
         if ((row+cursor_row) >= song->row_length) break;
