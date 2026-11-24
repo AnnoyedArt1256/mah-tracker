@@ -26,8 +26,6 @@ along with this program; if not, see
 #define rightClickable if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) ImGui::SetKeyboardFocusHere(-1);
 #define CLAMP(x,y,z) ((x)>(z)?(z):((x)<(y)?(y):(x)))
 
-extern const char* note_str[12];
-
 // Waveform names
 const char* wave_names[8] = {
     "Noise", "Pulse", "Saw", "Triangle",
@@ -164,7 +162,7 @@ void render_instr(song *song, cursor *cur_cursor, bool *enable) {
                         ImVec2 slider_drag_res = ImVec2(18.0f*io.FontGlobalScale,8.0f*io.FontGlobalScale);
 
                         if (is_abs) {
-                            ImGui::Text("%s%d",note_str[arp_val%12],(arp_val-(arp_val%12))/12);
+                            ImGui::Text("%s%d",get_note_name(arp_val%12),(arp_val-(arp_val%12))/12);
                         } else {
                             ImGui::SetNextItemWidth(slider_res.x);
                             ImGui::InputInt("##arp_val",&arp_val,0,0);

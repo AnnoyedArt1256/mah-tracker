@@ -187,6 +187,9 @@ struct window_bool {
     bool filter_view;
     bool decimal_rows;
     bool effects_list;
+    bool use_flats;
 };
 
 extern window_bool visible_windows;
+
+extern const char* get_note_name(int semitone);
