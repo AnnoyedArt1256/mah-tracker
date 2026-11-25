@@ -449,6 +449,7 @@ int main(int argc, char *argv[]) {
     visible_windows.filter_view = true;
     visible_windows.decimal_rows = true;
     visible_windows.effects_list = true;
+    visible_windows.use_flats = false;
 
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
@@ -793,6 +794,15 @@ int main(int argc, char *argv[]) {
             }
             if (ImGui::RadioButton("Hexadecimal", visible_windows.decimal_rows == false)) {
                 visible_windows.decimal_rows = false;
+            }
+            ImGui::Unindent();
+            ImGui::Text("Note accidentals:");
+            ImGui::Indent();
+            if (ImGui::RadioButton("Sharps (C#)", visible_windows.use_flats == false)) {
+                visible_windows.use_flats = false;
+            }
+            if (ImGui::RadioButton("Flats (Db)", visible_windows.use_flats == true)) {
+                visible_windows.use_flats = true;
             }
             ImGui::Unindent();
             ImGui::Separator();

@@ -23,21 +23,20 @@ along with this program; if not, see
 #include "defines.h"
 
 // Note string definitions.
-/* TODO? Maybe? 
-// Add flat-rendering support. Some people like flats in their trackers. 
- Those people are weird. */
-
-/*
-const char* flats[12] = {
-    "C-", "Db", "D-", "Eb", "E-", "F-", "Gb", "G-", "Ab", "A-", "Bb", "B-"
-
-};
-
-*/
-
 const char* note_str[12] = {
     "C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"
 };
+
+// Flat-rendering support. Some people like flats in their trackers.
+const char* note_str_flats[12] = {
+    "C-", "Db", "D-", "Eb", "E-", "F-", "Gb", "G-", "Ab", "A-", "Bb", "B-"
+};
+
+const char* get_note_name(int semitone) {
+    semitone %= 12;
+    if (semitone < 0) semitone += 12;
+    return visible_windows.use_flats ? note_str_flats[semitone] : note_str[semitone];
+}
 
 // Piano keys
 ImGuiKey piano_keys[] = {
@@ -1007,7 +1006,7 @@ void render_pat(song *song, cursor *cur_cursor, std::vector<undo_chunk> *undo_ch
             uint8_t eff_arg  = song->pattern[ch][song->order_table[ch][cur_cursor->order]].rows[row].eff_arg;
             if (note != NOTE_EMPTY) {
                 if (note != NOTE_OFF) {
-                    memcpy(cur_note,note_str[note%12],2);
+                    memcpy(cur_note,get_note_name(note%12),2);
                     cur_note[2] = "0123456789ABCDEF"[(note-(note%12))/12];
                 } else {
                     memcpy(cur_note,"OFF",3);
