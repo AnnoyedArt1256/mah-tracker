@@ -55,7 +55,6 @@ void load_settings();
 
 window_bool visible_windows;
 
-// Rebindable transpose shortcuts (ImGuiMod_Ctrl maps to Cmd on macOS)
 const int transpose_binds_default[TRANSPOSE_ACTION_COUNT] = {
     ImGuiMod_Ctrl | ImGuiKey_F1,                  // notes +1
     ImGuiMod_Ctrl | ImGuiKey_F2,                  // notes -1
