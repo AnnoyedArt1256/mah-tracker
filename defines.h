@@ -192,4 +192,23 @@ struct window_bool {
 
 extern window_bool visible_windows;
 
+// Rebindable transpose shortcuts (see the Settings window).
+// Each bind is an ImGuiKeyChord (ImGuiKey | ImGuiMod_* flags), stored as a plain int
+// so this header doesn't need imgui.h.
+enum transpose_action {
+    TRANSPOSE_SEMI_UP,      // notes +1 semitone
+    TRANSPOSE_SEMI_DOWN,    // notes -1 semitone
+    TRANSPOSE_OCT_UP,       // notes +12 semitones
+    TRANSPOSE_OCT_DOWN,     // notes -12 semitones
+    TRANSPOSE_VAL_UP,       // instr/eff. arg values +1
+    TRANSPOSE_VAL_DOWN,     // instr/eff. arg values -1
+    TRANSPOSE_VAL_UP_16,    // instr/eff. arg values +16
+    TRANSPOSE_VAL_DOWN_16,  // instr/eff. arg values -16
+    TRANSPOSE_ACTION_COUNT
+};
+
+extern int transpose_binds[TRANSPOSE_ACTION_COUNT];                 // main.cpp
+extern const int transpose_binds_default[TRANSPOSE_ACTION_COUNT];   // main.cpp
+extern const char* transpose_bind_names[TRANSPOSE_ACTION_COUNT];    // main.cpp
+
 extern const char* get_note_name(int semitone);

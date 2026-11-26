@@ -351,7 +351,7 @@ void transpose_pat_values(song *song, cursor *cur_cursor, int delta) {
         }
     } else {
         row_start = row_end = cur_cursor->row;
-        col_start = col_end = cur_cursor->ch*4; // note column of current channel
+        col_start = col_end = cur_cursor->ch*4+((int)cur_cursor->selection); // column under the cursor
     }
 
     for (int row = row_start; row <= row_end; row++) {
@@ -450,8 +450,6 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
     // read special key inputs for shortcuts
     bool ctrl_pressed = ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl);
     bool delete_pressed = ImGui::IsKeyPressed(ImGuiKey_Backspace) || ImGui::IsKeyPressed(ImGuiKey_Delete);
- 	bool super_pressed = ImGui::IsKeyDown(ImGuiKey_LeftSuper) || ImGui::IsKeyDown(ImGuiKey_RightSuper);
-	bool mod_pressed = ctrl_pressed || super_pressed; // Ctrl on Win/Linux, Cmd or Ctrl on macOS
     bool shift_pressed = ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift);
 
     // Copy-paste functions
@@ -504,26 +502,30 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
         }
     }
 
-    // Transpose notes (and values)
-    // Ctrl/Cmd + F1: +1 semitone
-    // Ctrl/Cmd + F2: -1 semitone
-    // Ctrl/Cmd + F3: +1 octave (+12 semitones)
-    // Ctrl/Cmd + F4: -1 octave (-12 semitones)
-    // Ctrl/Cmd + Shift + F1/2/3/4: Change values (instrument idx and eff. args) by delta
-    if (mod_pressed) {
-	    int transpose_delta = 0;
-	    if (ImGui::IsKeyPressed(ImGuiKey_F1)) transpose_delta = -1;
-        else if (ImGui::IsKeyPressed(ImGuiKey_F2)) transpose_delta = 1;
-	    else if (ImGui::IsKeyPressed(ImGuiKey_F3)) transpose_delta = shift_pressed ? -16 : -12;
-	    else if (ImGui::IsKeyPressed(ImGuiKey_F4)) transpose_delta = shift_pressed ? 16 : 12;
-	    if (transpose_delta != 0) {
-            if (shift_pressed) {
-	            transpose_pat_values(song, cur_cursor, transpose_delta);
+    // Transpose notes (and values) using the rebindable shortcuts (Settings window).
+    // IsKeyChordPressed requires the modifiers to match exactly, so e.g. Ctrl+F1
+    // won't fire while Ctrl+Shift+F1 is held.
+    struct transpose_bind_action { int delta; bool values; };
+    static const transpose_bind_action transpose_actions[TRANSPOSE_ACTION_COUNT] = {
+        { +1,  false }, // TRANSPOSE_SEMI_UP
+        { -1,  false }, // TRANSPOSE_SEMI_DOWN
+        { +12, false }, // TRANSPOSE_OCT_UP
+        { -12, false }, // TRANSPOSE_OCT_DOWN
+        { +1,  true  }, // TRANSPOSE_VAL_UP
+        { -1,  true  }, // TRANSPOSE_VAL_DOWN
+        { +16, true  }, // TRANSPOSE_VAL_UP_16
+        { -16, true  }, // TRANSPOSE_VAL_DOWN_16
+    };
+    for (int i = 0; i < TRANSPOSE_ACTION_COUNT; i++) {
+        if (ImGui::IsKeyChordPressed(transpose_binds[i], ImGuiInputFlags_Repeat)) {
+            if (transpose_actions[i].values) {
+                transpose_pat_values(song, cur_cursor, transpose_actions[i].delta);
             } else {
-	            transpose_pat_notes(song, cur_cursor, transpose_delta);
+                transpose_pat_notes(song, cur_cursor, transpose_actions[i].delta);
             }
-	        register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
-	    }
+            register_undo(song, cur_cursor, undo_chunks, &cur_undo); // add to undo buffer
+            break;
+        }
     }
     
     // Down one row
