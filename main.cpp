@@ -55,6 +55,107 @@ void load_settings();
 
 window_bool visible_windows;
 
+const int transpose_binds_default[TRANSPOSE_ACTION_COUNT] = {
+    ImGuiMod_Ctrl | ImGuiKey_F1,                  // notes -1
+    ImGuiMod_Ctrl | ImGuiKey_F2,                  // notes +1
+    ImGuiMod_Ctrl | ImGuiKey_F3,                  // notes -12
+    ImGuiMod_Ctrl | ImGuiKey_F4,                  // notes +12
+    ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_F1, // values -1
+    ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_F2, // values +1
+    ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_F3, // values -16
+    ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_F4, // values +16
+};
+int transpose_binds[TRANSPOSE_ACTION_COUNT];
+const char* transpose_bind_names[TRANSPOSE_ACTION_COUNT] = {
+    "Transpose -1 semitone",
+    "Transpose +1 semitone",
+    "Transpose -1 octave",
+    "Transpose +1 octave",
+    "Values -1",
+    "Values +1",
+    "Values -16",
+    "Values +16",
+};
+
+// a bind is valid if it's a keyboard key (not a mouse/gamepad key or a lone modifier)
+static bool is_valid_transpose_bind(int chord) {
+    ImGuiKey key = (ImGuiKey)(chord & ~ImGuiMod_Mask_);
+    return key >= ImGuiKey_Keyboard_BEGIN && key < ImGuiKey_Keyboard_END && !ImGui::IsLRModKey(key);
+}
+
+// shortcuts already hardcoded in the pattern editor, used for conflict warnings
+static bool is_reserved_chord(int chord) {
+    const int reserved[] = {
+        ImGuiMod_Ctrl | ImGuiKey_A, ImGuiMod_Ctrl | ImGuiKey_C, ImGuiMod_Ctrl | ImGuiKey_V,
+        ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_V, ImGuiMod_Ctrl | ImGuiKey_X,
+        ImGuiMod_Ctrl | ImGuiKey_Z, ImGuiMod_Ctrl | ImGuiKey_Y,
+    };
+    for (int r : reserved) if (r == chord) return true;
+    return false;
+}
+
+// UI for rebinding the transpose shortcuts (drawn inside the Settings window)
+static void render_transpose_bind_settings() {
+    ImGuiIO& io = ImGui::GetIO();
+    static int listening_bind = -1; // index of the bind waiting for a key press, -1 = none
+
+    // capture the next key press for the bind being edited
+    if (listening_bind >= 0) {
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+            listening_bind = -1;
+        } else {
+            for (int k = ImGuiKey_Keyboard_BEGIN; k < ImGuiKey_Keyboard_END; k++) {
+                ImGuiKey key = (ImGuiKey)k;
+                if (ImGui::IsLRModKey(key)) continue; // wait for a non-modifier key
+                if (ImGui::IsKeyPressed(key, false)) {
+                    transpose_binds[listening_bind] = key | io.KeyMods;
+                    listening_bind = -1;
+                    break;
+                }
+            }
+        }
+    }
+
+    ImGui::Text("Transpose shortcuts (click to rebind):");
+    ImGui::Indent();
+    for (int i = 0; i < TRANSPOSE_ACTION_COUNT; i++) {
+        ImGui::PushID(i);
+        std::string label = (listening_bind == i)
+            ? std::string("Press a key... (Esc to cancel)")
+            : std::string(ImGui::GetKeyChordName(transpose_binds[i]));
+        label += "###bind"; // keep the ID stable while the label changes
+        if (ImGui::Button(label.c_str(), ImVec2(220.0f*io.FontGlobalScale, 0.0f))) {
+            listening_bind = (listening_bind == i) ? -1 : i;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Reset")) {
+            transpose_binds[i] = transpose_binds_default[i];
+            if (listening_bind == i) listening_bind = -1;
+        }
+        ImGui::SameLine();
+        ImGui::TextUnformatted(transpose_bind_names[i]);
+
+        // warnings
+        bool conflict = is_reserved_chord(transpose_binds[i]);
+        for (int j = 0; j < TRANSPOSE_ACTION_COUNT; j++) {
+            if (j != i && transpose_binds[j] == transpose_binds[i]) conflict = true;
+        }
+        if (conflict) {
+            ImGui::SameLine();
+            ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "(conflict)");
+        } else if ((transpose_binds[i] & ImGuiMod_Mask_) == 0) {
+            ImGui::SameLine();
+            ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.3f, 1.0f), "(no modifier: may also enter notes)");
+        }
+        ImGui::PopID();
+    }
+    if (ImGui::Button("Reset All")) {
+        for (int i = 0; i < TRANSPOSE_ACTION_COUNT; i++) transpose_binds[i] = transpose_binds_default[i];
+        listening_bind = -1;
+    }
+    ImGui::Unindent();
+}
+
 static bool opt_padding = false; // Is there padding (a blank space) between the window edge and the Dockspace?
 
 extern void init_player_freq_table(uint16_t a_freq);
@@ -340,6 +441,10 @@ void save_settings() {
     for (int i = 0; i < sizeof(visible_windows); i++) {
         f << (int)(((uint8_t*)&visible_windows)[i]) << "\n";
     }
+    // transpose shortcuts (one ImGuiKeyChord per line)
+    for (int i = 0; i < TRANSPOSE_ACTION_COUNT; i++) {
+        f << transpose_binds[i] << "\n";
+    }
 }
 
 // load settings
@@ -352,6 +457,15 @@ void load_settings() {
     getline(f,value); if (!value.empty()) io.FontGlobalScale = std::stof(value);
     for (int i = 0; i < sizeof(visible_windows); i++) {
         getline(f,value); if (!value.empty()) ((uint8_t*)&visible_windows)[i] = std::stoi(value);
+    }
+    // transpose shortcuts: missing lines (older config files) keep the defaults,
+    // invalid values are ignored
+    for (int i = 0; i < TRANSPOSE_ACTION_COUNT; i++) {
+        if (!getline(f,value) || value.empty()) break;
+        try {
+            int chord = std::stoi(value);
+            if (is_valid_transpose_bind(chord)) transpose_binds[i] = chord;
+        } catch (...) {}
     }
 }
 
@@ -450,6 +564,7 @@ int main(int argc, char *argv[]) {
     visible_windows.decimal_rows = true;
     visible_windows.effects_list = true;
     visible_windows.use_flats = false;
+    for (int i = 0; i < TRANSPOSE_ACTION_COUNT; i++) transpose_binds[i] = transpose_binds_default[i];
 
     // Setup SDL
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0)
@@ -805,6 +920,8 @@ int main(int argc, char *argv[]) {
                 visible_windows.use_flats = true;
             }
             ImGui::Unindent();
+            ImGui::Separator();
+            render_transpose_bind_settings();
             ImGui::Separator();
             ImGui::MenuItem("Padding", NULL, &opt_padding);
             ImGui::Separator();
