@@ -507,14 +507,14 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
     // won't fire while Ctrl+Shift+F1 is held.
     struct transpose_bind_action { int delta; bool values; };
     static const transpose_bind_action transpose_actions[TRANSPOSE_ACTION_COUNT] = {
-        { +1,  false }, // TRANSPOSE_SEMI_UP
         { -1,  false }, // TRANSPOSE_SEMI_DOWN
-        { +12, false }, // TRANSPOSE_OCT_UP
+        { +1,  false }, // TRANSPOSE_SEMI_UP
         { -12, false }, // TRANSPOSE_OCT_DOWN
-        { +1,  true  }, // TRANSPOSE_VAL_UP
+        { +12, false }, // TRANSPOSE_OCT_UP
         { -1,  true  }, // TRANSPOSE_VAL_DOWN
-        { +16, true  }, // TRANSPOSE_VAL_UP_16
+        { +1,  true  }, // TRANSPOSE_VAL_UP
         { -16, true  }, // TRANSPOSE_VAL_DOWN_16
+        { +16, true  }, // TRANSPOSE_VAL_UP_16
     };
     for (int i = 0; i < TRANSPOSE_ACTION_COUNT; i++) {
         if (ImGui::IsKeyChordPressed(transpose_binds[i], ImGuiInputFlags_Repeat)) {
@@ -529,7 +529,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
     }
     
     // Down one row
-    if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
+    if (ImGui::IsKeyPressed(ImGuiKey_DownArrow) && !ctrl_pressed) {
         cur_cursor->latch = 0;
         cur_cursor->already_dragged = false;
         cur_cursor->dragging = false;
@@ -538,7 +538,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
     }
 
     // Up one row
-    if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
+    if (ImGui::IsKeyPressed(ImGuiKey_UpArrow) && !ctrl_pressed) {
         cur_cursor->latch = 0;
         cur_cursor->already_dragged = false;
         cur_cursor->dragging = false;
@@ -548,7 +548,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
     }
 
     // Column right
-    if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)) {
+    if (ImGui::IsKeyPressed(ImGuiKey_RightArrow) && !ctrl_pressed) {
         cur_cursor->latch = 0;
         cur_cursor->already_dragged = false;
         cur_cursor->dragging = false;
@@ -575,7 +575,7 @@ void do_pat_keyboard(song *song, cursor *cur_cursor, std::vector<undo_chunk> *un
     }
 
     // Column left
-    if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) {
+    if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow) && !ctrl_pressed) {
         cur_cursor->latch = 0;
         cur_cursor->already_dragged = false;
         cur_cursor->dragging = false;

@@ -56,25 +56,25 @@ void load_settings();
 window_bool visible_windows;
 
 const int transpose_binds_default[TRANSPOSE_ACTION_COUNT] = {
-    ImGuiMod_Ctrl | ImGuiKey_F1,                  // notes +1
-    ImGuiMod_Ctrl | ImGuiKey_F2,                  // notes -1
-    ImGuiMod_Ctrl | ImGuiKey_F3,                  // notes +12
-    ImGuiMod_Ctrl | ImGuiKey_F4,                  // notes -12
-    ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_F1, // values +1
-    ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_F2, // values -1
-    ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_F3, // values +16
-    ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_F4, // values -16
+    ImGuiMod_Ctrl | ImGuiKey_F1,                  // notes -1
+    ImGuiMod_Ctrl | ImGuiKey_F2,                  // notes +1
+    ImGuiMod_Ctrl | ImGuiKey_F3,                  // notes -12
+    ImGuiMod_Ctrl | ImGuiKey_F4,                  // notes +12
+    ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_F1, // values -1
+    ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_F2, // values +1
+    ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_F3, // values -16
+    ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_F4, // values +16
 };
 int transpose_binds[TRANSPOSE_ACTION_COUNT];
 const char* transpose_bind_names[TRANSPOSE_ACTION_COUNT] = {
-    "Transpose +1 semitone",
     "Transpose -1 semitone",
-    "Transpose +1 octave",
+    "Transpose +1 semitone",
     "Transpose -1 octave",
-    "Values +1",
+    "Transpose +1 octave",
     "Values -1",
-    "Values +16",
+    "Values +1",
     "Values -16",
+    "Values +16",
 };
 
 // a bind is valid if it's a keyboard key (not a mouse/gamepad key or a lone modifier)
